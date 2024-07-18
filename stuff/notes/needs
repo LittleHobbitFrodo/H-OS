@@ -1,0 +1,17 @@
+
+#	compilation
+	nasm (compile asm files) TODO: find a way for cross nasm
+	g++/x86_64-elf-gcc (AUR, ?) (compile c/c++)
+
+#	disk image creation
+	parted (?, parted)
+	mtools (mtools, preinstalled)
+
+#	runtime
+limine (limine, must build) (bootloader)
+
+#	testing
+	qemu (qemu, qemu) (emulation/testing only)
+
+#	scripts
+	fish -> build scripts (fish, fish)

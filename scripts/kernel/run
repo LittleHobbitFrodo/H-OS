@@ -1,0 +1,16 @@
+#!/usr/bin/fish
+
+if test ! (basename (pwd)) = "H-OS"
+	echo run in project root directory
+	exit
+end
+
+#uefi-run -b /path/to/OVMF.fd -q /path/to/qemu app.efi
+#uefi-run -b /usr/share/OVMF/x64/OVMF.fd -q /usr/bin/qemu-system-x86_64 ./H-OS.hdd
+#uefi-run -b /usr/share/OVMF/x64/OVMF.fd -q /usr/bin/qemu-system-x86_64 -- -hda ./H-OS.hdd
+
+set PATH_OVMF /usr/share/OVMF/x64
+
+#qemu-system-x86_64 -pflash $PATH_OVMF/OVMF_CODE.fd -drive if=pflash,format=raw,readonly,file=$PATH_OVMF/OVMF_VARS.fd -hda ./H-OS.hdd
+
+qemu-system-x86_64 -pflash $PATH_OVMF/OVMF.fd -hda ./H-OS.hdd

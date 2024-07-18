@@ -1,0 +1,42 @@
+;;
+;;  init.asm
+;;      part of the H-Os project
+;;
+
+section .bss
+	global STACK_END
+    global STACK_START
+	align 16
+	STACK_START:
+	resb 32768  ;   32kb
+	STACK_END:
+
+global set_cs
+
+section .text
+	extern init
+	extern kernel
+	extern stack_kernel
+
+	global halt
+	global _start
+
+	_start:
+		;   init stack
+		;mov STACK_END, rsp
+
+		;   initialize kernel
+		call init   ;   k_management.h/.cpp files
+			;   kernel function executed inside the init function
+
+		;   halt the cpu
+		halt:
+		cli
+		.hang:
+		hlt
+		jmp .hang
+
+	set_cs:
+		jmp rdi:scs
+		scs:
+		ret

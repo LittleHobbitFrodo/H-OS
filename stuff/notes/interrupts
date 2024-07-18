@@ -1,0 +1,63 @@
+
+interrupts
+	when the handlers are called
+		x86
+			stack: EFLAGS -> CS -> EIP
+
+			EFLAGS	-> 64bit
+			CS	-> 16bit
+			EIP	-> 32bit
+
+			if interrupt is exception error code is pushed to stack too:
+				32bit?
+
+		x86_64
+			stack: SS (original RSP) -> RFLAGS -> CS -> RIP
+
+			RSP	-> 64bit
+			RFLAGS	-> 64bit
+			CS	-> 64bit (is padded)
+			RIP	-> 64bit
+
+
+			called from different ring: SS = 0
+
+
+	GDT	-	Global Descriptor Table
+		
+		size: 65 536 bytes -> 8 192 entries
+		offset: 8 bytes (64 bits)
+		virtual address is applied
+
+
+		pointed to by value in GDTR register
+			note: LGDT instruction must be used to load the pointer into cpu
+		first entry must be null (all bytes set to 0)
+		cpu may change the data in the first entry
+
+		table entry:
+			"The complexity of GDT entriy in x86 is primarily due to historical reasons and the need to maintain backwards compatibility"
+				-	ChatGPT
+
+			size: 16 bytes (127 bits)
+				32 bits unused (reserved)
+
+			structure:
+				bits		purpose
+				16		limit (first 16 bits)
+				16		base address (first 16 bits)
+				8		base address (bits: 16 - 24)
+				8		access byte
+				8		limit (bits: 16 - 24)
+				8		base address (bits: 24 - 32)
+				32		base address (bist: 32 - 64)
+		
+
+		setup
+			1)	fill da tabel
+			2)	disable interrupts (cli instruction)
+			3)	tell the cpu whe da tabel is
+			4)	reload segment registers (?)
+			5)	re-enable interrupts (sti instruction)
+
+

@@ -1,0 +1,23 @@
+#!/usr/bin/fish
+
+echo "generating iso image ..."
+
+if test ! (basename (pwd)) = "H-Os-x64"
+	echo run in project root directory
+	exit
+end
+
+if test -e "H-OS.iso"
+	echo "deleting current iso image"
+	rm "./H-OS.iso"
+end
+
+if test ! -e "H-OS.hdd"
+	echo disk image does not exist
+	./scr/mkimage
+end
+
+echo;echo;echo;echo
+echo "creating iso image"
+
+genisoimage -o "./H-OS.iso" "./H-OS.hdd"

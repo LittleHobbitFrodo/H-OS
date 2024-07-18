@@ -1,0 +1,15 @@
+#!/usr/bin/fish
+
+
+if test ! (basename (pwd)) = "H-OS"
+	#	change dir to root
+	echo run in project root directory
+	exit
+end
+#	else assumes that it is running in root dir
+
+if test -e ./H-OS.hdd
+	echo;echo;echo;echo
+    echo "removing current disk image"
+	rm ./H-OS.hdd
+end
