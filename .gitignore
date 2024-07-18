@@ -3,3 +3,4 @@ CMakeLists.txt
 bin
 mnt
 tmp
+.idea
