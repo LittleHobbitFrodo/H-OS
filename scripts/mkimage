@@ -1,0 +1,86 @@
+#!/usr/bin/fish
+
+#	script for disk image automation
+#	from OSDev wiki -> limine bare bones article (https://wiki.osdev.org/Limine_Bare_Bones#Building_the_kernel_and_creating_an_image)
+
+echo;echo;echo
+echo creating bootable image ...
+
+if test ! (basename (pwd)) = "H-OS"
+	#	change directory to root
+	echo run in project root directory
+	exit
+end
+#	else assumes that is is running in root dir
+
+echo "creating image for H-OS"
+
+./scripts/kernel/rmimage
+
+if test ! -e "./bin/kernel/H-OS.bin"
+	echo "kernel binary not found"
+	echo "do you wish to compile it? [Y/n]"
+	read -l answer -P ""
+	if test -z $answer
+		#	user left blank
+		set answer "y"
+	end
+	set answer (string lower $answer)
+
+	if test $answer = "y"
+		./scripts/build
+	else
+		exit
+	end
+
+end
+
+echo;echo;echo
+echo "starting creating image..."
+echo
+
+set PATH_LIMINE "./stuff/limine"		#	for better usability -> if wanted to choose different or the actual version, just change the path
+
+set MEMP -i H-OS.hdd@@1M			#	memory management command arguments (repeats a lot)
+
+dd if=/dev/zero bs=10M count=0 seek=64 of=H-OS.hdd
+	#	empty disk creation
+echo
+
+parted H-OS.hdd mklabel gpt
+parted H-OS.hdd mkpart primary 2048s 100M
+parted H-OS.hdd set 1 esp on
+	#	GPT table creation
+echo
+
+"$PATH_LIMINE/limine" bios-install H-OS.hdd
+	#	install limine
+echo
+
+mformat $MEMP
+	#	format into FAT32 (uefi needs it)
+echo
+
+mmd $MEMP ::/EFI ::/EFI/BOOT ::/boot ::/boot/limine
+	#	create subdirectories
+		#	EFI/BOOT		-> the bootloader program lays there
+		#	/boot/limine	-> configs, kernel and other stuff
+echo
+
+mcopy $MEMP bin/kernel/H-OS.bin ::/boot			#	don`t have the kernel yet lol
+	#	copy kernel binary into /boot
+echo
+
+mcopy $MEMP $PATH_LIMINE/limine.cfg $PATH_LIMINE/limine-bios.sys ::/boot/limine
+	#	copy limine config and limine-bios.sys (idk what is does)
+echo
+
+mcopy $MEMP $PATH_LIMINE/BOOTX64.EFI ::/EFI/BOOT
+	#	copy limine 64bit binary (the actual program)
+echo
+
+mcopy $MEMP $PATH_LIMINE/BOOTIA32.EFI ::/EFI/BOOT
+	#	copy limine 32bit binary⏎
+
+echo;echo;echo
+echo "completed, if no error reported, your OS should be working just fine..."

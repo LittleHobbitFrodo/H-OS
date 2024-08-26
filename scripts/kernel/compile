@@ -1,0 +1,117 @@
+#!/usr/bin/fish
+
+if test ! (basename (pwd)) = "H-OS"
+	#	change dir to root
+	echo run in project root directory
+	exit
+end
+
+set include /usr/include
+
+set ccompiler "none"
+
+echo "argv[1]" $argv[1]
+set is_test "0"
+if test (count $argv) -ge 1
+  if test $argv[1] = "test"
+    set is_test "1"
+  end
+end
+
+for i in $PATH
+	if test -e "$i/x86_64-elf-gcc"
+		set ccompiler "$i/x86_64-elf-gcc"
+		echo using $ccompiler as c++ compiler
+		break
+	end
+end
+
+if test $ccompiler = "none"
+	if test (uname -m) = x86_64 -o (uname -m) = amd64
+		for i in $PATH
+			if test -e "$i/gcc"
+				set ccompiler "$i/gcc"
+				echo using $ccompiler as c++ compiler
+				break
+			end
+		end
+	else
+		#echo error: could not resolve c++ compiler
+		echo ERROR: cross compiler for c++ was not found, please install x86_64-elf-gcc package
+		exit
+	end	
+end
+
+#echo compiler $ccompiler
+
+mkdir tmp/kernel -p
+	#	create temporary directory for elfs
+
+set acompiler "none"
+
+for i in $PATH
+  if test -e "$i/x86_64-elf-as"
+    set acompiler "$i/x86_64-elf-as"
+    echo using $acompiler as assembly compiler
+    break
+  end
+end
+
+if test $acompiler = "none"
+  if test (uname -m) != x86_64 -a (uname -m) != amd64
+    echo ERROR: assembly cross compiler was not found, please install x86_64-elf-gcc package
+    exit
+  end
+  for i in $PATH
+    if test -e "$i/as"
+      set acompiler "$i/as"
+      echo using $acompiler as assembly compiler
+      break
+    end
+  end
+end
+
+echo;echo;echo;echo
+echo compiling asm files ...
+
+for i in (find ./kernel/src/ -name "*.asm")
+
+	set bname (basename $i)
+	set bname (string replace ".asm" ".o" -- $bname)
+
+	echo compiling file $i
+
+	#nasm -f elf64 $i -o "./tmp/kernel/$bname"
+	$acompiler --64 -o "./tmp/kernel/$bname" $i
+
+end
+
+#set stdpath "/usr/include/c++"
+
+#if test ! -e $stdpath
+#  echo standard library was not found in /usr/include/c++
+#  exit
+#end
+
+#set stdpath "$stdpath/$(ls -r $stdpath)[1]"
+
+#echo "standard library: $stdpath"
+
+echo;echo;echo;echo		#	endl
+echo compiling kernel ...
+
+set compiler_params "-O0"
+
+if test $is_test -eq 1
+  set compiler_params "-O3"
+end
+
+
+$ccompiler $compiler_params -fno-exceptions -finline-functions -finline-limit=1000 \
+-I$stdpath -Wno-missing-field-initializers -ffreestanding \
+-fno-stack-protector -fno-stack-check -fno-lto -fPIE -nostdlib \
+-nostartfiles -Wextra -march=x86-64 -mno-mmx -mno-sse -mno-sse2 \
+-mno-red-zone -m64 -c -Wall "./kernel/src/kernel.c" \
+-o "./tmp/kernel/kernel.o" -I /mnt/usr/include \
+"-DKERNEL_VERSION=\"$(cat ./kernel/version)\"" "-DKERNEL_BUILD_TIME=\"$(date +"%m-%d-%Y")\"" \
+"-DKERNEL_NAME=\"H-OS CORE-$(cat ./kernel/version)\"" "-DKERNEL_BUILD_GUID=\"$(uuidgen)\"" -masm=intel

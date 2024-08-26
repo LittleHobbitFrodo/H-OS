@@ -1,0 +1,75 @@
+#!/usr/bin/fish
+
+#	checks if limine is installed
+
+set uninstall "0"
+
+for i in $PATH
+	if test -e "$i/limine"
+		echo "limine bootloader is already installed on your system"
+		#echo "do you wish to procees? [Y/n] "
+		read -l input --prompt-str "do you wish to proceed? [Y/n]"
+    switch $input
+      case '' 'Y' 'y'
+        echo "building limine while it is already installed may break something..."
+        #echo "did you uninstall limine? [Y/n]"
+        read -l input --prompt-str "did you uninstall limine? [Y/n]"
+        if test $input = "n" -o $input = "n"
+          echo "allright, script will try to uninstall limine manually"
+          set uninstall "1"
+        end
+      case 'n' 'N'
+        echo terminating
+        exit
+      case "*"
+        echo invalid input
+        echo terminating
+        exit
+	  end
+  end
+end
+
+
+set tarball "$(find ./ -name "limine-*.tar.gz" -type f)"
+
+if test -z $tarball
+	echo "tarball was not found"
+	echo "please download one from" 'https://github.com/limine-bootloader/limine/releases' and move it here
+	echo terminating
+	exit
+end
+
+
+tar -xf $tarball
+
+if test ! -e (string replace ".tar.gz" "" -- $tarball)
+	echo "error while unpacking tarball"
+	exit
+end
+
+cd (string replace  ".tar.gz" "" -- $tarball)
+
+if test $uninstall = "1"
+  echo "root permission needed to uninstall limine"
+  echo "command: make uninstall"
+  sudo make uninstall
+end
+
+./configure
+
+make
+
+echo;echo;echo
+echo "root permission needed to install limine on your system"
+echo "command: make install; cp ./limine.h /usr/include"
+sudo make install;sudo cp ./limine.h /usr/include
+
+#	checks if limine command exists
+for i in $PATH
+	if test -e "$i/limine"
+		echo "limine bootloader installed successfully"
+		exit
+	end
+end
+
+echo "error during installation"

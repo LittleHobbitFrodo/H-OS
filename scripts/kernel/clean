@@ -1,0 +1,16 @@
+#!/usr/bin/fish
+
+if test ! (basename (pwd)) = "H-OS"
+	echo run in project root directory
+	exit
+end
+
+if test -e ./tmp
+	echo;echo;echo;echo
+	echo "cleaning up"
+	rm -rf ./tmp
+end
+
+if test -e "./bin/kernel/H-OS.bin"
+	rm ./bin/kernel/H-OS.bin
+end

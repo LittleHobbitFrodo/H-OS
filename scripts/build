@@ -1,0 +1,60 @@
+#!/usr/bin/fish
+
+function help_build
+	echo "usage: "
+	echo "build kernel: builds kernel"
+	echo "build mkimage/yes/true:	builds kernel and create disk image"
+	echo;echo "build help:	displays this text"
+	echo "build --help:	do the same thing"
+end
+
+echo pwd (pwd)
+
+set is_test "0"
+
+if test ! (basename (pwd)) = "H-OS"
+	echo run in project root directory
+	exit
+end
+
+#	assuming that current path is in root directory
+
+set KERNEL_VERSION (cat ./kernel/version)
+
+set MKIMAGE 0
+
+if test (count $argv) -ge 1
+	for i in $argv
+		switch $i
+			case "mkimage"
+				set MKIMAGE 1
+			case "yes"
+				set MKIMAGE 1
+			case "true"
+				set MKIMAGE 1
+			case "test"
+			  set is_test "1"
+		end
+	end
+end
+
+echo "starting build: H-OS $KERNEL_VERSION"
+
+./scripts/kernel/rmimage	#	deletes disk image (if existent)
+./scripts/kernel/clean		#	delete files used in previous builds
+if test $is_test -eq 0
+  ./scripts/kernel/compile test
+else
+  ./scripts/kernel/compile
+end
+./scripts/kernel/link		#	links kernel objects
+if test -e "./bin/kernel/H-OS.bin"
+	echo "kernel compiled successfully"
+else
+	echo "kernel compilation failure"
+	exit
+end
+
+if test $MKIMAGE = 1
+	./scripts/mkimage
+end

@@ -1,0 +1,9 @@
+cmake-build-debug
+tmp
+mnt
+CMakeLists.txt
+H-OS.hdd
+.cache
+.fleet
+.idea
+.token
