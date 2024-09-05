@@ -22,11 +22,10 @@
 	#define MB (1024 * 1024)
 	#define GB (1024 * 1024 * 1024)
 
-	static void* kernel_stack_address = null;
-	static void* interrupt_stack_address = null;
-
-	[[maybe_unused]] void* physical();
-	[[maybe_unused]] void* virtual_();
+	extern void* kernel_stack_address = null;
+	extern void* interrupt_stack_address = null;
+	extern void* pml4_address = null;
+		//	these variables are initialized in page_init() (memory/paging.c)
 
 	enum panic_codes memory_init();
 
@@ -122,11 +121,6 @@
 		this->ptr = null;
 		this->align = (this->offset = 0);
 	}
-
-
-	extern void* kernel_stack_virtual = null;
-	extern void* interrupt_stack_virtual = null;
-	extern void* kernel_stack_base = null;
 
 
 	//	memmap vector is declared in vector.h

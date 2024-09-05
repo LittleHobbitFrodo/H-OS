@@ -20,6 +20,11 @@
 	#define PAGE_COUNT 512
 	#define PAGE_SIZE 4096
 
+	#define VA_INDEX_L4 (0x1ffUL << 48)	//	48 = 12 + (9 * 4)
+	#define VA_INDEX_L3 (0xfffUL << 39)
+	#define VA_INDEX_L2 (0x1ffUL << 30)
+	#define VA_INDEX_L1 (0x1ffUL << 21)
+
 	void page_init();
 
 	enum page_flags {					//	structure of page_entry
@@ -59,6 +64,17 @@
 
 	void page_entry_info(page_entry ent);
 
+
+
+
+	//	pre-define page_table_ptr
+	/*typedef struct page_table_ptr page_table_ptr;
+
+	typedef struct page_table {	//	points back to page_table_ptr for algorithms to know how many pages are in table
+		page_table_ptr* table;
+		//	page entries are allocated right after the struture
+	}page_table __attribute__((packed));*/
+
 	typedef struct page_table {
 		//	helps managing paging on heap
 		page_entry* base;			//	base address (on heap)
@@ -67,30 +83,40 @@
 	} page_table;
 
 	//	initialization
+	static struct pages {
+		//	structure for holding kernel-related paging structures
+
 		//	pml4 and pdpts are global (only kernel mapped memory (PDs, PTs) are globally too)
 		//	each process will have its own PD/PDs and PTs
-	static page_table pml4 			= {.base = null, .offset = 4096, .size = 0};
-	static page_table pdpt 			= {.base = null, .offset = 4096, .size = 0};
-	static page_table kpd			= {.base = null, .offset = 4096, .size = 0};
+		page_table pml4;
+		page_table pdpt;
+		page_table pd;
 		//	kpd: mapping ring 0 stuff (pml4[0], pdpt[0])
 
-	static page_table page_ring0	= {.base = null, .offset = 4096, .size = 0};
-	static page_table page_heap		= {.base = null, .offset = 4096, .size = 0};
-		//	since kernel heap can grow it is separated
+		struct pt {
+			page_table table;
 
-	static struct kpages {
-		page_entry* kernel;
-		page_entry* stacks;
-		page_entry* heap;
-		struct count {
-			size_t kernel;
-			size_t heap;
-			size_t stacks;
-		} count;
-	} kpages;
+			//	pointer to start of each part
+			struct kernel {
+				page_entry* ptr;
+				size_t size;
+			} kernel;
+
+			struct heap {
+				page_entry* ptr;
+				size_t size;
+			} heap;
+
+			struct stack {
+				page_entry* ptr;
+				size_t size;
+			} stack;
+		} pt;
+
+	} pages;
 
 	__attribute__((always_inline)) inline void* page_address(page_entry entry) {
-		return (void*)((entry >> 12) & (0xffffffffffff));
+		return (void*)(((entry & 0xFFFFFFFFFF000) >> 12));
 	}
 
 	__attribute__((always_inline)) inline void page_set_address(page_entry* entry, void* ptr) {
@@ -126,20 +152,20 @@
 		return ((size_t)addr >> (12 + (level * 9))) & 0x1ff;
 	}
 
+	__attribute__((always_inline)) __attribute__((nonnull)) inline void va_set_index(virtual_addr* addr, u16 index, u8 level) {
+		size_t shift = 12 + (level * 9);
+		*((size_t*)addr) &= ~(0x1ffUL << shift);
+		*((size_t*)addr) |= (index & 0x1ff) << shift;
+	}
 
+	__attribute__((always_inline)) __attribute__((nonnull)) inline void va_set_offset(virtual_addr* addr, u16 offset) {
+		*((size_t*)addr) &= ~0xfff;
+		*((size_t*)addr) |= offset & 0xfff;
+	}
 
-	/*
-	 *	static paging layout:
-	 *	pml4[0]
-	 *	pdpt[0]
-	 *	pd:
-	 *		[0 .. x]	->	ring0 (kernel, stack (in this order) )
-	 *		[x .. y]	->	heap
-	 *
-	 *
-	 *	bad, reserved and acpi memory is not mapped yet
-	 *		acpi is not supported yet so I dont see point of mapping it
-	 */
+	extern void* physical(void* virt);
+	extern void* virtual_(void* phys);
+
 
 #else
 	#warning memory/paging.h already included

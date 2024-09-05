@@ -340,7 +340,6 @@
 			return heap_align_enlargeo(bytes, align_);
 		}
 
-
 		void* align_realloc(void* ptr, size_t* offset, size_t align, size_t bytes) {
 			heap_segment* seg = (heap_segment*)((size_t)ptr - sizeof(heap_segment) - *offset);
 			if (seg->size >= bytes + *offset) {
@@ -523,9 +522,7 @@
 			}
 		}
 
-
-
-	#else
+#else
 		#warning memory/heap.c already included
 	#endif
 #else

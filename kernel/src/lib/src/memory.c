@@ -255,7 +255,11 @@
 				memmap_entry* new = (memmap_entry*)vec_push(&memmap, 1);
 				new->base = ent->base;
 				new->type = tmp;
-				new->len = ents[i]->base + ents[i]->length - new->base;
+				if (i+1 < msize) {
+					new->len = ents[i+1]->base - new->base;
+				} else {
+					new->len = ents[i]->base + ents[i]->length - new->base;
+				}
 
 				if ((i >= stack_index) && (!stack_defined)) {
 					memmap_entry* stck = (memmap_entry*)vec_push(&memmap, 1);

@@ -10,22 +10,19 @@
 	.global halt
 	.global hang
 	.global _start
-	.extern kernel_stack_virtual
-	.extern kernel_stack_base
-	#.extern interrupt_stack_virtual
+	.extern kernel_stack_address
+	.extern physical
 
 _start:
-
-	#   read stack base
-	movq %rsp, kernel_stack_base(%rip)
-		#   used later for stack re-initialization (paging.c)
 
 	#   initialize data
 	call init
 		#   init function initializes memory, including gdt, set the kernel_ptr global variable
 
-	#   re-initialize stack
-	#movq kernel_stack_virtual(%rip), %rsp
+	#   initialize paging
+	#movq kernel_stack_address(%rip), %cr3
+	#   set registers
+	#movq %rip,
 
 	#   call kernel
 	call kernel
