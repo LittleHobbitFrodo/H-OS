@@ -85,7 +85,7 @@ This contains just few steps:
 
 You can upload it to a flash drive, **the upload will completely erase the drive so please check if there is any data you could miss on the drive**
 - Insert the drive, open file manager and copy the disk image (H-OS.hdd) into the disk
-- Alternatively you can do that in command line with the "dd" command **(not recommended for beginners)** ```sudo dd if=<project root dir>/H-OS.hdd of=/dev/<drive>```# H-OS-progress
+- Alternatively you can do that in command line with the "dd" command **(not recommended for beginners)** ```sudo dd if=<project root dir>/H-OS.hdd of=/dev/<drive>```
 
 # Progress
 ## Current work
