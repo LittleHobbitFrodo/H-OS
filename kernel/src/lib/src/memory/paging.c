@@ -19,12 +19,11 @@
 			//	default paging layout
 			//		pml4[pml4.size - 1] is for kernel stuff
 			//			pdpt[0] is kernel data
-			//			pdpt[1] is kernel heap
 			//			pdpt[pdp.size-1] is kernel stack
 			//			kernel pd structure:
-			//				[start] -> kernel data (code, etc)
-			//				[next to start] -> kernel heap
-			//				[end] -> kernel stack
+			//				[start ... kernel pages] -> kernel data (code, etc)
+			//				[end kernel pages ... end kernel pages + heap pages] -> kernel heap
+			//				[end - stack pages ... end] -> kernel stack
 			//		other entries are for processes
 
 			//	initialize structures
