@@ -90,3 +90,4 @@ You can upload it to a flash drive, **the upload will completely erase the drive
 # Progress
 ## Current work
 - Paging - paging re-initialization to better understand the concept and to not rely on the bootloader
+  - Almost done - now just apply it
