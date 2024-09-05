@@ -6,9 +6,9 @@ kernel parameters
 	-vocality <value>:	printing information during startup
 		
 		values:
-		stfu		disables initial output, only critical errors are reported
-		quiet		reports errors and warnings
-		normal		reports errors, warnings and important initial information
-		vocal		reports all importand information
-		everything	reports everything happening during initialization
+		stfu			disables initial output, only critical errors are reported
+		quiet-please		reports errors and warnings
+		normal			reports errors, warnings and important initial information
+		vocal			reports all importand information
+		report-everything	reports everything happening during initialization
 
