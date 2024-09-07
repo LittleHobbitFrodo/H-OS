@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifndef H_OS_LIB_STRING_H
 	#define H_OS_LIB_STRING_H
 
@@ -56,10 +58,6 @@
 		this->size = 0;
 	}
 
-
-
-
-
-#else
-	#warning string.h already included
 #endif
+//	#warning string.h already included
+//#endif

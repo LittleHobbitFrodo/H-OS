@@ -5,6 +5,8 @@
 
 #include "memory/heap.h"
 
+#pragma once
+
 #ifndef H_OS_LIB_MEMORY_H
 	#define H_OS_LIB_MEMORY_H
 
@@ -22,9 +24,10 @@
 	#define MB (1024 * 1024)
 	#define GB (1024 * 1024 * 1024)
 
-	extern void* kernel_stack_address = null;
-	extern void* interrupt_stack_address = null;
-	extern void* pml4_address = null;
+	extern void* kernel_stack_address;
+	extern void* interrupt_stack_address;
+	/*extern void* pml4_address;
+	extern void* kernel_stack_base;*/
 		//	these variables are initialized in page_init() (memory/paging.c)
 
 	enum panic_codes memory_init();
@@ -45,7 +48,7 @@
 
 	} meminfo;
 
-	static volatile struct limine_stack_size_request k_stack_req = {
+	static volatile struct limine_stack_size_request k_stack_size_req = {
 		.id = LIMINE_STACK_SIZE_REQUEST,
 		.revision = 0,
 		.stack_size = KERNEL_STACK_SIZE * KB
@@ -125,6 +128,6 @@
 
 	//	memmap vector is declared in vector.h
 
-#else
-	#warning memory.h already included
 #endif
+//	#warning memory.h already included
+//#endif

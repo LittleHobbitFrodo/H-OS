@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifndef H_OS_LIB_OUTPUT_H
 	#define H_OS_LIB_OUTPUT_H
 
@@ -46,7 +48,12 @@
 	} screen;
 
 	void screen_init();
-	__attribute__((always_inline)) inline void screen_flush();
+	__attribute__((always_inline)) static inline void screen_flush() {
+		size_t size = screen.w * screen.h;
+		for (size_t i = 0; i < size; i++) {
+			screen.address[i] = 0;
+		}
+	}
 
 	static struct col {
 		u32 white;
@@ -75,11 +82,11 @@
 	void output_init();
 
 
-	__attribute__((always_inline)) inline void endl() {
+	__attribute__((always_inline)) static inline void endl() {
 		output.line += (output.column / screen.w) + (1 * (output.column < screen.w));
 		output.column = 0;
 	}
-	__attribute__((always_inline)) inline void tab() {
+	__attribute__((always_inline)) static inline void tab() {
 		output.column += OUT_TAB_SPACE_COUNT - (output.column % OUT_TAB_SPACE_COUNT);
 		if (output.column >= screen.w) {
 			endl();
@@ -97,7 +104,7 @@
 	void printb(size_t bin);
 
 
-	__attribute__((always_inline)) inline void printc(const char c) {
+	__attribute__((always_inline)) static inline void printc(const char c) {
 		if (c >= 0) {
 			switch (c) {
 				case '\n': {
@@ -134,6 +141,6 @@
 		}
 	}
 
-#else
-	#warning output.h already included
 #endif
+//	#warning output.h already included
+//#endif

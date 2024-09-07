@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_CPU_H
 	#ifndef H_OS_LUB_CPU_C
 		#define H_OS_LIB_CPU_C
@@ -65,6 +67,6 @@
 	#else
 		#warning cpu.c already included
 	#endif
-#else
-	#error cpu.c: cpu.h not included
 #endif
+//	#error cpu.c: cpu.h not included
+//#endif

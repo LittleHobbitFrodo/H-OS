@@ -3,10 +3,12 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifndef H_OS_LIB_CONVERT_H
 	#define H_OS_LIB_CONVERT_H
 
-	const static char* hex = "0123456789abcdef";
+	static const char* hex = "0123456789abcdef";
 
 	void to_string(char* str, size_t val);
 	void to_stringi(char* str, ssize_t val);
@@ -29,6 +31,6 @@
 
 
 
-#else
-	#warning convert.h already included
 #endif
+//	#warning convert.h already included
+//#endif

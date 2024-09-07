@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_VECTOR_H
 	#ifndef H_OS_LIB_VECTOR_C
 		#define H_OS_LIB_VECTOR_C
@@ -50,9 +52,9 @@
 			}
 		}
 
-	#else
-		#warning vector.c already included
 	#endif
+	//	#warning vector.c already included
+	//#endif
 #else
 	#error vector.c: vector.h not included
 #endif

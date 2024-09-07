@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_K_MANAGEMENT_H
 	#ifndef H_OS_LIB_K_MANAGEMENT_C
 		#define H_OS_LIB_K_MANAGEMENT_C
@@ -37,6 +39,9 @@
 			if ((code = memory_init()) != ok) {
 				panic(code);
 			}
+
+			print("pml4 address:\t"); printp(pml4_address); endl();
+			//hang();
 
 			output.color = col.green;
 			printl("CORE initialization completed...");
@@ -246,9 +251,9 @@
 			return;
 		}
 
-	#else
-		#warning k_management.c already included
 	#endif
+	//	#warning k_management.c already included
+	//#endif
 #else
 	#error k_management.c: k_management.h not included
 #endif

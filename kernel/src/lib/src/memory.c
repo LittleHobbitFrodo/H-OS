@@ -3,9 +3,16 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_MEMORY_H
 	#ifndef H_OS_LIB_MEMORY_C
 		#define H_OS_LIB_MEMORY_C
+
+		void* kernel_stack_address = null;
+		void* interrupt_stack_address = null;
+		void* pml4_address = null;
+		void* kernel_stack_base = null;
 
 		enum memmap_types memmap_entry_type(u64 constant)  {
 			switch (constant) {
@@ -192,7 +199,6 @@
 			vecs(&memmap, sizeof(memmap_entry));
 			size_t msize = memmap_req.response->entry_count;
 			struct limine_memmap_entry** ents = memmap_req.response->entries;
-			enum memmap_types type = undefined;
 			enum memmap_types tmp = undefined;
 			ssize_t stack_index = -1;
 
@@ -261,7 +267,7 @@
 					new->len = ents[i]->base + ents[i]->length - new->base;
 				}
 
-				if ((i >= stack_index) && (!stack_defined)) {
+				if (((ssize_t)i >= stack_index) && (!stack_defined)) {
 					memmap_entry* stck = (memmap_entry*)vec_push(&memmap, 1);
 					stck->len = (KERNEL_STACK_SIZE + INTERRUPT_STACK_SIZE) * KB;
 					stck->base = new->base + new->len - stck->len;
@@ -367,9 +373,9 @@
 			return (this->ptr = align_reallocaf(this->ptr, &this->offset, this->align, bytes, add, on_realloc));
 		}
 
-	#else
-		#warning memory.c already included
 	#endif
+	//	#warning memory.c already included
+	//#endif
 #else
 	#error memory.c: memory.h not included
 #endif

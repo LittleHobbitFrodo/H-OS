@@ -3,10 +3,14 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
-#include "../../memory.h"
+#pragma once
+#include "../../memory/paging.h"
+
 #ifdef H_OS_LIB_MEMORY_PAGING_H
 	#ifndef H_OS_LIB_MEMORY_PAGING_C
 		#define H_OS_LIB_MEMORY_PAGING_C
+
+
 
 		page_entry* page_find() {
 			page_entry* ret;
@@ -15,6 +19,22 @@
 		}
 
 		void page_init() {
+
+			pml4 = page_find();
+
+			base_virtual = (void*)k_address.response->virtual_base;
+			base_physical = (void*)k_address.response->physical_base;
+
+			print("virtual base:\t"); printp(base_virtual); endl();
+			print("physical base:\t"); printp(base_physical); endl();
+
+			print("\n\nstack base:\t"); printp(kernel_stack_base); endl();
+
+
+
+
+			//	roll with limine paging setup and expand it
+
 
 			//	default paging layout
 			//		pml4[pml4.size - 1] is for kernel stuff
@@ -27,12 +47,14 @@
 			//		other entries are for processes
 
 			//	initialize structures
-			pages.pml4 = (page_table){.base = null, .offset = 4096, .size = 512};
+			/*pages.pml4 = (page_table){.base = null, .offset = 4096, .size = 512};
 			pages.pdpt = (page_table){.base = null, .offset = 4096, .size = 0};
 			pages.pd = (page_table){.base = null, .offset = 4096, .size = 0};
 			pages.pt.table = (page_table){.base = null, .offset = 4096, .size = 0};
 
 			kernel_stack_address = null;
+			interrupt_stack_address = null;
+			pml4_address = null;
 
 			enum page_flags nullf = present | no_exec;
 
@@ -145,7 +167,7 @@
 			for (i = 0; i < sub; ++i) {
 				page_set_address(&pages.pd.base[pages.pd.size - sub + i], &pages.pt.table.base[i * PAGE_COUNT]);
 			}
-			va_set_index(&kernel_stack_address, --i, 1);
+			va_set_index(&kernel_stack_address, 0, 1);
 
 			//	fill pt entries (to point to correct locations)
 			pages.pt.kernel.ptr = pages.pt.table.base;
@@ -167,12 +189,44 @@
 			interrupt_stack_address = kernel_stack_address;
 			va_set_index(&interrupt_stack_address, pages.pt.table.size - (KERNEL_STACK_SIZE / 4), 0);
 
+			print("kstack:\t"); printp(kernel_stack_address); endl();
 
 			//	pre-apply paging
 				//	rsp -> kernel_stack_address
 				//	rbp -> ?
 				//	rax -> resolution
 			//pml4_address = pages.pml4.base;
+
+			pml4_address = pages.pml4.base;
+
+			//	copy stack data
+			size_t stack_used_size;
+			{
+				size_t current_stack_address;
+				asm volatile("mov %0, rsp" : "=r"(current_stack_address));
+				stack_used_size = (size_t)kernel_stack_base - current_stack_address;
+			}
+			print("stack size:\t"); printu(stack_used_size); endl();
+			printl("copying stack");
+			for (u32 ii = 0; ii < MAX_I32 / 3; ii++);
+			size_t* olds = (size_t*)((size_t)kernel_stack_base - stack_used_size);
+			size_t* news = (size_t*)((size_t)kernel_stack_address - stack_used_size);
+			for (size_t ii = 0; ii * sizeof(size_t) < stack_used_size; ii++) {
+				(void)(news[ii] - olds[ii]);
+			}
+			{
+				size_t rip;
+				asm volatile("mov rip, %0" : "=r"(rip));
+				print("rip:\t"); printp((void*)rip); endl();
+			}
+
+			printl("applying paging and migrating stack");
+			for (u32 ii = 0; ii < MAX_I32 / 3; ii++);
+
+			asm volatile("mov cr3, %0\n"
+				"mov rsp, %1\n"
+				"mov rbp, %0\n" :: "r"(pages.pml4.base), "r"(kernel_stack_address));
+			printl("stack migrated");*/
 
 		}
 
@@ -220,7 +274,7 @@
 		}
 
 
-		void* physical(void* virt) {
+		/*void* physical(void* virt) {
 			page_entry ent = pages.pml4.base[va_index(virt, 3)];
 			if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
 				return null;
@@ -228,11 +282,12 @@
 			for (i16 i = 2; i >= 0; --i) {
 				ent = ((page_entry*)page_address(ent))[va_index(virt, i)];
 				if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
+					print("physical: ret layer:\t"); printu(i); endl();
 					return null;
 				}
 			}
 			return (void*)((size_t)page_address(ent) + va_offset(virt));
-		}
+		}*/
 
 		//	virtual_() is deprecated, not implementing it unless it is NEEDED
 			//	needed for implementation? : round up all page table allocations to 512 entries
@@ -246,9 +301,9 @@
 			}
 		}*/
 
-	#else
-		#warning memory/paging.c already included
 	#endif
+	//	#warning memory/paging.c already included
+	//#endif
 #else
 	#error memory/paging.c: memory/paging.h not included
 #endif

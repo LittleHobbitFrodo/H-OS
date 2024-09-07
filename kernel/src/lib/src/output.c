@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_OUTPUT_H
 	#ifndef H_OS_LIB_OUTPUT_C
 		#define H_OS_LIB_OUTPUT_C
@@ -51,12 +53,6 @@
 			screen.h = f->height;
 			screen.w = f->width;
 
-		}
-		void screen_flush() {
-			size_t size = screen.w * screen.h;
-			for (size_t i = 0; i < size; i++) {
-				screen.address[i] = 0;
-			}
 		}
 		void output_init() {
 			output.line = (output.column = 0);
@@ -120,9 +116,9 @@
 
 
 
-	#else
-		#warning output.c already included
 	#endif
+	//	#warning output.c already included
+	//#endif
 #else
 	#error output.c: output.h not included
 #endif

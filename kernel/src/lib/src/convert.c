@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_CONVERT_H
 	#ifndef H_OS_LIB_CONVERT_C
 		#define H_OS_LIB_CONVERT_C
@@ -53,9 +55,9 @@
 			strrev(str, i);
 		}
 
-	#else
-		#warning convert.c already included
 	#endif
+	//	#warning convert.c already included
+	//#endif
 #else
 	#error convert.c: convert.h not included
 #endif

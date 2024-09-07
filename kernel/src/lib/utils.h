@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifndef H_OS_LIB_UTILS_H
 	#define H_OS_LIB_UTILS_H
 
@@ -59,6 +61,6 @@
 	extern void hang();
 	extern void halt();
 
-#else
-	#warning utils.h already included
 #endif
+//	#warning utils.h already included
+//#endif

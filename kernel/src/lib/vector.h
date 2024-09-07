@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifndef H_OS_LIB_VECTOR_H
 	#define H_OS_LIB_VECTOR_H
 
@@ -80,10 +82,10 @@
 
 
 
-static vector memmap;
+	static vector memmap;
 
 
 
-#else
-	#warning vector.h already included
 #endif
+//	#warning vector.h already included
+//#endif

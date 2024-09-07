@@ -30,7 +30,7 @@
 	enum cpu_init_codes cpu_init();
 	void cpu_info();
 
-	const static cpu_vendor_t cpu_vendors[] = {{.name = "AMD", .id = "AuthenticAMD", .hypervised = false},
+	static const cpu_vendor_t cpu_vendors[] = {{.name = "AMD", .id = "AuthenticAMD", .hypervised = false},
 		{.name = "AMD",		.id = "AMDisbetter!", .hypervised = false},
 	{.name = "Intel",			.id = "GenuineIntel", .hypervised = false},
 	{.name = "VIA",			.id = "VIA VIA VIA ", .hypervised = false},
@@ -59,8 +59,8 @@
 	{.name = "Bhyve",			.id = "bhyve bhyve ", .hypervised = true},
 	{.name = "QNX",			.id = " QNXQVMBSQG ", .hypervised = true}};
 
-	const static size_t cpu_vendor_count = 28;
+	static const size_t cpu_vendor_count = 28;
 
-#else
-	#warning cpu.h already included
 #endif
+//	#warning cpu.h already included
+//#endif

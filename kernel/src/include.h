@@ -5,6 +5,8 @@
 
 //	some inline functions are implemented in headers
 
+#pragma once
+
 #ifndef H_OS_LIB_INCLUDE_H
 	#define H_OS_LIB_INCLUDE_H
 
@@ -71,7 +73,7 @@
 	#include "./lib/src/string.c"
 	#include "./lib/src/vector.c"
 
-#else
-	#error include.h already included
 #endif
+//	#error include.h already included
+//#endif
 

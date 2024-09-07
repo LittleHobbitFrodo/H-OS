@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_STRING_H
 	#ifndef H_OS_LIB_STRING_C
 		#define H_OS_LIB_STRING_C
@@ -157,9 +159,9 @@
 			return true;
 		}
 
-	#else
-		#warning string.c already included
 	#endif
+	//	#warning string.c already included
+	//#endif
 #else
 	#error string.c: string.h not inlcluded
 #endif

@@ -3,6 +3,8 @@
 //      part of the H-Os project
 //
 
+#pragma once
+
 #ifndef H_OS_LIB_BITMAP_CPP
 	#define H_OS_LIB_BITMAP_CPP
 
@@ -963,6 +965,6 @@ void font_init() {
 	}
 }
 
-#else
-	#warning bitmap.cpp already included
 #endif
+//	#warning bitmap.cpp already included
+//#endif

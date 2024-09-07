@@ -21,19 +21,20 @@ SECTIONS
     /* and because that is what the Limine spec mandates. */
     /* Any address in this region will do, but often 0xffffffff80000000 is chosen as */
     /* that is the beginning of the region. */
-    . = 0xffffffff80000000;
+    /*. = 0xffffffff80000000;*/
+     . = 0xffffffffff000000;
     KERNEL_START = .;
     .text : {
         *(.text .text.*)
     } :text
- 
+
     /* Move to the next memory page for .rodata */
     . += CONSTANT(MAXPAGESIZE);
- 
+
     .rodata : {
         *(.rodata .rodata.*)
     } :rodata
- 
+
     /* Move to the next memory page for .data */
     . += CONSTANT(MAXPAGESIZE);
  
@@ -63,9 +64,9 @@ SECTIONS
         STACK_END = .;
     }*/
 
-    .heap : {
+    /*.heap : {
 		*(.heap)
-    } :data
+    } :data*/
 
     . = ALIGN(CONSTANT(MAXPAGESIZE));
  

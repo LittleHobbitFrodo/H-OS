@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_UTILS_H
 	#ifndef H_OS_LIB_UTILS_C
 		#define H_OS_LIB_UTILS_C
@@ -25,9 +27,9 @@
 			return 0;
 		}
 
-	#else
-		#warning utils.c already included
 	#endif
+	//	#warning utils.c already included
+	//#endif
 #else
 	#error utils.c: utils.h not included
 #endif

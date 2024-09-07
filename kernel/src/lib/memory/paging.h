@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifndef H_OS_LIB_MEMORY_PAGING_H
 	#define H_OS_LIB_MEMORY_PAGING_H
 
@@ -14,8 +16,8 @@
 		.mode = LIMINE_PAGING_MODE_X86_64_4LVL
 	};
 
-	static void* virtual_base = null;
-	static void* physical_base = null;
+	//static void* virtual_base = null;
+	//static void* physical_base = null;
 
 	#define PAGE_COUNT 512
 	#define PAGE_SIZE 4096
@@ -47,12 +49,12 @@
 			//	only in PT entries
 		available = (1 << 9 | 1 << 10 | 1 << 11),	//	ignored by hardware
 		address = (0xffffffffff000),
-		available2 = (0x3f << 52),
-		reserved_ = (0b111 << 59),		//	used by hardware (must be set to 0)
+		available2 = (0x3fUL << 52),
+		reserved_ = (0b111UL << 59),		//	used by hardware (must be set to 0)
 
 		//	bits 9,10,11 are ignored (can be used by OS)
 
-		no_exec = (1 << 63),			//	disable executing
+		no_exec = (1UL << 63),			//	disable executing
 
 		address_shift = 12
 	};
@@ -65,16 +67,6 @@
 	void page_entry_info(page_entry ent);
 
 
-
-
-	//	pre-define page_table_ptr
-	/*typedef struct page_table_ptr page_table_ptr;
-
-	typedef struct page_table {	//	points back to page_table_ptr for algorithms to know how many pages are in table
-		page_table_ptr* table;
-		//	page entries are allocated right after the struture
-	}page_table __attribute__((packed));*/
-
 	typedef struct page_table {
 		//	helps managing paging on heap
 		page_entry* base;			//	base address (on heap)
@@ -82,46 +74,16 @@
 		size_t size;
 	} page_table;
 
-	//	initialization
-	static struct pages {
-		//	structure for holding kernel-related paging structures
-
-		//	pml4 and pdpts are global (only kernel mapped memory (PDs, PTs) are globally too)
-		//	each process will have its own PD/PDs and PTs
-		page_table pml4;
-		page_table pdpt;
-		page_table pd;
-		//	kpd: mapping ring 0 stuff (pml4[0], pdpt[0])
-
-		struct pt {
-			page_table table;
-
-			//	pointer to start of each part
-			struct kernel {
-				page_entry* ptr;
-				size_t size;
-			} kernel;
-
-			struct heap {
-				page_entry* ptr;
-				size_t size;
-			} heap;
-
-			struct stack {
-				page_entry* ptr;
-				size_t size;
-			} stack;
-		} pt;
-
-	} pages;
 
 	__attribute__((always_inline)) inline void* page_address(page_entry entry) {
-		return (void*)(((entry & 0xFFFFFFFFFF000) >> 12));
+		//return (void*)(((entry & 0xFFFFFFFFF000) >> 12));
+		return (void*)(entry & 0xFFFFFFFFF000);
 	}
 
 	__attribute__((always_inline)) inline void page_set_address(page_entry* entry, void* ptr) {
 		*entry &= ~0x000ffffffffff000;
-		*entry |= (((size_t)ptr << 12) & 0x000ffffffffff000);
+		//*entry |= (((size_t)ptr << 12) & 0x000ffffffffff000);
+		*entry |= ((size_t)ptr) & 0xFFFFFFFFF000;
 	}
 
 	__attribute__((always_inline)) inline u64 page_flags(page_entry entry) {
@@ -166,7 +128,47 @@
 	extern void* physical(void* virt);
 	extern void* virtual_(void* phys);
 
+	page_entry* pml4 = null;
 
-#else
-	#warning memory/paging.h already included
+	static void* base_physical = null;
+	static void* base_virtual = null;
+
+
 #endif
+//	#warning memory/paging.h already included
+//#endif
+
+
+//	initialization
+/*static struct pages {
+	//	structure for holding kernel-related paging structures
+
+	//	pml4 and pdpts are global (only kernel mapped memory (PDs, PTs) are globally too)
+	//	each process will have its own PD/PDs and PTs
+	page_table pml4;
+	page_table pdpt;
+	page_table pd;
+	//	kpd: mapping ring 0 stuff (pml4[0], pdpt[0])
+
+	struct pt {
+		page_table table;
+
+		//	pointer to start of each part
+		struct kernel {
+			page_entry* ptr;
+			size_t size;
+		} kernel;
+
+		struct heap {
+			page_entry* ptr;
+			size_t size;
+		} heap;
+
+		struct stack {
+			page_entry* ptr;
+			size_t size;
+		} stack;
+	} pt;
+
+} pages;*/
+

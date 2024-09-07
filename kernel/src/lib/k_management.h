@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifndef H_OS_LIB_K_MANAGEMENT_H
 	#define H_OS_LIB_K_MANAGEMENT_H
 
@@ -60,7 +62,7 @@
 
 		void report(const char* msg, enum report_seriousness seriousness);
 
-#else
-	#warning k_management.h already included
 #endif
+//	#warning k_management.h already included
+//#endif
 

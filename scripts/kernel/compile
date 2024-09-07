@@ -110,8 +110,9 @@ end
 $ccompiler $compiler_params -fno-exceptions -finline-functions -finline-limit=1000 \
 -I$stdpath -Wno-missing-field-initializers -ffreestanding \
 -fno-stack-protector -fno-stack-check -fno-lto -fPIE -nostdlib \
--nostartfiles -Wextra -march=x86-64 -mno-mmx -mno-sse -mno-sse2 \
+-nostartfiles -march=x86-64 -mno-mmx -mno-sse -mno-sse2 \
 -mno-red-zone -m64 -c -Wall "./kernel/src/kernel.c" \
 -o "./tmp/kernel/kernel.o" -I /mnt/usr/include \
 "-DKERNEL_VERSION=\"$(cat ./kernel/version)\"" "-DKERNEL_BUILD_TIME=\"$(date +"%m-%d-%Y")\"" \
-"-DKERNEL_NAME=\"H-OS CORE-$(cat ./kernel/version)\"" "-DKERNEL_BUILD_GUID=\"$(uuidgen)\"" -masm=intel
+"-DKERNEL_NAME=\"H-OS CORE-$(cat ./kernel/version)\"" "-DKERNEL_BUILD_GUID=\"$(uuidgen)\"" -masm=intel\
+ -Wall -Werror -Wextra

@@ -3,6 +3,8 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+#pragma once
+
 #ifdef H_OS_LIB_MEMORY_HEAP_H
 	#ifndef H_OS_LIB_MEMORY_HEAP_C
 		#define H_OS_LIB_MEMORY_HEAP_C
@@ -522,9 +524,9 @@
 			}
 		}
 
-#else
-		#warning memory/heap.c already included
 	#endif
+		//#warning memory/heap.c already included
+	//#endif
 #else
 	#error memory/heap.c: memory/heap.h not included
 #endif

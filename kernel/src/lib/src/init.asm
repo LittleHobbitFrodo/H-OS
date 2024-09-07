@@ -11,18 +11,23 @@
 	.global hang
 	.global _start
 	.extern kernel_stack_address
-	.extern physical
+	.extern pml4_address
+	.extern kernel_stack_base
 
 _start:
 
+	movq %rsp, kernel_stack_base(%rip)
+
 	#   initialize data
 	call init
-		#   init function initializes memory, including gdt, set the kernel_ptr global variable
+		#   initializates hardware and memory, set everything needed to migrate stack, paging structures
 
-	#   initialize paging
-	#movq kernel_stack_address(%rip), %cr3
-	#   set registers
-	#movq %rip,
+	#   initialize paging, migrate stack
+	#movq pml4_address(%rip), %rax
+	#movq %rax, %cr3
+	#movq kernel_stack_address(%rip), %rsp
+	#movq kernel_stack_address(%rip), %rbp
+
 
 	#   call kernel
 	call kernel
