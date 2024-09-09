@@ -41,6 +41,7 @@ The whole project with all of its parts is under the GPL v3.0 licence
 - Since the arch wiki has proven to be a good resource here is a link. If you are currently using any other distribution the way of installation may differ
 
 **[Mtools](https://www.gnu.org/software/mtools/)** - tools used for disk image creation (together with parted)
+  - Mtools is widely used, your distribution should provide a package for it
 
 **[Limine](https://limine-bootloader.org/)** - bootloader used to start the system
 - Arch linux has an official package for limine
@@ -48,23 +49,23 @@ The whole project with all of its parts is under the GPL v3.0 licence
 
 
 ### **Compiler**
-- If you are on x86_64 system (run **uname -m** in terminal to check it), install **gcc**.
-The gcc package should also contain **"ld" and "as" commands**, just be sure it is installed.
+- If you are on x86_64 system (run ```uname -m``` in terminal to check it), install ```gcc``` package.
+The gcc package should also contain **"ld" and "as" commands**. Make sure this is the case.
   - Be aware that the native **compiler (gcc) can cause problems**. So please **consider building cross-compiler (x86_64-elf-gcc)**
 
 
-- If you are not using x86_64 you will most likely have to **build cross-compiler** called **x86_64-elf-gcc** which should provide everything we need.
+- In case you don't have x86_64/amd64 architecture you will most likely have to **build cross-compiler** called ```x86_64-elf-gcc``` which should provide everything you need.
     - For Arch linux users it is available as **[AUR package](https://aur.archlinux.org/packages/x86_64-elf-gcc)**. Building of the cross-compiler is long process: it may take more than one hour
-- In this case **"x86_64-elf-ld" and "x86_64-elf-as" commands** should be installed as well. Please make sure it is installed.
+    - In this case **"x86_64-elf-ld" and "x86_64-elf-as" commands** should be installed as well. Make sure that this is indeed the case.
 
 
 **[Qemu](https://www.qemu.org/)** - Quick EMUlator (for testing and emulation) - **Optional** dependency
 
 ## Requirement installation
-- **Ubuntu** ```sudo apt update && sudo apt install build-essential fish parted mtools``` - limine and cross-compiler must be installed manually
-- **Arch Linux** ```sudo pacman -Syyu && sudo pacman -S gcc fish parted mtools limine```
+- **Ubuntu**: ```sudo apt update && sudo apt install build-essential fish parted mtools``` - limine and cross-compiler must be installed manually
+- **Arch Linux**: ```sudo pacman -Syyu && sudo pacman -S gcc fish parted mtools limine```
   - Alternatively you can install the cross-compiler with this command ```yay -S x86_64-elf-gcc```. The compiler has to be built, which can take more than an hour on weaker machines
-- **Fedora** ```sudo dnf update && sudo dnf install gcc fish parted mtools``` - limine  and cross-compiler must be installed manually
+- **Fedora**: ```sudo dnf update && sudo dnf install gcc fish parted mtools``` - limine  and cross-compiler must be installed manually
 
 
 ### **Limine** installation script

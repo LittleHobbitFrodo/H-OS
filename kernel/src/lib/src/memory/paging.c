@@ -20,213 +20,114 @@
 
 		void page_init() {
 
+			enum page_flags nullf = present | no_exec;
+
 			pml4 = page_find();
+			pd.ptr = (aligned_ptr){.ptr = null, .align = 4096, .offset = 4096};
+			pd.count = PAGE_COUNT;
+			pt.ptr = (aligned_ptr){.ptr = null, .align = 4096, .offset = 4096};
 
 			base_virtual = (void*)k_address.response->virtual_base;
 			base_physical = (void*)k_address.response->physical_base;
 
-			print("virtual base:\t"); printp(base_virtual); endl();
-			print("physical base:\t"); printp(base_physical); endl();
-
-			print("\n\nstack base:\t"); printp(kernel_stack_base); endl();
-
-
-
-
-			//	roll with limine paging setup and expand it
-
-
-			//	default paging layout
-			//		pml4[pml4.size - 1] is for kernel stuff
-			//			pdpt[0] is kernel data
-			//			pdpt[pdp.size-1] is kernel stack
-			//			kernel pd structure:
-			//				[start ... kernel pages] -> kernel data (code, etc)
-			//				[end kernel pages ... end kernel pages + heap pages] -> kernel heap
-			//				[end - stack pages ... end] -> kernel stack
-			//		other entries are for processes
-
-			//	initialize structures
-			/*pages.pml4 = (page_table){.base = null, .offset = 4096, .size = 512};
-			pages.pdpt = (page_table){.base = null, .offset = 4096, .size = 0};
-			pages.pd = (page_table){.base = null, .offset = 4096, .size = 0};
-			pages.pt.table = (page_table){.base = null, .offset = 4096, .size = 0};
-
-			kernel_stack_address = null;
-			interrupt_stack_address = null;
-			pml4_address = null;
-
-			enum page_flags nullf = present | no_exec;
-
-			//	calculate sizes for each level
-				//	pml4.size is initialized in header
-			pages.pdpt.size = (meminfo.total / GB);
-
-			//	find memmap entries
-			memmap_entry *kent = null, *sent = null, *hent = null;
-			{
-				memmap_entry* ent;
-				for (size_t i = 0; i < memmap.len; i++) {
-					ent = vec_at(&memmap, i);
-					switch (ent->type) {
-						case kernel_: {
-							kent = ent;
+			memmap_entry *hent = null, *sent = null, *pent = null;
+			{	//	calculate page count
+				memmap_entry* mem;
+				for (size_t iii = 0; iii < memmap.len; iii++) {
+					switch ((mem = ((memmap_entry*)vec_at(&memmap, iii)))->type) {
+						case heap: {
+							hent = mem;
 							break;
 						}
 						case stack: {
-							sent = ent;
+							sent = mem;
 							break;
 						}
-						case heap: {
-							hent = ent;
+						case paging: {
+							pent = mem;
 							break;
 						}
-						case undefined: {
-							report("memory map entry number ", warning);
-							printu(i);
-							printl("is undefined");
-							break;
+						default: break;
+					}
+				}
+				{
+					u8 check = (hent == null) | ((sent == null) << 1) | ((pent == null) << 2);
+					if (check != 0) {
+						if ((check & 0b1) != 0) {
+							report("paging init: cannot locate kernel heap memory map entry\n", critical);
 						}
-						default: {
+						if ((check & 0b10) != 0) {
+							report("paging init: cannot locate kernel stack memory map entry\n", critical);
+						}
+						if ((check & 0b100) != 0) {
+							report("paging init: cannot loacte paging table memory map entry\n", critical);
+						}
+						panic(paging_initialization_failure);
+					}
+				}
+				pt.count = (hent->len / PAGE_SIZE) + (hent->len % PAGE_SIZE != 0);
+				pt.count += (sent->len / PAGE_SIZE) + (sent->len % PAGE_SIZE != 0);
+				pt.count += (pent->len / PAGE_SIZE) + (pent->len % PAGE_SIZE != 0);
+				//	round up to 512
+				pt.count = ((pt.count / PAGE_COUNT) + 1) * PAGE_COUNT;
+
+				//	allocate pt
+				aptr_alloc(&pt.ptr, pt.count * sizeof(page_entry));
+				for (size_t i = 0; i < pt.count; i++) {
+					((page_entry*)pt.ptr.ptr)[i] = (page_entry)nullf;
+				}
+
+			}
+			//	hent, sent, kent != null
+
+			//	find highest used pml4 entry
+			page_entry* ptr;
+			for (ssize_t i = PAGE_COUNT - 1; (pd.ptr.ptr == null) && (i >= 0); i--) {
+				if (page_address(pml4[i]) != null) {
+					ptr = page_address(pml4[i]);
+					for (ssize_t ii = PAGE_COUNT - 1; i >= 0; i--) {
+						if (page_address(ptr[i]) == null) {
+							//	allocate pd
+							aptr_alloc(&pd.ptr, pd.count * sizeof(page_entry));
+							for (size_t iii = 0; iii < pd.count; iii++) {
+								((page_entry*)pd.ptr.ptr)[iii] = (page_entry)nullf;
+							}
+
+							//	connect pdpt to pd
+							page_set_address(&ptr[ii], pd.ptr.ptr);
+
+							//	fill pt pages
+								//	pt[0 .. x]	->	pages
+								//	pt[x .. y]	->	heap
+								//	pt[512- z, 512]	->	stack
+							{
+								size_t count = (pent->len / PAGE_SIZE) + (pent->len % PAGE_SIZE != 0);
+								size_t iii = 0;
+								for (; iii < count; iii++) {
+									page_set_address(&((page_entry*)pt.ptr.ptr)[iii],  (void*)(pent->base + (iii * PAGE_SIZE)));
+								}
+								count = iii + ((hent->len / PAGE_SIZE) + (hent->len % PAGE_SIZE != 0));
+								for (; iii < count; iii++) {
+									page_set_address(&((page_entry*)pt.ptr.ptr)[iii], (void*)(hent->base + (iii * PAGE_SIZE)));
+								}
+								count = (sent->len / PAGE_SIZE) + (sent->len % PAGE_SIZE != 0);
+								size_t start = pt.count - count;
+								for (iii = start; iii < pt.count; iii++) {
+									page_set_address(&((page_entry*)pt.ptr.ptr)[iii], (void*)(sent->base + ((iii - start) * PAGE_SIZE)));
+								}
+							}
+
+							//	connect pts to pd
+
+							size_t count = pt.count / PAGE_COUNT;
+							for (size_t iii = 0; iii < count; iii++) {
+								page_set_address(&((page_entry*)pd.ptr.ptr)[iii], (void*)((page_entry*)pt.ptr.ptr)[iii * PAGE_COUNT]);
+							}
 							break;
 						}
 					}
 				}
-				u8 check = (kent == null) | ((sent == null) << 1) | ((hent == null) << 2);
-				if (check != 0) {
-					if (check & 0b1) {
-						report("kernel memory map entry was not found\n", critical);
-					}
-					if ((check & 0b10) != 0) {
-						report("kernel stack memory map entry was not found\n", critical);
-					}
-					if ((check & 0b100) != 0) {
-						report("kernel heap memory map entry was not found\n", critical);
-					}
-					hang();
-				}
 			}
-
-			//	memmap entry pointers are not null
-
-			pages.pt.table.size = (pages.pt.heap.size = (hent->len / PAGE_SIZE) + (hent->len % PAGE_SIZE != 0));
-			pages.pt.table.size += (pages.pt.stack.size = (sent->len / PAGE_SIZE) + (sent->len % PAGE_SIZE != 0));
-			pages.pt.table.size += (pages.pt.kernel.size = (kent->len / PAGE_SIZE) + (kent->len % PAGE_SIZE != 0));
-
-			//	round up (to 512)
-			pages.pt.table.size = ((pages.pt.table.size / PAGE_COUNT) + 1) * PAGE_COUNT;
-
-			{
-				pages.pd.size = (pages.pt.table.size / PAGE_COUNT) + (pages.pt.table.size % PAGE_COUNT != 0);
-				pages.pd.size += pages.pd.size == 0;	//	make sure that size is not 0
-			}
-
-			//	allocate memory for each entry
-			pages.pml4.base		= align_alloco(sizeof(page_entry) * pages.pml4.size, &pages.pml4.offset);
-			pages.pdpt.base		= align_alloco(sizeof(page_entry) * pages.pdpt.size, &pages.pdpt.offset);
-			pages.pd.base		= align_alloco(sizeof(page_entry) * pages.pd.size, &pages.pd.offset);
-
-			pages.pt.table.base	= align_alloco(sizeof(page_entry) * pages.pt.table.size, &pages.pt.table.offset);
-
-			//	set all entries to null
-			for (size_t i = 0; i < pages.pml4.size; i++) {
-				pages.pml4.base[i] = (page_entry)nullf;
-			}
-			for (size_t i = 0; i < pages.pdpt.size; i++) {
-				pages.pdpt.base[i] = (page_entry)nullf;
-			}
-			for (size_t i = 0; i < pages.pd.size; i++) {
-				pages.pd.base[i] = (page_entry)nullf;
-			}
-
-			for (size_t i = 0; i < pages.pt.table.size; i++) {
-				pages.pt.table.base[i] = (page_entry)nullf;
-			}
-
-			//	connect entries
-			//	pml4 -> pdpt
-			size_t sub = pages.pdpt.size / PAGE_COUNT;
-			sub += sub == 0;
-			size_t i = 0;
-			for (; i < pages.pdpt.size / PAGE_COUNT; ++i) {
-				page_set_address(&pages.pml4.base[pages.pml4.size - sub + i], &pages.pdpt.base[i * PAGE_COUNT]);
-			}
-			va_set_index(&kernel_stack_address, pages.pml4.size - 1, 3);
-
-			//	pdpt -> pd
-			sub = pages.pd.size / PAGE_COUNT;
-			sub += sub == 0;
-			for (i = 0; i < sub; ++i) {
-				page_set_address(&pages.pdpt.base[pages.pdpt.size - sub + i], &pages.pd.base[i * PAGE_COUNT]);
-			}
-			va_set_index(&kernel_stack_address, pages.pdpt.size - 1, 2);
-
-			//	pd -> pt (kernel, heap, ... , stack)
-			sub = pages.pt.table.size / PAGE_COUNT;
-			sub += sub == 0;
-			for (i = 0; i < sub; ++i) {
-				page_set_address(&pages.pd.base[pages.pd.size - sub + i], &pages.pt.table.base[i * PAGE_COUNT]);
-			}
-			va_set_index(&kernel_stack_address, 0, 1);
-
-			//	fill pt entries (to point to correct locations)
-			pages.pt.kernel.ptr = pages.pt.table.base;
-			for (i = 0; i < pages.pt.kernel.size; ++i) {
-				page_set_address(&pages.pt.table.base[i], (void*)(kent->base + (i * PAGE_SIZE)));
-			}
-			sub = pages.pt.kernel.size + pages.pt.heap.size;
-			for (; i < sub; ++i) {
-				page_set_address(&pages.pt.table.base[i], (void*)(hent->base + ((i - pages.pt.kernel.size) * PAGE_SIZE)));
-			}
-			sub = pages.pt.table.size - pages.pt.stack.size;
-			pages.pt.stack.ptr = &pages.pt.table.base[sub];
-			for (i = sub; i < pages.pt.table.size; ++i) {
-				page_set_address(&pages.pt.table.base[i], (void*)(sent->base + ((i - sub) * PAGE_SIZE)));
-			}
-			va_set_index(&kernel_stack_address, pages.pt.table.size - 1, 0);
-			va_set_offset(&kernel_stack_address, 0xfff);
-
-			interrupt_stack_address = kernel_stack_address;
-			va_set_index(&interrupt_stack_address, pages.pt.table.size - (KERNEL_STACK_SIZE / 4), 0);
-
-			print("kstack:\t"); printp(kernel_stack_address); endl();
-
-			//	pre-apply paging
-				//	rsp -> kernel_stack_address
-				//	rbp -> ?
-				//	rax -> resolution
-			//pml4_address = pages.pml4.base;
-
-			pml4_address = pages.pml4.base;
-
-			//	copy stack data
-			size_t stack_used_size;
-			{
-				size_t current_stack_address;
-				asm volatile("mov %0, rsp" : "=r"(current_stack_address));
-				stack_used_size = (size_t)kernel_stack_base - current_stack_address;
-			}
-			print("stack size:\t"); printu(stack_used_size); endl();
-			printl("copying stack");
-			for (u32 ii = 0; ii < MAX_I32 / 3; ii++);
-			size_t* olds = (size_t*)((size_t)kernel_stack_base - stack_used_size);
-			size_t* news = (size_t*)((size_t)kernel_stack_address - stack_used_size);
-			for (size_t ii = 0; ii * sizeof(size_t) < stack_used_size; ii++) {
-				(void)(news[ii] - olds[ii]);
-			}
-			{
-				size_t rip;
-				asm volatile("mov rip, %0" : "=r"(rip));
-				print("rip:\t"); printp((void*)rip); endl();
-			}
-
-			printl("applying paging and migrating stack");
-			for (u32 ii = 0; ii < MAX_I32 / 3; ii++);
-
-			asm volatile("mov cr3, %0\n"
-				"mov rsp, %1\n"
-				"mov rbp, %0\n" :: "r"(pages.pml4.base), "r"(kernel_stack_address));
-			printl("stack migrated");*/
 
 		}
 
@@ -273,6 +174,19 @@
 			output.color = c;
 		}
 
+		void* physical(void* virt) {
+			page_entry ent = pml4[va_index(virt, 3)];
+			if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
+				return null;
+			}
+			for (i16 i = 2; i >= 0; --i) {
+				ent = ((page_entry*)page_address(ent))[va_index(virt, i)];
+				if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
+					return null;
+				}
+			}
+			return (void*)((size_t)page_address(ent) + va_offset(virt));
+		}
 
 		/*void* physical(void* virt) {
 			page_entry ent = pages.pml4.base[va_index(virt, 3)];

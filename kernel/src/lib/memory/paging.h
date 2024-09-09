@@ -129,6 +129,15 @@
 	extern void* virtual_(void* phys);
 
 	page_entry* pml4 = null;
+	static struct pd {
+		//	linear pdpt entries for ring0 data
+		aligned_ptr ptr;
+		size_t count;
+	} pd;
+	static struct pt {
+		aligned_ptr ptr;
+		size_t count;
+	} pt;
 
 	static void* base_physical = null;
 	static void* base_virtual = null;

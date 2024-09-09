@@ -74,6 +74,7 @@
 		bad,
 		stack,
 		other,
+		paging,
 		undefined
 	} memmap_types;
 
@@ -98,18 +99,18 @@
 		size_t align;
 	} aligned_ptr;
 
-	__attribute__((always_inline)) inline void aptr(aligned_ptr* this) {
+	__attribute__((always_inline, nonnull)) inline void aptr(aligned_ptr* this) {
 		this->ptr = null;
 		this->offset = 0;
 		this->align = 0;
 	}
-	__attribute__((always_inline)) inline void aptrs(aligned_ptr* this, size_t align) {
+	__attribute__((always_inline, nonnull)) inline void aptrs(aligned_ptr* this, size_t align) {
 		this->ptr = null;
 		this->offset = align;
 		this->align = align;
 	}
 
-	__attribute__((always_inline)) inline void aptrse(aligned_ptr* this, size_t bytes, size_t align) {
+	__attribute__((always_inline, nonnull)) inline void aptrse(aligned_ptr* this, size_t bytes, size_t align) {
 		this->align = (this->offset = align);
 		this->ptr = align_alloc(bytes, &this->offset);
 	}
@@ -119,7 +120,7 @@
 	void* aptr_reallocf(aligned_ptr* this, size_t bytes, void (*on_realloc)(void*));
 	void* aptr_realloca(aligned_ptr* this, size_t bytes, size_t add);
 	void* aptr_reallocaf(aligned_ptr* this, size_t bytes, size_t add, void (*on_realloc)(void*));
-	__attribute__((always_inline)) inline void aptr_free(aligned_ptr* this) {
+	__attribute__((always_inline, nonnull)) inline void aptr_free(aligned_ptr* this) {
 		align_free(this->ptr, this->offset);
 		this->ptr = null;
 		this->align = (this->offset = 0);

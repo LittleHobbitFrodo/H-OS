@@ -137,6 +137,11 @@
 							print("reclaim:\t");
 							break;
 						}
+						case paging: {
+							output.color = col.yellow;
+							print("paging:\t\t");
+							break;
+						}
 						case acpi: {
 							output.color = col.green;
 							print("acpi:\t\t");
@@ -201,6 +206,7 @@
 			struct limine_memmap_entry** ents = memmap_req.response->entries;
 			enum memmap_types tmp = undefined;
 			ssize_t stack_index = -1;
+			size_t paging_address = (size_t)page_find();
 
 			//	localize future stacks
 			{
@@ -252,6 +258,12 @@
 					h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
 					h->type = heap;
 					heap_index = memmap.len - 1;
+				} else if ((ent->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) && ((paging_address > ent->base) && (paging_address < ent->base + ent->length))) {
+					memmap_entry* p = (memmap_entry*)vec_push(&memmap, 1);
+					p->base = ent->base;
+					p->len = ent->length;
+					p->type = paging;
+					continue;
 				}
 
 				tmp = memmap_entry_type(ent->type);
