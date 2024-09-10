@@ -115,12 +115,14 @@
 		this->ptr = align_alloc(bytes, &this->offset);
 	}
 
-	void* aptr_alloc(aligned_ptr* this, size_t bytes);
-	void* aptr_realloc(aligned_ptr* this, size_t bytes);
-	void* aptr_reallocf(aligned_ptr* this, size_t bytes, void (*on_realloc)(void*));
-	void* aptr_realloca(aligned_ptr* this, size_t bytes, size_t add);
-	void* aptr_reallocaf(aligned_ptr* this, size_t bytes, size_t add, void (*on_realloc)(void*));
-	__attribute__((always_inline, nonnull)) inline void aptr_free(aligned_ptr* this) {
+	__attribute__((nonnull(1))) void* aptr_alloc(aligned_ptr* this, size_t bytes);
+	__attribute__((nonnull(1))) void* aptr_alloco(aligned_ptr *this, size_t bytes);
+
+	__attribute__((nonnull(1), returns_nonnull)) void* aptr_realloc(aligned_ptr* this, size_t bytes);
+	__attribute__((nonnull(1), returns_nonnull)) void* aptr_reallocf(aligned_ptr* this, size_t bytes, void (*on_realloc)(void*));
+	__attribute__((nonnull(1), returns_nonnull)) void* aptr_realloca(aligned_ptr* this, size_t bytes, size_t add);
+	__attribute__((nonnull(1), returns_nonnull)) void* aptr_reallocaf(aligned_ptr* this, size_t bytes, size_t add, void (*on_realloc)(void*));
+	__attribute__((always_inline, nonnull(1))) inline void aptr_free(aligned_ptr* this) {
 		align_free(this->ptr, this->offset);
 		this->ptr = null;
 		this->align = (this->offset = 0);

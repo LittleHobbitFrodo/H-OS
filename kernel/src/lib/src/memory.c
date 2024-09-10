@@ -195,6 +195,9 @@
 			//	initialize paging
 			page_init();
 
+			printl("paging initialized");
+			for (size_t i = 0; i < MAX_I32; i++);
+
 			return ok;
 		}
 
@@ -352,6 +355,15 @@
 			if (this->ptr == null) {
 				this->offset = this->align;
 				this->ptr = align_alloc(bytes, &this->offset);
+				return this->ptr;
+			}
+			return null;
+		}
+
+		void* aptr_alloco(aligned_ptr* this, size_t bytes) {
+			if (this->ptr == null) {
+				this->offset = this->align;
+				this->ptr = align_alloco(bytes, &this->offset);
 				return this->ptr;
 			}
 			return null;

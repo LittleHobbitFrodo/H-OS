@@ -139,8 +139,8 @@
 		size_t count;
 	} pt;
 
-	static void* base_physical = null;
-	static void* base_virtual = null;
+	//static void* base_physical = null;
+	//static void* base_virtual = null;
 
 
 #endif

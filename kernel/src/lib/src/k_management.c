@@ -39,15 +39,6 @@
 			if ((code = memory_init()) != ok) {
 				panic(code);
 			}
-
-			print("pml4 address:\t"); printp(pml4_address); endl();
-			//hang();
-
-			output.color = col.green;
-			printl("CORE initialization completed...");
-			print("starting ");
-			printl(KERNEL_NAME);
-			output.color = col.white;
 		}
 
 

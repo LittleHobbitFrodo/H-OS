@@ -23,6 +23,106 @@
 			enum page_flags nullf = present | no_exec;
 
 			pml4 = page_find();
+			pd.ptr = (aligned_ptr){.ptr = null, .align = 4096, .offset = 0};
+			pd.count = PAGE_COUNT;
+			pt.ptr = (aligned_ptr){.ptr = null, .align = 4096, .offset = 0};
+			pt.count = 0;
+
+			memmap_entry *hent = null, *sent = null, *pent = null;
+			{	//	page count
+				memmap_entry* mem;
+				for (size_t i = 0; i < memmap.len; i++) {
+					switch ((mem = ((memmap_entry*)vec_at(&memmap, i)))->type) {
+						case stack: {
+							sent = mem;
+							break;
+						}
+						case heap: {
+							hent = mem;
+							break;
+						}
+						case paging: {
+							pent = mem;
+							break;
+						}
+						default: break;
+					}
+				}
+				u8 check = (hent == null) | ((sent == null) << 1) | ((pent == null) << 2);
+				if (check != 0) {
+					if (check & 0b1) {
+						report("could not find heap memory map entry\n", critical);
+					}
+					if ((check & 0b10) != 0) {
+						report("could not find stack memory map entry\n", critical);
+					}
+					if ((check & 0b100) != 0) {
+						report("could not find page table memory map entry\n", critical);
+					}
+					panic(paging_initialization_failure);
+				}
+			}
+			//	hent, sent, pent != null
+
+			//	find highest used pml4 entry
+			page_entry* connect = null;
+			{
+				page_entry* pdpt = null;
+				for (ssize_t i = PAGE_COUNT - 1; (i >= 0) && (connect == null); i--) {
+					if ((pdpt = page_address(pml4[i])) != null) {
+						for (ssize_t ii = PAGE_COUNT - 1; ii >= 0; ii--) {
+							if (page_address(pdpt[ii]) == null) {
+								print("found pml4["); printu(i); print("]["); printu(ii); printl("]");
+								connect = &pdpt[ii];
+								break;
+							}
+						}
+					}
+				}
+				if (connect == null) {
+					report("could not find valid pdpt entry\n", critical);
+					panic(paging_initialization_failure);
+				}
+			}
+
+			//	allocate pd and pt
+			aptr_alloco(&pd.ptr, pd.count * sizeof(page_entry));
+			for (size_t i = 0; i < pd.count; i++) {
+				((page_entry*)pd.ptr.ptr)[i] = (page_entry)nullf;
+			}
+
+			//	calculate page entries for ring0 data
+			pt.count = (hent->len / PAGE_SIZE) + (hent->len % PAGE_SIZE != 0);
+			pt.count += (sent->len / PAGE_SIZE) + (sent->len % PAGE_SIZE != 0);
+			pt.count += (pent->len / PAGE_SIZE) + (pent->len % PAGE_SIZE != 0);
+			//	round up to 512
+			pt.count = ((pt.count / PAGE_COUNT) + 1) * PAGE_COUNT;
+
+			aptr_alloco(&pt.ptr, pt.count * sizeof(page_entry));
+			for (size_t i = 0; i < pt.count; i++) {
+				((page_entry*)pt.ptr.ptr)[i] = (page_entry)nullf;
+			}
+
+			//	connect pdpt to pd, pd to pts
+			page_set_address(connect /*pdpt*/, pd.ptr.ptr);
+			printl("pd connected");
+			{
+				size_t len = pt.count / PAGE_COUNT;
+				print("len:\t"); printu(len); endl();
+				page_entry *pd_ = (page_entry*)pd.ptr.ptr, *pt_ = (page_entry*)pt.ptr.ptr;
+				for (size_t i = 0; i < len; i++) {
+					page_set_address(&pd_[i], &pt_[i*PAGE_COUNT]);
+				}
+			}
+
+
+
+
+
+
+
+
+			/*pml4 = page_find();
 			pd.ptr = (aligned_ptr){.ptr = null, .align = 4096, .offset = 4096};
 			pd.count = PAGE_COUNT;
 			pt.ptr = (aligned_ptr){.ptr = null, .align = 4096, .offset = 4096};
@@ -127,7 +227,9 @@
 						}
 					}
 				}
-			}
+			}*/
+
+
 
 		}
 
@@ -188,36 +290,7 @@
 			return (void*)((size_t)page_address(ent) + va_offset(virt));
 		}
 
-		/*void* physical(void* virt) {
-			page_entry ent = pages.pml4.base[va_index(virt, 3)];
-			if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
-				return null;
-			}
-			for (i16 i = 2; i >= 0; --i) {
-				ent = ((page_entry*)page_address(ent))[va_index(virt, i)];
-				if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
-					print("physical: ret layer:\t"); printu(i); endl();
-					return null;
-				}
-			}
-			return (void*)((size_t)page_address(ent) + va_offset(virt));
-		}*/
-
-		//	virtual_() is deprecated, not implementing it unless it is NEEDED
-			//	needed for implementation? : round up all page table allocations to 512 entries
-		/*void* virtual_(void* phys) {
-			page_entry ent;
-			for (ssize_t i = pages.pml4.size - 1; i >= 0; --i) {
-				ent = pages.pml4.base[i];
-				if (unlikely(((ent & present) && (page_address(ent) != null))) {
-					for (size_t ii = 0; ii < PAGE_COUNT)
-				}
-			}
-		}*/
-
 	#endif
-	//	#warning memory/paging.c already included
-	//#endif
 #else
 	#error memory/paging.c: memory/paging.h not included
 #endif
