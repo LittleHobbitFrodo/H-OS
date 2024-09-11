@@ -23,24 +23,24 @@
 		void str_push(string* this, const char* str) {
 			if (this->data == null) {
 				this->size = strlen(str) - 1;
-				this->data = (char*)alloc(this->size);
+				this->data = (char*)palloc(this->size);
 				memcpy((void*)str, this->data, this->size);
 				return;
 			}
 			size_t osize = this->size;
 			this->size += strlen(str) - 1;
-			this->data = (char*)realloca(this->data, this->size, string_realloc_add);
+			this->data = (char*)prealloca(this->data, this->size, string_realloc_add);
 			memcpy((void*)str, (void*)((size_t)this->data + osize), this->size - osize);
 		}
 
 		void str_pushs(string* this, const string* other) {
 			if (this->data == null) {
 				this->size = other->size;
-				this->data = (char*)alloc(this->size);
+				this->data = (char*)palloc(this->size);
 				memcpy(other->data, this->data, this->size);
 				return;
 			}
-			this->data = (char*)realloca(this->data, this->size + other->size, string_realloc_add);
+			this->data = (char*)prealloca(this->data, this->size + other->size, string_realloc_add);
 			memcpy(other->data, (void*)((size_t)this->data + this->size), this->size + other->size);
 			this->size += other->size;
 		}
@@ -61,44 +61,44 @@
 		void str_set(string* this, const char* str) {
 			if (this->data == null) {
 				this->size = strlen(str) - 1;
-				this->data = (char*)alloc(this->size);
+				this->data = (char*)palloc(this->size);
 				memcpy((void*)str, this->data, this->size);
 				return;
 			}
 			this->size = strlen(str) - 1;
-			this->data = (char*)realloc(this->data, this->size);
+			this->data = (char*)prealloc(this->data, this->size);
 			memcpy((void*)str, this->data, this->size);
 		}
 
 		void str_sets(string* this, const string* other) {
 			if (this->data == null) {
 				this->size = other->size;
-				this->data = (char*)alloc(this->size);
+				this->data = (char*)palloc(this->size);
 				memcpy(other->data, this->data, this->size);
 				return;
 			}
 			this->size = other->size;
-			this->data = (char*)realloc(this->data, this->size);
+			this->data = (char*)prealloc(this->data, this->size);
 			memcpy(other->data, this->data, this->size);
 		}
 
 		void str_setss(string* this, const char* str, size_t size) {
 			this->size = size;
 			if (this->data == null) {
-				this->data = (char*)alloc(this->size);
+				this->data = (char*)palloc(this->size);
 				memcpy((void*)str, this->data, this->size);
 				return;
 			}
-			this->data = (char*)realloc(this->data, this->size);
+			this->data = (char*)prealloc(this->data, this->size);
 			memcpy((void*)str, this->data, this->size);
 		}
 
 		void str_resize(string* this, size_t size) {
 			this->size = size;
 			if (this->data != null) {
-				this->data = (char*)realloc(this->data, size);
+				this->data = (char*)prealloc(this->data, size);
 			} else {
-				this->data = (char*)alloc(size);
+				this->data = (char*)palloc(size);
 			}
 		}
 

@@ -35,7 +35,7 @@
 		this->len = len;
 		this->bsize = bsize;
 		if (this->len > 0) {
-			this->data = alloc(this->len * this->bsize);
+			this->data = palloc(this->len * this->bsize);
 		} else {
 			this->data = null;
 		}

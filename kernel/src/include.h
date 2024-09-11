@@ -31,6 +31,12 @@
 	//	used in if statements for compiler optimizations
 
 
+	//	extern variables
+	extern void* kernel_stack_address;
+	extern void* heap_virtual_base;
+	extern void* kernel_stack_base;
+		//	these variables are initialized in page_init() (memory/paging.c)
+
 	//  bootloader library
 	#include <limine.h>
 

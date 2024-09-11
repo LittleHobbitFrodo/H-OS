@@ -11,3 +11,5 @@ H-OS.hdd
 stuff/notes
 stuff/test
 test/
+os-version
+.gitignore

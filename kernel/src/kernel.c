@@ -5,7 +5,7 @@
 
 #include "./include.h"
 
-extern void* KERNEL_START;
+//extern void* KERNEL_START;
 
 void kernel() {
 
@@ -15,4 +15,11 @@ void kernel() {
 	output.color = col.white;
 
 	printl("hello world!");
+
+	void* ptr = alloc(8);
+
+	print("allocated memory: "); printu(*((size_t*)ptr)); endl();
+
+	free(ptr);
+
 }

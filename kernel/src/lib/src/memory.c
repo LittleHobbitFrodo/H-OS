@@ -10,8 +10,9 @@
 		#define H_OS_LIB_MEMORY_C
 
 		void* kernel_stack_address = null;
-		void* interrupt_stack_address = null;
-		void* pml4_address = null;
+		//void* heap_virtual_base = null;
+		//void* interrupt_stack_address = null;
+		//void* pml4_address = null;
 		void* kernel_stack_base = null;
 
 		enum memmap_types memmap_entry_type(u64 constant)  {
@@ -195,9 +196,6 @@
 			//	initialize paging
 			page_init();
 
-			printl("paging initialized");
-			for (size_t i = 0; i < MAX_I32; i++);
-
 			return ok;
 		}
 
@@ -354,16 +352,7 @@
 		void* aptr_alloc(aligned_ptr* this, size_t bytes) {
 			if (this->ptr == null) {
 				this->offset = this->align;
-				this->ptr = align_alloc(bytes, &this->offset);
-				return this->ptr;
-			}
-			return null;
-		}
-
-		void* aptr_alloco(aligned_ptr* this, size_t bytes) {
-			if (this->ptr == null) {
-				this->offset = this->align;
-				this->ptr = align_alloco(bytes, &this->offset);
+				this->ptr = palign_alloc(bytes, &this->offset);
 				return this->ptr;
 			}
 			return null;
@@ -373,28 +362,38 @@
 			if (this->ptr == null) {
 				return aptr_alloc(this, bytes);
 			}
-			return (this->ptr = align_realloc(this->ptr, &this->offset, this->align, bytes));
+			return (this->ptr = palign_realloc(this->ptr, &this->offset, this->align, bytes));
 		}
 
 		void* aptr_reallocf(aligned_ptr* this, size_t bytes, void (*on_realloc)(void*)) {
 			if (this->ptr == null) {
 				return aptr_alloc(this, bytes);
 			}
-			return (this->ptr = align_reallocf(this->ptr, &this->offset, this->align, bytes, on_realloc));
+			return (this->ptr = palign_reallocf(this->ptr, &this->offset, this->align, bytes, on_realloc));
 		}
 
 		void* aptr_realloca(aligned_ptr* this, size_t bytes, size_t add) {
 			if (this->ptr == null) {
 				return aptr_alloc(this, bytes);
 			}
-			return (this->ptr = align_realloca(this->ptr, &this->offset, this->align, bytes, add));
+			return (this->ptr = palign_realloca(this->ptr, &this->offset, this->align, bytes, add));
 		}
 
 		void* aptr_reallocaf(aligned_ptr* this, size_t bytes, size_t add, void (*on_realloc)(void*)) {
 			if (this->ptr == null) {
 				return aptr_alloc(this, bytes);
 			}
-			return (this->ptr = align_reallocaf(this->ptr, &this->offset, this->align, bytes, add, on_realloc));
+			return (this->ptr = palign_reallocaf(this->ptr, &this->offset, this->align, bytes, add, on_realloc));
+		}
+
+
+		void va_info(void* addr) {
+			printp(addr); printl(":");
+			print("pml4\t["); printu(va_index(addr, 3)); printl("]");
+			print("pdpt\t["); printu(va_index(addr, 2)); printl("]");
+			print("pd\t\t["); printu(va_index(addr, 1)); printl("]");
+			print("pt\t\t["); printu(va_index(addr, 0)); printl("]");
+			print("offset:\t"); printu(va_offset(addr)); endl();
 		}
 
 	#endif

@@ -13,7 +13,7 @@
 			//	destruction of each popped element must be done manually
 			if (this->data == null) {
 				this->len = len;
-				this->data = alloc(this->len * this->bsize);
+				this->data = palloc(this->len * this->bsize);
 				return;
 			}
 			if (this->len == len) {
@@ -21,21 +21,21 @@
 			}
 			this->len = len;
 			if (this->len < len) {
-				this->data = realloca(this->data, this->len * this->bsize, vector_realloc_add);
+				this->data = prealloca(this->data, this->len * this->bsize, vector_realloc_add);
 			} else {
-				this->data = realloc(this->data, this->len * this->bsize);
+				this->data = prealloc(this->data, this->len * this->bsize);
 			}
 		}
 
 		void* vec_push(vector* this, size_t count) {
 			if (this->data == null) {
 				this->len = count;
-				this->data = alloc(this->len * this->bsize);
+				this->data = palloc(this->len * this->bsize);
 				return this->data;
 			}
 			size_t olen = this->len;
 			this->len += count;
-			this->data = realloca(this->data, this->len * this->bsize, vector_realloc_add);
+			this->data = prealloca(this->data, this->len * this->bsize, vector_realloc_add);
 			return (void*)((size_t)this->data + (this->bsize * olen));
 		}
 
@@ -47,7 +47,7 @@
 					this->len = 0;
 				} else {
 					this->len -= count;
-					this->data = realloc(this->data, this->len * this->bsize);
+					this->data = prealloc(this->data, this->len * this->bsize);
 				}
 			}
 		}

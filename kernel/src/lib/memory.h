@@ -24,12 +24,6 @@
 	#define MB (1024 * 1024)
 	#define GB (1024 * 1024 * 1024)
 
-	extern void* kernel_stack_address;
-	extern void* interrupt_stack_address;
-	/*extern void* pml4_address;
-	extern void* kernel_stack_base;*/
-		//	these variables are initialized in page_init() (memory/paging.c)
-
 	enum panic_codes memory_init();
 
 	__attribute__((always_inline)) inline void* align(void* ptr, size_t align) {
@@ -112,11 +106,11 @@
 
 	__attribute__((always_inline, nonnull)) inline void aptrse(aligned_ptr* this, size_t bytes, size_t align) {
 		this->align = (this->offset = align);
-		this->ptr = align_alloc(bytes, &this->offset);
+		this->ptr = palign_alloc(bytes, &this->offset);
 	}
 
 	__attribute__((nonnull(1))) void* aptr_alloc(aligned_ptr* this, size_t bytes);
-	__attribute__((nonnull(1))) void* aptr_alloco(aligned_ptr *this, size_t bytes);
+	//__attribute__((nonnull(1))) void* aptr_alloco(aligned_ptr *this, size_t bytes);
 
 	__attribute__((nonnull(1), returns_nonnull)) void* aptr_realloc(aligned_ptr* this, size_t bytes);
 	__attribute__((nonnull(1), returns_nonnull)) void* aptr_reallocf(aligned_ptr* this, size_t bytes, void (*on_realloc)(void*));
@@ -127,6 +121,8 @@
 		this->ptr = null;
 		this->align = (this->offset = 0);
 	}
+
+	void va_info(void* addr);
 
 
 	//	memmap vector is declared in vector.h
