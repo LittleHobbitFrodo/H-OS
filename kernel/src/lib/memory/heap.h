@@ -42,6 +42,9 @@
 		free((void*)((size_t)ptr - offset));
 	}
 
+	[[maybe_unused]] static bool heap_uses_virtual = false;
+
+
 	#include "./heap/physical.h"
 	#include "./heap/virtual.h"
 

@@ -24,7 +24,7 @@
 	#define MB (1024 * 1024)
 	#define GB (1024 * 1024 * 1024)
 
-	enum panic_codes memory_init();
+	static enum panic_codes memory_init();
 
 	__attribute__((always_inline)) inline void* align(void* ptr, size_t align) {
 		return (void*)(((u64)ptr + align - 1) & ~(align - 1));

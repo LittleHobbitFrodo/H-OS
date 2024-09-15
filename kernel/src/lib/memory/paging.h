@@ -27,7 +27,7 @@
 	#define VA_INDEX_L2 (0x1ffUL << 30)
 	#define VA_INDEX_L1 (0x1ffUL << 21)
 
-	void page_init();
+	static void page_init();
 
 	enum page_flags {					//	structure of page_entry
 		present = 1,					//	page is present?
@@ -76,13 +76,11 @@
 
 
 	__attribute__((always_inline)) inline void* page_address(page_entry entry) {
-		//return (void*)(((entry & 0xFFFFFFFFF000) >> 12));
 		return (void*)(entry & 0xFFFFFFFFF000);
 	}
 
 	__attribute__((always_inline)) inline void page_set_address(page_entry* entry, void* ptr) {
 		*entry &= ~0x000ffffffffff000;
-		//*entry |= (((size_t)ptr << 12) & 0x000ffffffffff000);
 		*entry |= ((size_t)ptr) & 0xFFFFFFFFF000;
 	}
 
@@ -128,7 +126,7 @@
 	extern void* physical(void* virt);
 	extern void* virtual_(void* phys);
 
-	page_entry* pml4 = null;
+	static page_entry* pml4 = null;
 	static struct pd {
 		//	linear pdpt entries for ring0 data
 		aligned_ptr ptr;

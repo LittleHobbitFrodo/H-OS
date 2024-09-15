@@ -196,6 +196,9 @@
 			//	initialize paging
 			page_init();
 
+			//	initialize global descriptor table
+			gdt_init();
+
 			return ok;
 		}
 
@@ -210,7 +213,7 @@
 			size_t paging_address = (size_t)page_find();
 
 			//	localize future stacks
-			{
+			/*{
 				size_t stack_start_entry = 0;
 				ssize_t ssize = 0;
 				for (ssize_t i = msize - 1; i > 0; i--) {
@@ -230,7 +233,7 @@
 				if (stack_index < 0) {
 					panic(cannot_allocate_memory_for_stacks);
 				}
-			}
+			}*/
 
 			struct limine_memmap_entry* ent;
 			size_t i = 0;
@@ -259,12 +262,21 @@
 					h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
 					h->type = heap;
 					heap_index = memmap.len - 1;
-				} else if ((ent->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) && ((paging_address > ent->base) && (paging_address < ent->base + ent->length))) {
-					memmap_entry* p = (memmap_entry*)vec_push(&memmap, 1);
-					p->base = ent->base;
-					p->len = ent->length;
-					p->type = paging;
-					continue;
+				} else if (ent->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) {
+					/*print("memmap_parse:\tphysical:\t");
+					{
+						void* stack;
+						asm volatile("mov %0, rsp" : "=r"(stack));
+						printp(physical(stack));
+						endl();
+					}*/
+					if ((paging_address > ent->base) && (paging_address < ent->base + ent->length)) {
+						memmap_entry* p = (memmap_entry*)vec_push(&memmap, 1);
+						p->base = ent->base;
+						p->len = ent->length;
+						p->type = paging;
+						continue;
+					}
 				}
 
 				tmp = memmap_entry_type(ent->type);

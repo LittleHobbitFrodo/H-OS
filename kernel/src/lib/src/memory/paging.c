@@ -192,11 +192,13 @@
 		void* physical(void* virt) {
 			page_entry ent = pml4[va_index(virt, 3)];
 			if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
+				print("\t\tlayer:\t4:\t"); printp((void*)pml4[va_index(virt, 3)]); endl();
 				return null;
 			}
 			for (i16 i = 2; i >= 0; --i) {
 				ent = ((page_entry*)page_address(ent))[va_index(virt, i)];
 				if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
+					print("\t\tlayer:\t"); printu(i); print(":\t"); printp((void*)ent); endl();
 					return null;
 				}
 			}

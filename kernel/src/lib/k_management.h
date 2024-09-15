@@ -46,7 +46,8 @@
 			base_addresses_not_available,
 			cpu_vendor_not_found,
 			cannot_locate_kernel_stack,
-			paging_initialization_failure
+			paging_initialization_failure,
+			gdt_initialization_failure
 		} panic_codes;
 
 		extern void panic(enum panic_codes code);
