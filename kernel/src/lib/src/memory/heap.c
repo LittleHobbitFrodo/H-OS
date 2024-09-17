@@ -16,12 +16,12 @@
 			struct limine_memmap_entry* mstart = null;
 			size_t mlen = 0;
 
-			size_t size = memmap_req.response->entry_count;
+			size_t size = req_memmap.response->entry_count;
 			struct limine_memmap_entry* ent = null;
 
 			if (include_reclaimable_entries) {
 				for (size_t i = 0; i < size; i++) {
-					ent = memmap_req.response->entries[i];
+					ent = req_memmap.response->entries[i];
 					if (ent == null) {
 						output.color = col.critical;
 						print("ERROR");
@@ -49,7 +49,7 @@
 				}
 			} else {
 				for (size_t i = 0; i < size; i++) {
-					ent = memmap_req.response->entries[i];
+					ent = req_memmap.response->entries[i];
 					if (ent == null) {
 						output.color = col.critical;
 						print("ERROR");

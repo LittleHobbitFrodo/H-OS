@@ -61,6 +61,8 @@
 	extern void hang();
 	extern void halt();
 
+	[[maybe_unused]] static void waitaminute(size_t max, const char* msg);
+
 #endif
 //	#warning utils.h already included
 //#endif

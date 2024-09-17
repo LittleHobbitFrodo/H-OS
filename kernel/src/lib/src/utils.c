@@ -27,6 +27,11 @@
 			return 0;
 		}
 
+		void waitaminute(size_t max, const char* msg) {
+			printl(msg);
+			for (size_t i = 0; i < MAX_I32 / max; i++);
+		}
+
 	#endif
 	//	#warning utils.c already included
 	//#endif

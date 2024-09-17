@@ -4,9 +4,6 @@
 //
 
 #pragma once
-#include "../../memory/paging.h"
-
-#include "../../memory.h"
 
 #ifdef H_OS_LIB_MEMORY_PAGING_H
 	#ifndef H_OS_LIB_MEMORY_PAGING_C
@@ -21,6 +18,9 @@
 		}
 
 		void page_init() {
+
+			virtual_base = (void*)req_k_address.response->virtual_base;
+			physical_base = (void*)req_k_address.response->physical_base;
 
 			//	default paging layout
 				//	pml4[(highest used)]
@@ -41,11 +41,11 @@
 				memmap_entry* mem;
 				for (size_t i = 0; i < memmap.len; i++) {
 					switch ((mem = ((memmap_entry*)vec_at(&memmap, i)))->type) {
-						case heap: {
+						case memmap_heap: {
 							hent = mem;
 							break;
 						}
-						case paging: {
+						case memmap_paging: {
 							pent = mem;
 							break;
 						}
@@ -55,12 +55,12 @@
 				u8 check = (hent == null) | ((pent == null) << 1);
 				if (check != 0) {
 					if (check & 0b1) {
-						report("could not find heap memory map entry\n", critical);
+						report("could not find heap memory map entry\n", rs_critical);
 					}
 					if ((check & 0b10) != 0) {
-						report("could not find page table memory map entry\n", critical);
+						report("could not find page table memory map entry\n", rs_critical);
 					}
-					panic(paging_initialization_failure);
+					panic(pc_paging_initialization_failure);
 				}
 			}
 			//	hent, sent, pent != null
@@ -82,8 +82,8 @@
 					}
 				}
 				if (connect == null) {
-					report("could not find valid pdpt entry\n", critical);
-					panic(paging_initialization_failure);
+					report("could not find valid pdpt entry\n", rs_critical);
+					panic(pc_paging_initialization_failure);
 				}
 			}
 
@@ -141,8 +141,8 @@
 				output.color = col.white;
 			}
 
-			if (vocality >= vocal_) {
-				report("paging initialization completed\n", note);
+			if (vocality >= vocality_vocal_) {
+				report("paging initialization completed\n", rs_note);
 			}
 		}
 
@@ -196,7 +196,7 @@
 				return null;
 			}
 			for (i16 i = 2; i >= 0; --i) {
-				ent = ((page_entry*)page_address(ent))[va_index(virt, i)];
+				ent = PAGE_ALIGN_DOWN(((page_entry*)page_address(ent))[va_index(virt, i)]);
 				if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
 					print("\t\tlayer:\t"); printu(i); print(":\t"); printp((void*)ent); endl();
 					return null;

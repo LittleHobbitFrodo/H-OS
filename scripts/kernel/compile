@@ -106,6 +106,10 @@ if test $is_test -eq 1
   set compiler_params "-O3"
 end
 
+if test $is_test = "1"
+  set compiler_params "$compiler_params -DTEST"
+end
+
 
 $ccompiler $compiler_params -fno-exceptions -finline-functions -finline-limit=1000 \
 -I$stdpath -Wno-missing-field-initializers -ffreestanding \

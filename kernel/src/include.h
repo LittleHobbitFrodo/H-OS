@@ -30,15 +30,11 @@
 	#define unlikely(x) __builtin_expect(!!(x), 0)
 	//	used in if statements for compiler optimizations
 
-
-	//	extern variables
-	extern void* kernel_stack_address;
-	extern void* heap_virtual_base;
-	extern void* kernel_stack_base;
-		//	these variables are initialized in page_init() (memory/paging.c)
+	//	please don't ask me how are headers separated...
 
 	//  bootloader library
 	#include <limine.h>
+	#include "./lib/bootutils.h"
 
 	//  other headers depends on          //  provides
 	#include "./lib/integers.h"                 //  types (like <stdint.h>)
@@ -54,9 +50,9 @@
 	#include "./lib/memory/paging.h"
 
 	#include "./lib/vector.h"
+	#include "./lib/segmentation.h"
 	#include "./lib/tss.h"
 	#include "./lib/gdt.h"				//	needs vector.h
-	#include "./lib/segmentation.h"		//	needs gdt.h
 
 	#include "./lib/string.h"
 	#include "./lib/output.h"

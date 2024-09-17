@@ -5,5 +5,7 @@ if test ! (basename (pwd)) = "H-OS"
 	exit
 end
 
+rm ./qemu.log
+
 #	root dir
-qemu-system-x86_64 -m 8192 -machine q35 -drive format=raw,file=./H-OS.hdd -no-reboot &
+qemu-system-x86_64 -m 8192 -machine q35 -drive format=raw,file=./H-OS.hdd -no-reboot -d int &

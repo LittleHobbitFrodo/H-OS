@@ -10,19 +10,17 @@
 #ifndef H_OS_LIB_MEMORY_H
 	#define H_OS_LIB_MEMORY_H
 
-	#ifndef KERNEL_STACK_SIZE
-		#define KERNEL_STACK_SIZE 64
-	#endif
-
-	#ifndef INTERRUPT_STACK_SIZE
-		#define INTERRUPT_STACK_SIZE 8
-	#endif
-
-	#define STACK_MINIMUM_INITIAL_SIZE KERNEL_STACK_SIZE + INTERRUPT_STACK_SIZE
-
 	#define KB 1024
 	#define MB (1024 * 1024)
 	#define GB (1024 * 1024 * 1024)
+
+	//	kernel stack (initialized in init.asm)
+	char KERNEL_STACK[65536] __attribute__((aligned(4096)));
+	extern void* KERNEL_STACK_END;
+
+	//char INTERRUPT_STACKS[INTERRUPT_STACK_SIZE * KB];
+	char INTERRUPT_STACKS[7][INTERRUPT_STACK_SIZE * KB] __attribute__((aligned(4096)));
+
 
 	static enum panic_codes memory_init();
 
@@ -42,34 +40,18 @@
 
 	} meminfo;
 
-	static volatile struct limine_stack_size_request k_stack_size_req = {
-		.id = LIMINE_STACK_SIZE_REQUEST,
-		.revision = 0,
-		.stack_size = KERNEL_STACK_SIZE * KB
-	};
-
-	static volatile struct limine_kernel_address_request k_address = {
-		.id = LIMINE_KERNEL_ADDRESS_REQUEST,
-		.revision = 0
-	};
-
-	static volatile struct limine_memmap_request memmap_req = {
-		.id = LIMINE_MEMMAP_REQUEST,
-		.revision = 0
-	};
-
 	enum memmap_types {
-		usable,
-		kernel_,
-		heap,
-		reserved,
-		reclaimable,
-		acpi,
-		bad,
-		stack,
-		other,
-		paging,
-		undefined
+		memmap_usable,
+		memmap_kernel,
+		memmap_heap,
+		memmap_reserved,
+		memmap_reclaimable,
+		memmap_acpi,
+		memmap_bad,
+		memmap_stack,
+		memmap_other,
+		memmap_paging,
+		memmap_undefined
 	} memmap_types;
 
 	typedef struct memmap_entry {

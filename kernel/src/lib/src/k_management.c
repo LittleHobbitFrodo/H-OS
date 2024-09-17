@@ -23,20 +23,20 @@
 			output_init();
 
 			output.color = col.green;
-			printl("starting CORE initialization...");
+			print("initializing "); printl(KERNEL_NAME);
 			output.color = col.white;
 
 			//	initialize cpu (cpuid)
-			if (cpu_init() != ok_) {
-				panic(cpu_vendor_not_found);
+			if (cpu_init() != cic_ok_) {
+				panic(pc_cpu_vendor_not_found);
 			}
 
-			if (memmap_req.response == null) {
-				panic(memmap_not_found);
+			if (req_memmap.response == null) {
+				panic(pc_memmap_not_found);
 			}
 
 			enum panic_codes code;
-			if ((code = memory_init()) != ok) {
+			if ((code = memory_init()) != pc_ok) {
 				panic(code);
 			}
 		}
@@ -48,31 +48,31 @@
 			output.color = col.white;
 			print(":\t");
 			switch (code) {
-				case memmap_not_found: {
+				case pc_memmap_not_found: {
 					printl("memory map was not found");
 					break;
 				}
-				case unsupported_paging_mode: {
+				case pc_unsupported_paging_mode: {
 					printl("current paging mode is not supported");
 					break;
 				}
-				case cannot_allocate_memoey_for_kernel_heap: {
+				case pc_cannot_allocate_memoey_for_kernel_heap: {
 					printl("cannot allocate memory for kernel heap");
 					break;
 				}
-				case cannot_locate_kernel_entry: {
+				case pc_cannot_locate_kernel_entry: {
 					printl("cannot locate kernel entry");
 					break;
 				}
-				case unable_to_allocate_paging_table: {
+				case pc_unable_to_allocate_paging_table: {
 					printl("unable to allocate paging table");
 					break;
 				}
-				case base_addresses_not_available: {
+				case pc_base_addresses_not_available: {
 					printl("base addressed (physical and virtual) are not available");
 					break;
 				}
-				case cannot_locate_kernel_stack: {
+				case pc_cannot_locate_kernel_stack: {
 					printl("cannot locate kernel stack");
 					break;
 				}
@@ -85,11 +85,11 @@
 			print("\t->\t");
 			output.color = col.critical;
 			switch (kernel_state) {
-				case init_memory: {
+				case kstate_init_memory: {
 					printl("FAILED TO INITIALIZE MEMORY");
 					break;
 				}
-				case init_interrupts: {
+				case k_state_init_interrupts: {
 					printl("FAILED TO INITIALIZE INTERRUPTS");
 					break;
 				}
@@ -102,27 +102,27 @@
 
 		void report(const char* msg, enum report_seriousness seriousness) {
 			switch (seriousness) {
-				case note: {
+				case rs_note: {
 					output.color = col.blue;
 					print("NOTE");
 					break;
 				}
-				case warning: {
+				case rs_warning: {
 					output.color = col.yellow;
 					print("WARNING");
 					break;
 				}
-				case problem: {
+				case rs_problem: {
 					output.color = col.orange;
 					print("PROBLEM");
 					break;
 				}
-				case error: {
+				case rs_error: {
 					output.color = col.red;
 					print("ERROR");
 					break;
 				}
-				case critical: {
+				case rs_critical: {
 					output.color = col.critical;
 					print("CRITICAL ERRROR");
 					break;
@@ -135,20 +135,20 @@
 
 
 		void __parse_cmd_out_of_bounds(const string* token) {
-			report("command line argument error: expected anything for \'", problem);
+			report("command line argument error: expected anything for \'", rs_problem);
 			prints(token);
 			printl("\', got nothing");
 		}
 
 		void parse_cmd() {
-			struct limine_file* file = kernel_file.response->kernel_file;
+			struct limine_file* file = req_kernel_file.response->kernel_file;
 			if (file == null) {
-				report("kernel file (provided by bootloader) is NULL => no parameters taken\n", problem);
+				report("kernel file (provided by bootloader) is NULL => no parameters taken\n", rs_problem);
 				return;
 			}
 			const char* cmd = file->cmdline;
 			if (file->cmdline == null) {
-				report("no given command line arguments\n", note);
+				report("no given command line arguments\n", rs_note);
 				return;
 			}
 
@@ -207,18 +207,18 @@
 				if (str_cmpb(&s[i], "-vocality")) {
 					if (++i < tokens.len) {
 						if (unlikely(str_cmpb(&s[0], "stfu"))) {
-							vocality = stfu;
+							vocality = vocality_stfu;
 						} else if (unlikely(str_cmpb(&s[i], "quiet-please"))) {
-							vocality = quiet_please;
+							vocality = vocality_quiet_please;
 						} else if (unlikely(str_cmpb(&s[i], "normal"))) {
-							vocality = normal;
+							vocality = vocality_normal;
 						} else if (unlikely(str_cmpb(&s[i], "vocal"))) {
 							vocality = vocal;
 						} else if (unlikely(str_cmpb(&s[i], "report-everything"))) {
-							vocality = report_everything;
-							report("setting kernel vocality to \'report-everything\'\n", note);
+							vocality = vocality_report_everything;
+							report("setting kernel vocality to \'report-everything\'\n", rs_note);
 						} else {
-							report("command line argument error: unknown word \'", problem);
+							report("command line argument error: unknown word \'", rs_problem);
 							prints(&s[i]);
 							printl("\' for \'-vocality\' switch, setting default vocality to \'normal\'");
 						}
@@ -226,7 +226,7 @@
 						__parse_cmd_out_of_bounds(&s[i-1]);
 					}
 				} else {
-					report("command line argument error: unknown word \'", problem);
+					report("command line argument error: unknown word \'", rs_problem);
 					prints(&s[i]);
 					printl("\', skipping");
 				}

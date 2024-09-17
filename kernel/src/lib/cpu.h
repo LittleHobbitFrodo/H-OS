@@ -23,8 +23,8 @@
 	} cpu;
 
 	enum cpu_init_codes {
-		ok_,
-		vendor_not_found
+		cic_ok_,
+		cic_vendor_not_found
 	};
 
 	enum cpu_init_codes cpu_init();

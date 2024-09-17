@@ -41,7 +41,7 @@
 				print("ERROR");
 				output.color = col.white;
 				printl(": could not find cpu vendor");
-				return vendor_not_found;
+				return cic_vendor_not_found;
 			}
 
 			//	detect cpu model name
@@ -61,7 +61,7 @@
 			memcpy((void*)&txt, (void*)((size_t)&cpu.model + sizeof(u32) * 8), 4*sizeof(u32));
 			cpu.model[48] = '\0';
 
-			return ok_;
+			return cic_ok_;
 		}
 
 	#else
