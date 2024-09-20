@@ -92,28 +92,27 @@ You can upload it to a flash drive, **the upload will completely erase the drive
  - Interrupts - exceptions are working, now implement interrupts
 
 ## Main tasks
-  - [x] **Hello world!** - Create bootable disk that displays simple ```hello world``` message
-  - [x] **Set up environment** - Add basic functionalities like printing numbers
-  - [x] **CPUID** - Gather some information about processor
-
+  - [x] **Hello world!** - Create bootable disk that displays simple ```hello world``` message.
+  - [x] **Set up environment** - Add basic functionalities like printing numbers.
+  - [x] **CPUID** - Gather some information about processor.
   -[x] **Heap implementation**
-    - [x] Find place for kernel heap
-    - [x] Create simple allocator
-    - [x] Add other functionalities
-    - [ ] Port the allocator for virtual addresses
+    - [x] Find place for kernel heap.
+    - [x] Create simple allocator.
+    - [x] Add other functionalities.
+    - [ ] Port the allocator for virtual addresses.
   - [x] **Memory initialization**
-    - [x] Parse and simplify memory map
-    - [x] Initialize GDT with TSS
-    - [ ] Reinitialize paging
+    - [x] Parse and simplify memory map.
+    - [x] Initialize GDT with TSS.
+    - [ ] Reinitialize paging.
   - [x] **Interrupts**
-    - [x] Get exception handling to work
-    - [ ] Initialize other interrupts
-    - [ ] Get keyboard input
+    - [x] Get exception handling to work.
+    - [ ] Initialize other interrupts.
+    - [ ] Get keyboard input.
   - [ ] **Initialize hardware**
-    - [ ] Be able to read from disk
+    - [ ] Be able to read from disk.
   - [ ] **Get into userspace**
-    - [ ] Initialize system calls
-    - [ ] Make elf file parser
-    - [ ] Run "Hello world" program
+    - [ ] Initialize system calls.
+    - [ ] Make elf file parser.
+    - [ ] Run "Hello world" program.
 
 ...
