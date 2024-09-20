@@ -32,7 +32,7 @@ The whole project with all of its parts is under the GPL v3.0 licence
 - **[Ubuntu](https://ubuntu.com/)** can be a good choice for beginners with linux
 
 - For more experienced Linux users, I recommend **[Arch Linux](https://archlinux.org/)** for better accessibility to necessary packages
-  - Also, here is link to **[automated installation](https://alci.online/)** of Arch linux for faster installation
+  - Also, here is link to **[automated installation](https://alci.online/)** of Arch Linux for faster installation
 
 **[Fish](https://fishshell.com/)** (shell)
 - Most of the scripts used in the build are written in it
@@ -44,7 +44,7 @@ The whole project with all of its parts is under the GPL v3.0 licence
   - Mtools is widely used, your distribution should provide a package for it
 
 **[Limine](https://limine-bootloader.org/)** - bootloader used to start the system
-- Arch linux has an official package for limine
+- Arch Linux has an official package for limine
 - H-OS also provide **script for limine installation** (detailed somewhere below)
 
 
@@ -88,7 +88,31 @@ You can upload it to a flash drive, **the upload will completely erase the drive
 - Insert the drive, open file manager and copy the disk image (H-OS.hdd) into the disk
 - Alternatively you can do that in command line with the "dd" command **(not recommended for beginners)** ```sudo dd if=<project root dir>/H-OS.hdd of=/dev/<drive>```
 
-# Progress
-## Current work
-- Paging - paging re-initialization to better understand the concept and to not rely on the bootloader
-  - Almost done - now just apply it
+## Current progress
+ - Interrupts - exceptions are working, now implement interrupts
+
+## Main tasks
+  - [x] **Hello world!** - Create bootable disk that displays simple ```hello world``` message
+  - [x] **Set up environment** - Add basic functionalities like printing numbers
+  - [x] **CPUID** - Gather some information about processor
+  -[x] **Heap implementation**
+    - [x] Find place for kernel heap
+    - [x] Create simple allocator
+    - [x] Add other functionalities
+    - [ ] Port the allocator for virtual addresses
+  - [x] **Memory initialization**
+    - [x] Parse and simplify memory map
+    - [x] Initialize GDT with TSS
+    - [ ] Reinitialize paging
+  - [x] **Interrupts**
+    - [x] Get exception handling to work
+    - [ ] Initialize other interrupts
+    - [ ] Get keyboard input
+  - [ ] **Initialize hardware**
+    - [ ] Be able to read from disk
+  - [ ] **Get into userspace**
+    - [ ] Initialize system calls
+    - [ ] Make elf file parser
+    - [ ] Run "Hello world" program
+
+...
