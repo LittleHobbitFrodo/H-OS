@@ -95,6 +95,7 @@ You can upload it to a flash drive, **the upload will completely erase the drive
   - [x] **Hello world!** - Create bootable disk that displays simple ```hello world``` message
   - [x] **Set up environment** - Add basic functionalities like printing numbers
   - [x] **CPUID** - Gather some information about processor
+
   -[x] **Heap implementation**
     - [x] Find place for kernel heap
     - [x] Create simple allocator
