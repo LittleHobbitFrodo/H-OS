@@ -18,7 +18,7 @@
 			}
 		}
 
-		enum cpu_init_codes cpu_init() {
+		void cpu_init() {
 			cpu.vendor = null;
 
 			//	detect vendor
@@ -41,7 +41,7 @@
 				print("ERROR");
 				output.color = col.white;
 				printl(": could not find cpu vendor");
-				return cic_vendor_not_found;
+				panic(panic_code_cpu_vendor_not_found);
 			}
 
 			//	detect cpu model name
@@ -58,10 +58,12 @@
 			cpu.model[sizeof(u32) * 8] = '\0';
 
 			asm volatile("cpuid" : "=a"(txt[0]), "=b"(txt[1]), "=c"(txt[2]), "=d"(txt[3]) : "a"(0x80000004));
-			memcpy((void*)&txt, (void*)((size_t)&cpu.model + sizeof(u32) * 8), 4*sizeof(u32));
+			memcpy((void*)&txt, (void*)((size_t)&cpu.model + sizeof(u32) * 8), 4 * sizeof(u32));
 			cpu.model[48] = '\0';
 
-			return cic_ok_;
+			if (vocality >= vocality_report_everything) {
+				report("CPU initialization completed", report_note);
+			}
 		}
 
 	#else

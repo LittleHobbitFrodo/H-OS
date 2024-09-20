@@ -174,17 +174,29 @@
 
 	typedef struct gdt_ptr {
 		u16 size;
-		void* entries;
+		u64 entries;
 	} __attribute__((packed)) gdt_ptr;
 
 
-	static struct gdt {
+	/*static struct gdt {
 		gdt_entry _null;
 		gdt_entry code;
 		gdt_entry heap;
 
 		gdt_tss_entry tss;
-	} __attribute__((packed, aligned(8))) gdt;
+	} __attribute__((packed, aligned(8))) gdt;*/
+
+	static struct gdt {
+
+		gdt_entry _null;
+		gdt_entry kernel_code;
+		gdt_entry kernel_data;
+		gdt_entry user_code;
+		gdt_entry user_data;
+
+		gdt_tss_entry tss;
+
+	} __attribute((packed, aligned(8))) gdt;
 
 	static gdt_ptr gdt_pointer;
 

@@ -22,23 +22,13 @@
 			//	initialize output structure
 			output_init();
 
-			output.color = col.green;
-			print("initializing "); printl(KERNEL_NAME);
-			output.color = col.white;
-
 			//	initialize cpu (cpuid)
-			if (cpu_init() != cic_ok_) {
-				panic(pc_cpu_vendor_not_found);
-			}
+			cpu_init();
 
-			if (req_memmap.response == null) {
-				panic(pc_memmap_not_found);
-			}
+			memory_init();
 
-			enum panic_codes code;
-			if ((code = memory_init()) != pc_ok) {
-				panic(code);
-			}
+			idt_init();
+
 		}
 
 
@@ -48,31 +38,31 @@
 			output.color = col.white;
 			print(":\t");
 			switch (code) {
-				case pc_memmap_not_found: {
+				case panic_code_memmap_not_found: {
 					printl("memory map was not found");
 					break;
 				}
-				case pc_unsupported_paging_mode: {
+				case panic_code_unsupported_paging_mode: {
 					printl("current paging mode is not supported");
 					break;
 				}
-				case pc_cannot_allocate_memoey_for_kernel_heap: {
+				case panic_code_cannot_allocate_memory_for_kernel_heap: {
 					printl("cannot allocate memory for kernel heap");
 					break;
 				}
-				case pc_cannot_locate_kernel_entry: {
+				case panic_code_cannot_locate_kernel_entry: {
 					printl("cannot locate kernel entry");
 					break;
 				}
-				case pc_unable_to_allocate_paging_table: {
+				case panic_code_unable_to_allocate_paging_table: {
 					printl("unable to allocate paging table");
 					break;
 				}
-				case pc_base_addresses_not_available: {
+				case panic_code_base_addresses_not_available: {
 					printl("base addressed (physical and virtual) are not available");
 					break;
 				}
-				case pc_cannot_locate_kernel_stack: {
+				case panic_code_cannot_locate_kernel_stack: {
 					printl("cannot locate kernel stack");
 					break;
 				}
@@ -102,29 +92,29 @@
 
 		void report(const char* msg, enum report_seriousness seriousness) {
 			switch (seriousness) {
-				case rs_note: {
+				case report_note: {
 					output.color = col.blue;
 					print("NOTE");
 					break;
 				}
-				case rs_warning: {
+				case report_warning: {
 					output.color = col.yellow;
 					print("WARNING");
 					break;
 				}
-				case rs_problem: {
+				case report_problem: {
 					output.color = col.orange;
 					print("PROBLEM");
 					break;
 				}
-				case rs_error: {
+				case report_error: {
 					output.color = col.red;
 					print("ERROR");
 					break;
 				}
-				case rs_critical: {
+				case report_critical: {
 					output.color = col.critical;
-					print("CRITICAL ERRROR");
+					print("CRITICAL ERROR");
 					break;
 				}
 			}
@@ -135,7 +125,7 @@
 
 
 		void __parse_cmd_out_of_bounds(const string* token) {
-			report("command line argument error: expected anything for \'", rs_problem);
+			report("command line argument error: expected anything for \'", report_problem);
 			prints(token);
 			printl("\', got nothing");
 		}
@@ -143,12 +133,12 @@
 		void parse_cmd() {
 			struct limine_file* file = req_kernel_file.response->kernel_file;
 			if (file == null) {
-				report("kernel file (provided by bootloader) is NULL => no parameters taken\n", rs_problem);
+				report("kernel file (provided by bootloader) is NULL => no parameters taken\n", report_problem);
 				return;
 			}
 			const char* cmd = file->cmdline;
 			if (file->cmdline == null) {
-				report("no given command line arguments\n", rs_note);
+				report("no given command line arguments\n", report_note);
 				return;
 			}
 
@@ -216,9 +206,9 @@
 							vocality = vocal;
 						} else if (unlikely(str_cmpb(&s[i], "report-everything"))) {
 							vocality = vocality_report_everything;
-							report("setting kernel vocality to \'report-everything\'\n", rs_note);
+							report("setting kernel vocality to \'report-everything\'\n", report_note);
 						} else {
-							report("command line argument error: unknown word \'", rs_problem);
+							report("command line argument error: unknown word \'", report_problem);
 							prints(&s[i]);
 							printl("\' for \'-vocality\' switch, setting default vocality to \'normal\'");
 						}
@@ -226,7 +216,7 @@
 						__parse_cmd_out_of_bounds(&s[i-1]);
 					}
 				} else {
-					report("command line argument error: unknown word \'", rs_problem);
+					report("command line argument error: unknown word \'", report_problem);
 					prints(&s[i]);
 					printl("\', skipping");
 				}

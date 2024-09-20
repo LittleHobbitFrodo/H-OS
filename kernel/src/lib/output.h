@@ -82,11 +82,11 @@
 	void output_init();
 
 
-	__attribute__((always_inline)) static inline void endl() {
+	/*__attribute__((always_inline))*/ static inline void endl() {
 		output.line += (output.column / screen.w) + (1 * (output.column < screen.w));
 		output.column = 0;
 	}
-	__attribute__((always_inline)) static inline void tab() {
+	/*__attribute__((always_inline))*/ static inline void tab() {
 		output.column += OUT_TAB_SPACE_COUNT - (output.column % OUT_TAB_SPACE_COUNT);
 		if (output.column >= screen.w) {
 			endl();
@@ -104,7 +104,7 @@
 	void printb(size_t bin);
 
 
-	__attribute__((always_inline)) static inline void printc(const char c) {
+	__attribute__((target("general-regs-only"))) static inline void printc(const char c) {
 		if (c >= 0) {
 			switch (c) {
 				case '\n': {

@@ -175,14 +175,19 @@
 			output.color = col.white;
 		}
 
-		enum panic_codes memory_init() {
+		void memory_init() {
+
+			if (req_memmap.response->entries == null) {
+				report("memory map not found", report_critical);
+				panic(panic_code_memmap_not_found);
+			}
 
 			//	reserves memory for heap
 			if (!heap_reserve_memory(false)) {
 					//	initialize (maybe) temporary heap
 					//	once the kernel will deal with all reclaimable entries heap will be (maybe) reinitialized
-					//	meybe = if any reclaimable entry is in place where we want the kernel heap
-				return pc_cannot_allocate_memoey_for_kernel_heap;
+					//	maybe = if any reclaimable entry is in place where we want the kernel heap
+				panic(panic_code_cannot_allocate_memory_for_kernel_heap);
 			}
 
 			//	initialize heap
@@ -206,7 +211,10 @@
 
 			tss_init();
 
-			return pc_ok;
+			if (vocality >= vocality_vocal) {
+				report("memory initialization completed\n", report_note);
+			}
+
 		}
 
 
@@ -218,29 +226,6 @@
 			enum memmap_types tmp = memmap_undefined;
 			ssize_t stack_index = -1;
 			size_t paging_address = (size_t)page_find();
-
-			//	localize future stacks
-			/*{
-				size_t stack_start_entry = 0;
-				ssize_t ssize = 0;
-				for (ssize_t i = msize - 1; i > 0; i--) {
-					if (ents[i]->type == LIMINE_MEMMAP_USABLE) {
-						if (ssize == 0) {
-							stack_start_entry = i;
-						}
-						ssize += (ssize_t)ents[i]->length;
-					} else {
-						ssize = 0;
-					}
-					if (ssize >= STACK_MINIMUM_INITIAL_SIZE * KB) {
-						stack_index = stack_start_entry;
-						break;
-					}
-				}
-				if (stack_index < 0) {
-					panic(cannot_allocate_memory_for_stacks);
-				}
-			}*/
 
 			struct limine_memmap_entry* ent;
 			size_t i = 0;
@@ -270,13 +255,6 @@
 					h->type = memmap_heap;
 					heap_index = memmap.len - 1;
 				} else if (ent->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) {
-					/*print("memmap_parse:\tphysical:\t");
-					{
-						void* stack;
-						asm volatile("mov %0, rsp" : "=r"(stack));
-						printp(physical(stack));
-						endl();
-					}*/
 					if ((paging_address > ent->base) && (paging_address < ent->base + ent->length)) {
 						memmap_entry* p = (memmap_entry*)vec_push(&memmap, 1);
 						p->base = ent->base;
@@ -351,7 +329,7 @@
 						break;
 					}
 					case memmap_undefined: {
-						report("memory map entry index ", rs_error);
+						report("memory map entry index ", report_error);
 						printu(i); printl(" has undefined type");
 						break;
 					}
@@ -362,7 +340,7 @@
 			meminfo.total = es[memmap.len - 1].base + es[memmap.len-1].len;
 
 			if (vocality >= vocality_report_everything) {
-				report("memory map parsed successfully\n", rs_note);
+				report("memory map parsed successfully\n", report_note);
 			}
 
 		}

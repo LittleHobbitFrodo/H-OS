@@ -5,8 +5,6 @@
 
 #include "./include.h"
 
-//TODO:		reimplement gdt (with right datastructures lol)
-
 void kernel() {
 
 	output.color = col.green;

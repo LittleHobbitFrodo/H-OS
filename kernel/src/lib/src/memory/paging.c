@@ -55,12 +55,12 @@
 				u8 check = (hent == null) | ((pent == null) << 1);
 				if (check != 0) {
 					if (check & 0b1) {
-						report("could not find heap memory map entry\n", rs_critical);
+						report("could not find heap memory map entry\n", report_critical);
 					}
 					if ((check & 0b10) != 0) {
-						report("could not find page table memory map entry\n", rs_critical);
+						report("could not find page table memory map entry\n", report_critical);
 					}
-					panic(pc_paging_initialization_failure);
+					panic(panic_code_paging_initialization_failure);
 				}
 			}
 			//	hent, sent, pent != null
@@ -82,8 +82,8 @@
 					}
 				}
 				if (connect == null) {
-					report("could not find valid pdpt entry\n", rs_critical);
-					panic(pc_paging_initialization_failure);
+					report("could not find valid pdpt entry\n", report_critical);
+					panic(panic_code_paging_initialization_failure);
 				}
 			}
 
@@ -141,8 +141,8 @@
 				output.color = col.white;
 			}
 
-			if (vocality >= vocality_vocal_) {
-				report("paging initialization completed\n", rs_note);
+			if (vocality >= vocality_vocal) {
+				report("paging initialization completed\n", report_note);
 			}
 		}
 

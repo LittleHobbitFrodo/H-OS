@@ -7,5 +7,20 @@ end
 
 rm ./qemu.log
 
+set _log 0
+for i in $argv
+  if test $i = "log"
+    set _log 1
+    break
+  end
+end
+
+if test $_log -eq 1
+  echo log
+  qemu-system-x86_64 -m 8192 -machine q35 -drive format=raw,file=./H-OS.hdd -no-reboot -D qemu.log -d int
+  exit
+end
+
 #	root dir
-qemu-system-x86_64 -m 8192 -machine q35 -drive format=raw,file=./H-OS.hdd -no-reboot -d int &
+qemu-system-x86_64 -m 8192 -machine q35 -drive format=raw,file=./H-OS.hdd -no-reboot &
+# -d int

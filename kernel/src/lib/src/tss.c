@@ -13,10 +13,13 @@
 
 		memset(&tss, sizeof(tss_t), 0);
 
-		tss.tss.rsp[0] = (u64)KERNEL_STACK_END;
-		for (u16 i = 0; i < INTERRUPT_STACK_SIZE; i++) {
-			tss.tss.ist[i] = (size_t)INTERRUPT_STACKS[i] + (INTERRUPT_STACK_SIZE * KB);
+		const size_t add = (INTERRUPT_STACK_SIZE * KB) - 1;
+
+		for (size_t i = 0; i < 7; i++) {
+			tss.tss.ist[i] = (size_t)&INTERRUPT_STACKS[i] + add;
 		}
+		tss.tss.perms_offset = sizeof(tss_base_t);
+
 	}
 
 #endif

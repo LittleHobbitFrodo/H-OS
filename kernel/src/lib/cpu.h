@@ -22,12 +22,7 @@
 
 	} cpu;
 
-	enum cpu_init_codes {
-		cic_ok_,
-		cic_vendor_not_found
-	};
-
-	enum cpu_init_codes cpu_init();
+	static void cpu_init();
 	void cpu_info();
 
 	static const cpu_vendor_t cpu_vendors[] = {{.name = "AMD", .id = "AuthenticAMD", .hypervised = false},

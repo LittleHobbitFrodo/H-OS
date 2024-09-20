@@ -57,6 +57,17 @@
 	#include "./lib/string.h"
 	#include "./lib/output.h"
 
+	#include "./lib/interrupts.h"
+	#include "./lib/exceptions.h"
+	#include "./lib/int-handler.h"
+
+
+
+
+
+
+
+
 	//  sources
 	#include "./lib/src/utils.c"
 	#include "./lib/src/memory.c"
@@ -74,6 +85,10 @@
 	#include "./lib/src/cpu.c"
 	#include "./lib/src/string.c"
 	#include "./lib/src/vector.c"
+
+	#include "./lib/src/int-handler.c"
+	#include "./lib/src/exceptions.c"
+	#include "./lib/src/interrupts.c"
 
 #endif
 //	#error include.h already included

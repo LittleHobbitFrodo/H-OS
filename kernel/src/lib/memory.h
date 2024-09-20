@@ -14,15 +14,16 @@
 	#define MB (1024 * 1024)
 	#define GB (1024 * 1024 * 1024)
 
+
+
 	//	kernel stack (initialized in init.asm)
 	char KERNEL_STACK[65536] __attribute__((aligned(4096)));
 	extern void* KERNEL_STACK_END;
 
-	//char INTERRUPT_STACKS[INTERRUPT_STACK_SIZE * KB];
 	char INTERRUPT_STACKS[7][INTERRUPT_STACK_SIZE * KB] __attribute__((aligned(4096)));
 
 
-	static enum panic_codes memory_init();
+	static void memory_init();
 
 	__attribute__((always_inline)) inline void* align(void* ptr, size_t align) {
 		return (void*)(((u64)ptr + align - 1) & ~(align - 1));
@@ -92,7 +93,6 @@
 	}
 
 	__attribute__((nonnull(1))) void* aptr_alloc(aligned_ptr* this, size_t bytes);
-	//__attribute__((nonnull(1))) void* aptr_alloco(aligned_ptr *this, size_t bytes);
 
 	__attribute__((nonnull(1), returns_nonnull)) void* aptr_realloc(aligned_ptr* this, size_t bytes);
 	__attribute__((nonnull(1), returns_nonnull)) void* aptr_reallocf(aligned_ptr* this, size_t bytes, void (*on_realloc)(void*));
@@ -105,6 +105,12 @@
 	}
 
 	void va_info(void* addr);
+
+	typedef struct stack_frame {
+		//	get -> read rbp
+		struct stack_frame* rbp;
+		u64 rip;
+	} __attribute__((packed)) stack_frame;
 
 
 	//	memmap vector is declared in vector.h
