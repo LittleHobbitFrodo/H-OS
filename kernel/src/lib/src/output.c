@@ -32,22 +32,22 @@
 			col.cyan = 0x00ffff;
 			col.grey = 0xaaaaaa;
 
-			if (fb.response == null) {
+			if (req_fb.response == null) {
 				return;
 			}
 
-			if (fb.response->framebuffer_count < 1) {
+			if (req_fb.response->framebuffer_count < 1) {
 				return;
 			}
 
-			struct limine_framebuffer* f = fb.response->framebuffers[0];
+			struct limine_framebuffer* f = req_fb.response->framebuffers[0];
 
 			if (f->memory_model != LIMINE_FRAMEBUFFER_RGB) {
 				return;
 			}
 
 			//	set screen data
-			screen.count = fb.response->framebuffer_count;
+			screen.count = req_fb.response->framebuffer_count;
 			screen.bpp = f->bpp;
 			screen.address = (u32*)f->address;
 			screen.h = f->height;

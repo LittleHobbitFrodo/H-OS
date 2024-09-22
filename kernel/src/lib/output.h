@@ -20,20 +20,6 @@
 		#define OUT_TAB_SPACE_COUNT 4
 	#endif
 
-	static struct font {
-		u16 h;
-		u16 w;
-		//u8 table[97][8];
-		
-	} font;
-
-	void font_init();	//	in bitmap.c
-
-	static volatile struct limine_framebuffer_request fb = {
-		.id = LIMINE_FRAMEBUFFER_REQUEST,
-		.revision = 0
-	};
-
 	static struct screen {
 
 		u64 count;
@@ -125,6 +111,83 @@
 				}
 				default: {
 					u8 actual = c * (c > FONT_PLACE_SUB) - (FONT_PLACE_SUB * (c > FONT_PLACE_SUB));
+					u32* ptr = screen.address + ((output.line * screen.w * (font.size + output.space_between_lines))) + (output.column * font.size);
+
+					switch (font.size) {
+						case 8: {
+							u8* fnt;
+							for (u16 i = 0; i < font.size; i++) {
+								fnt = font.table[actual];
+								for (u16 ii = 0; ii < font.size; ii++) {
+									*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
+								}
+							}
+							break;
+						}
+						case 16: {
+							u16* fnt;
+							for (u16 i = 0; i < font.size; i++) {
+								fnt = font.table[actual];
+								for (u16 ii = 0; ii < font.size; ii++) {
+									*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
+								}
+							}
+							break;
+						}
+						case 32: {
+							u32* fnt;
+							for (u16 i = 0; i < font.size; i++) {
+								fnt = font.table[actual];
+								for (u16 ii = 0; ii < font.size; ii++) {
+									*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
+								}
+							}
+							break;
+						}
+						case 64: {
+							u64* fnt;
+							for (u16 i = 0; i < font.size; i++) {
+								fnt = font.table[actual];
+								for (u16 ii = 0; ii < font.size; ii++) {
+									*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
+								}
+							}
+							break;
+						}
+						default: break;
+					}
+
+
+
+					output.column++;
+					if (output.column >= screen.w) {
+						endl();
+					}
+				}
+			}
+		}
+	}
+
+	/*__attribute__((target("general-regs-only"))) static inline void printc(const char c) {
+		if (c >= 0) {
+			switch (c) {
+				case '\n': {
+					endl();
+					break;
+				}
+				case ' ': {
+					output.column++;
+					if (output.column >= screen.w) {
+						endl();
+					}
+					break;
+				}
+				case '\t': {
+					tab();
+					break;
+				}
+				default: {
+					u8 actual = c * (c > FONT_PLACE_SUB) - (FONT_PLACE_SUB * (c > FONT_PLACE_SUB));
 					u32* ptr = screen.address + ((output.line * screen.w * (font.h + output.space_between_lines))) + (output.column * font.w);
 
 					for (u16 i = 0; i < font.h; i++) {
@@ -140,7 +203,7 @@
 				}
 			}
 		}
-	}
+	}*/
 
 #endif
 //	#warning output.h already included

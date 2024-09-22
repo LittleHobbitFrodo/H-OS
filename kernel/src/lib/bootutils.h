@@ -53,4 +53,9 @@
 		.revision = 0
 	};
 
+	static volatile struct limine_framebuffer_request req_fb = {
+		.id = LIMINE_FRAMEBUFFER_REQUEST,
+		.revision = 0
+	};
+
 #endif

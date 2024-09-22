@@ -57,6 +57,7 @@
 	#include "./lib/gdt.h"				//	needs vector.h
 
 	#include "./lib/string.h"
+	#include "./lib/font.h"
 	#include "./lib/output.h"
 
 	#include "./lib/interrupts.h"
@@ -83,7 +84,7 @@
 	#include "./lib/src/gdt.c"
 	#include "./lib/src/tss.c"
 
-	#include "./lib/src/bitmap.c"
+	#include "./lib/src/font.c"
 	#include "./lib/src/k_management.c"
 	#include "./lib/src/timer.c"
 	#include "./lib/src/convert.c"
