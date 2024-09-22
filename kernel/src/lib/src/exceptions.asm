@@ -1,5 +1,5 @@
 #
-#   interrupts.asm
+#   exceptions.asm
 #       part of the CORE kernel belonging to the H-OS project
 #
 

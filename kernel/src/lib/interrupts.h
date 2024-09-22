@@ -32,8 +32,7 @@
 	} __attribute__((packed)) idt_entry;
 
 	#define IDT_SIZE 256
-	#define IDT_USED_SIZE 31
-
+	#define IDT_USED_SIZE 256
 	typedef idt_entry idt_t[IDT_SIZE];
 
 	typedef struct idt_ptr {

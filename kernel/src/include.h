@@ -28,7 +28,7 @@
 
 	#define likely(x)   __builtin_expect(!!(x), 1)
 	#define unlikely(x) __builtin_expect(!!(x), 0)
-	//	used in if statements for compiler optimizations
+		//	used in if statements for compiler optimizations
 
 	//	please don't ask me how are headers separated...
 
@@ -42,6 +42,8 @@
 	#include "./lib/convert.h"
 	#include "./lib/cpu.h"
 	#include "./lib/k_management.h"
+	#include "./lib/pic.h"
+	#include "./lib/timer.h"
 
 
 	//  depends on headers above
@@ -60,6 +62,8 @@
 	#include "./lib/interrupts.h"
 	#include "./lib/exceptions.h"
 	#include "./lib/int-handler.h"
+
+	#include "./lib/hardware.h"
 
 
 
@@ -81,6 +85,7 @@
 
 	#include "./lib/src/bitmap.c"
 	#include "./lib/src/k_management.c"
+	#include "./lib/src/timer.c"
 	#include "./lib/src/convert.c"
 	#include "./lib/src/cpu.c"
 	#include "./lib/src/string.c"
@@ -89,6 +94,9 @@
 	#include "./lib/src/int-handler.c"
 	#include "./lib/src/exceptions.c"
 	#include "./lib/src/interrupts.c"
+	#include "./lib/src/pic.c"
+
+	#include "./lib/src/hardware.c"
 
 #endif
 //	#error include.h already included

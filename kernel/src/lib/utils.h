@@ -63,6 +63,23 @@
 
 	[[maybe_unused]] static void waitaminute(size_t max, const char* msg);
 
+	#define enable_interrupts asm volatile("sti");
+	#define disable_interrupts asm volatile("cli");
+
+	static inline byte inb(u16 port) {
+		byte ret;
+		asm volatile("inb %0, %1" : "=a"(ret) : "Nd"(port));
+		return ret;
+	}
+
+	static inline void outb(u16 port, u8 data) {
+		asm volatile("outb %1, %0" :: "a"(data), "Nd"(port));
+	}
+
+	static inline void iowait() {
+		outb(0x80, 0);
+	}
+
 #endif
 //	#warning utils.h already included
 //#endif

@@ -23,7 +23,8 @@
 	static struct font {
 		u16 h;
 		u16 w;
-		u8 table[97][8];
+		//u8 table[97][8];
+		
 	} font;
 
 	void font_init();	//	in bitmap.c
