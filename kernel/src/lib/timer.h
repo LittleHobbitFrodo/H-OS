@@ -19,7 +19,7 @@
 		u16 milliseconds;
 	} __attribute__((packed)) time_t;
 
-	static void timer_init();
+	[[maybe_unused]] static void timer_init();
 
 	#define PIT_PORT_COMMAND 0x43
 	#define PIT_PORT_CHANEL0 0x40

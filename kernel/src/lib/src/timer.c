@@ -11,7 +11,7 @@
 
 		void timer_init() {
 
-			//	configure RTC
+			//	configure PIT
 			disable_interrupts;
 			outb(0x70, 0x8a);
 			outb(0x71, 0x20);
@@ -23,13 +23,17 @@
 
 			enable_interrupts;
 
+			pit_set_divisor(PIT_DIVISOR_1MS);
+
+			enable_interrupts;
+
 			if (vocality >= vocality_report_everything) {
 				report("timer configuration succeeded\n", report_note);
 			}
 		}
 
 		void pit_set_divisor(size_t divisor) {
-			disable_interrupts;
+			//disable_interrupts;
 
 			u8 lobyte = (u8)(divisor & 0xff);
 			u8 hibyte = (u8)((divisor >> 8) & 0xff);
@@ -41,7 +45,7 @@
 			outb(PIT_PORT_CHANEL0, lobyte);
 			outb(PIT_PORT_CHANEL0, hibyte);
 
-			enable_interrupts;
+			//enable_interrupts;
 		}
 
 	#endif

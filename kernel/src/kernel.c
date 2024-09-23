@@ -15,9 +15,4 @@ void kernel() {
 
 	printl("hello world!");
 
-	for (u8 i = 0; i < 20; i++) {
-		print("tick:\t"); printu(tick); endl();
-		for (u32 ii = 0; ii < MAX_U16; ii++);
-	}
-
 }

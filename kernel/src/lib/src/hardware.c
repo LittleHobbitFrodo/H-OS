@@ -11,7 +11,7 @@
 
 		void hardware_init() {
 
-			pic_init();
+			timer_init();
 
 			if (vocality >= vocality_report_everything) {
 				report("hardware initialization success\n", report_note);

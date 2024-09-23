@@ -9,13 +9,16 @@
 	#ifndef H_OS_LIB_INTERRUPTS_C
 		#define H_OS_LIB_INTERRUPTS_C
 
-		void idt_init() {
+		void interrupts_init() {
 
 			//	set all idt entries to null
 			for (size_t i = 0; i < IDT_SIZE; i++) {
 				idt_null(&idt[i]);
-				idt[i].flags = idt_gate_type_interrupt | (idt_bits_present * (i < 31));
+				idt[i].flags = idt_gate_type_interrupt;
 				idt[i].cs = 0x8;	//	index 1
+			}
+			for (size_t i = 0; i < 33; i++) {
+				idt[i].flags |= idt_bits_present;
 			}
 
 			//	prepare idt pointer
@@ -54,6 +57,9 @@
 			idt_set_address(&idt[32], (void*)&interrupt_timer_pit);
 
 			asm volatile("lidt %0" :: "m"(idt_pointer));
+
+			pic_remap();		//	reconfigure interrupt controller
+
 			asm volatile("sti");
 
 			if ((vocality >= vocality_report_everything)) {

@@ -35,6 +35,7 @@
 .global isr_ex_vmm_communication
 .global isr_ex_security
 
+
 .section .text
 
 isr_ex_divide_by_zero:
@@ -151,14 +152,6 @@ isr_ex_security:
 
 	push 30
 	jmp isr_exception_wrapper
-
-
-
-
-
-
-
-
 
 isr_exception_wrapper:
 	push rax

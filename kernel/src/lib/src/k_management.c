@@ -29,7 +29,7 @@
 			memory_init();
 
 			//	initialize interrupts
-			idt_init();
+			interrupts_init();
 
 			//	basic hardware initialization
 

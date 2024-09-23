@@ -965,7 +965,7 @@ void font_init() {
 
 	font.size = default_font.size;
 
-	for (i = 0; i < 98; i++) {
+	for (i = 0; i < 97; i++) {
 		font.table[i] = &default_font.table[i];
 	}
 

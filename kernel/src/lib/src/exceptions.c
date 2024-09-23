@@ -10,7 +10,8 @@
 		#define H_OS_LIB_EXCEPTIONS_C
 
 		__attribute__((target("general-regs-only"))) void handle_exception(exception_stack_frame* frame) {
-			switch (frame->index) {
+			print("exception "); printu(frame->type); endl();
+			switch (frame->type) {
 				case exception_divide_by_zero: {
 					//	fault
 					//	once in userspace -> kill process
@@ -74,6 +75,7 @@
 				}
 				case exception_general_protection: {
 					report("general protection", report_error);
+					hang();
 					break;
 				}
 				case exception_page_fault: {
@@ -119,6 +121,7 @@
 				}
 				default: {
 					printl("unknown exception\n");
+					hang();
 					break;
 				}
 			}

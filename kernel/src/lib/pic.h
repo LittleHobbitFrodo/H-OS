@@ -26,10 +26,10 @@
 	#define PIC_COMMAND_ICW4_MODE_MASTER 0x0c	//	buffered mode/master
 	#define PIC_COMMAND_ICW4_MODE_SLAVE 0x08	//	buffered mode/slave
 
-	static void pic_init();
+	//static void pic_init();
 		//	Programmable Interrupt Controller
 
-	static void pic_remap();
+	 [[maybe_unused]] static void pic_remap();
 		//	remap interrupts to start from index 32 (to not collide with exceptions)
 
 

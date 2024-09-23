@@ -57,19 +57,22 @@
 	} col;
 
 	static struct output {
-		size_t line;
-		size_t column;
+		volatile size_t line;
+		volatile size_t column;
 
 		u8 space_between_lines;
 		size_t fb;
 
 		u32 color;
+
+		volatile bool lock;
+
 	} output;
 
 	void output_init();
 
 
-	/*__attribute__((always_inline))*/ static inline void endl() {
+	 static inline void endl() {
 		output.line += (output.column / screen.w) + (1 * (output.column < screen.w));
 		output.column = 0;
 	}

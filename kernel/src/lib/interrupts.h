@@ -3,8 +3,7 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
-///NOTE:	interrupt handlers are compiled separatedly
-
+///NOTE:	interrupt handlers are compiled separately
 
 #pragma once
 
@@ -12,11 +11,21 @@
 	#define H_OS_LIB_INTERRUPTS_H
 
 	typedef struct int_stack_frame {
+		u64 cr2;
+
+		u64 r15, r14, r13, r12, r11, r10, r9, r8;
+
+		u64 rbp;
+
+		u64 rdi, rsi, rdx, rcx, rbx, rax;
+
+		u64 type;
+		u64 code;
 		u64 rip;
 		u64 cs;
-		u64 rflags;
+		u64 flags;
 		u64 rsp;
-		u16 ss;
+		u64 ss;
 	} __attribute__((packed)) int_stack_frame;
 
 	typedef struct idt_entry {
@@ -52,8 +61,8 @@
 	} idt_gate_types;
 
 
-	__attribute__((always_inline, nonnull(1))) inline size_t idt_address(const idt_entry* ent) {
-		return ((size_t)ent->off1) | ((size_t)ent->off2 << 16) | ((size_t)ent->off3 << 32);
+	__attribute__((always_inline, nonnull(1))) inline void* idt_address(const idt_entry* ent) {
+		return (void*)(((size_t)ent->off1) | ((size_t)ent->off2 << 16) | ((size_t)ent->off3 << 32));
 	}
 
 	__attribute__((always_inline, nonnull(1))) inline u8 idt_ist(const idt_entry* ent) {
@@ -74,6 +83,6 @@
 	__attribute__((aligned(16))) static idt_t idt;
 	__attribute__((aligned(16))) static idt_ptr idt_pointer;
 
-	static void idt_init();
+	static void interrupts_init();
 
 #endif
