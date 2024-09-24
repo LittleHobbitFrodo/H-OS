@@ -54,7 +54,7 @@
 			//	31 is reserved
 
 			//	timer interrupt
-			idt_set_address(&idt[32], (void*)&interrupt_timer_pit);
+			idt_set_address(&idt[32], (void*)&isr_int_timer_pit);
 
 			asm volatile("lidt %0" :: "m"(idt_pointer));
 

@@ -8,6 +8,7 @@
 #ifndef H_OS_LIB_INT_HANDLER_H
 	#define H_OS_LIB_INT_HANDLER_H
 
+	extern void isr_int_timer_pit(void);
 
 	__attribute__((interrupt, target("general-regs-only"))) extern void interrupt_timer_pit(int_stack_frame* frame);
 

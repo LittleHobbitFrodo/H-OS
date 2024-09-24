@@ -33,7 +33,6 @@
 		}
 
 		void pit_set_divisor(size_t divisor) {
-			//disable_interrupts;
 
 			u8 lobyte = (u8)(divisor & 0xff);
 			u8 hibyte = (u8)((divisor >> 8) & 0xff);
@@ -45,7 +44,6 @@
 			outb(PIT_PORT_CHANEL0, lobyte);
 			outb(PIT_PORT_CHANEL0, hibyte);
 
-			//enable_interrupts;
 		}
 
 	#endif

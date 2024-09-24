@@ -9,16 +9,13 @@
 	#define H_OS_LIB_TSS_H
 
 	typedef struct tss_base_t {
+		u32 reserved;
 		u64 rsp[3];
-
-		u64 reserved;
-
-		u64 ist[7];
 		u64 reserved1;
-		u32 reserved2;
-		u16 perms_offset;
-		//	offset (from base) to io perms bitmap
+		u64 ist[7];
+		u64 reserved2;
 		u16 reserved3;
+		u16 perms_offset;
 	} __attribute__((packed)) tss_base_t;
 
 	typedef u8 iomap[9192];
