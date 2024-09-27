@@ -7,10 +7,4 @@
 
 #pragma once
 
-#ifndef H_OS_LIB_HARDWARE_H
-	#define H_OS_LIB_HARDWARE_H
-
-	static void hardware_init();
-
-
-#endif
+	[[maybe_unused]] static void hardware_init();

@@ -5,9 +5,6 @@
 
 #pragma once
 
-#ifndef H_OS_LIB_BITMAP_CPP
-	#define H_OS_LIB_BITMAP_CPP
-
 void font_init() {
 
 	u8 i = 0;
@@ -970,7 +967,3 @@ void font_init() {
 	}
 
 }
-
-#endif
-//	#warning bitmap.cpp already included
-//#endif

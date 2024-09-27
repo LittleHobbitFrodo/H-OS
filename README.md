@@ -1,5 +1,7 @@
 # H-OS
 
+**Disclaimer**: The current version of H-OS kernel (0.1.3.0) always causes an exception and is therefore unusable. I'm already working on it
+
 ### H-OS is simple operating system project
 
 H-OS is still at a **very early stage of development**, the vast majority of things are not yet operational and some that are operational do not work as they should. There is **no guarantee that the system will work**
@@ -47,29 +49,34 @@ The whole project with all of its parts is under the GPL v3.0 licence
 - Arch Linux has an official package for limine
 - H-OS also provide **script for limine installation** (detailed somewhere below)
 
+**[NASM](https://www.nasm.us/)** - assembler (assembly compiler)
+- Nasm is widely used assembler, most distributions should provide a package for it.
 
-### **Compiler**
+
+### **C compiler**
 - If you are on x86_64 system (run ```uname -m``` in terminal to check it), install ```gcc``` package.
-The gcc package should also contain **"ld" and "as" commands**. Make sure this is the case.
+The gcc package should also contain ```ld``` **command**. Make sure this is the case.
   - Be aware that the native **compiler (gcc) can cause problems**. So please **consider building cross-compiler (x86_64-elf-gcc)**
 
 
 - In case you don't have x86_64/amd64 architecture you will most likely have to **build cross-compiler** called ```x86_64-elf-gcc``` which should provide everything you need.
     - For Arch linux users it is available as **[AUR package](https://aur.archlinux.org/packages/x86_64-elf-gcc)**. Building of the cross-compiler is long process: it may take more than one hour
-    - In this case **"x86_64-elf-ld" and "x86_64-elf-as" commands** should be installed as well. Make sure that this is indeed the case.
+    - In this case ```x86_64-elf-ld``` **command** should be installed as well. Make sure that this is indeed the case.
 
 
 **[Qemu](https://www.qemu.org/)** - Quick EMUlator (for testing and emulation) - **Optional** dependency
 
 ## Requirement installation
-- **Ubuntu**: ```sudo apt update && sudo apt install build-essential fish parted mtools``` - limine and cross-compiler must be installed manually
-- **Arch Linux**: ```sudo pacman -Syyu && sudo pacman -S gcc fish parted mtools limine```
-  - Alternatively you can install the cross-compiler with this command ```yay -S x86_64-elf-gcc```. The compiler has to be built, which can take more than an hour on weaker machines
-- **Fedora**: ```sudo dnf update && sudo dnf install gcc fish parted mtools``` - limine  and cross-compiler must be installed manually
+- **Ubuntu**: ```sudo apt update && sudo apt install build-essential fish parted mtools nasm```
+  - limine and cross-compiler must be installed manually
+- **Arch Linux**: ```sudo pacman -Syyu && sudo pacman -S gcc fish parted mtools limine nasm```
+    - Alternatively you can install the cross-compiler with this command ```yay -S x86_64-elf-gcc```. The compiler has to be built, which can take more than an hour on weaker machines
+- **Fedora**: ```sudo dnf update && sudo dnf install gcc fish parted mtools nasm```
+  - limine  and cross-compiler must be installed manually
 
 
 ### **Limine** installation script
-- **Please be aware that the script requires administrator (root) rights**
+- **Please be aware that the script requires administrator (root) privileges**
   - Any malfunction can drastically damage your system.
   - **There is no guarantee** that the script will always work as intended.
 - **Please consider reading the script or manually installing limine according to the steps specified by your linux distribution**
@@ -89,7 +96,7 @@ You can upload it to a flash drive, **the upload will completely erase the drive
 - Alternatively you can do that in command line with the "dd" command **(not recommended for beginners)** ```sudo dd if=<project root dir>/H-OS.hdd of=/dev/<drive>```
 
 ## Current progress
- - Interrupts - exceptions are working, now implement interrupts
+ - Interrupts - interrupts are causing general protection fault
 
 ## Main tasks
   - [x] **Hello world!** - Create bootable disk that displays simple ```hello world``` message.
@@ -100,12 +107,12 @@ You can upload it to a flash drive, **the upload will completely erase the drive
     - [x] Create simple allocator.
     - [x] Add other functionalities.
     - [ ] Port the allocator for virtual addresses.
-  - [x] **Memory initialization**
+  - [ ] **Memory initialization**
     - [x] Parse and simplify memory map.
     - [x] Initialize GDT with TSS.
     - [ ] Reinitialize paging.
-  - [x] **Interrupts**
-    - [x] Get exception handling to work.
+  - [ ] **Interrupts**
+    - [ ] Get exception handling to work.
     - [ ] Initialize other interrupts.
     - [ ] Get keyboard input.
   - [ ] **Initialize hardware**
@@ -114,5 +121,3 @@ You can upload it to a flash drive, **the upload will completely erase the drive
     - [ ] Initialize system calls.
     - [ ] Make elf file parser.
     - [ ] Run "Hello world" program.
-
-...

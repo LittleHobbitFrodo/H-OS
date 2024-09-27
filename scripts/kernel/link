@@ -10,4 +10,13 @@ mkdir -p ./bin/kernel
 echo;echo;echo;echo
 echo "linking files together ..."
 
-ld (find ./tmp/kernel -name "*.o") -m elf_x86_64 -nostdlib -static -pie --no-dynamic-linker -z text -z max-page-size=0x1000 -T scripts/kernel/linker.ld -o bin/kernel/H-OS.bin
+# find linker
+set linker "ld"
+
+for i in $PATH
+  if test -e "$i/x86_64-elf-ld"
+    set linker "$i/x86_64-elf-ld"
+  end
+end
+
+$linker (find ./tmp/kernel -name "*.o") -m elf_x86_64 -nostdlib -static -pie --no-dynamic-linker -z text -z max-page-size=0x1000 -T scripts/kernel/linker.ld -o bin/kernel/H-OS.bin

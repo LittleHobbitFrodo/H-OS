@@ -5,16 +5,17 @@ if test ! (basename (pwd)) = "H-OS"
 	exit
 end
 
-set is_test "0"
-if test (count $argv) -ge 1
-  if test $argv[1] = "test"
-    set is_test "1"
-    echo test mode
+set DEBUG "0"
+for i in $argv
+  switch $i
+    case "debug"
+      set DEBUG "1"
+      echo debug mode
   end
 end
 
-if test $is_test = "1"
-  ./scripts/build mkimage test
+if test $DEBUG = "1"
+  ./scripts/build mkimage debug
 else
   ./scripts/build mkimage
 end

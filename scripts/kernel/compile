@@ -10,11 +10,11 @@ set include /usr/include
 
 set ccompiler "none"
 
-echo "argv[1]" $argv[1]
-set is_test "0"
-if test (count $argv) -ge 1
-  if test $argv[1] = "test"
-    set is_test "1"
+set DEBUG "0"
+for i in $argv
+  if test $i = "debug"
+    echo setting debug
+    set DEBUG 1
   end
 end
 
@@ -31,18 +31,15 @@ if test $ccompiler = "none"
 		for i in $PATH
 			if test -e "$i/gcc"
 				set ccompiler "$i/gcc"
-				echo using $ccompiler as c++ compiler
+				echo using $ccompiler as C compiler
 				break
 			end
 		end
 	else
-		#echo error: could not resolve c++ compiler
-		echo ERROR: cross compiler for c++ was not found, please install x86_64-elf-gcc package
+		echo ERROR: C cross compiler was not found, please install x86_64-elf-gcc package
 		exit
 	end	
 end
-
-#echo compiler $ccompiler
 
 mkdir tmp/kernel -p
 	#	create temporary directory for elfs
@@ -50,10 +47,8 @@ mkdir tmp/kernel -p
 set acompiler "none"
 
 for i in $PATH
-  if test -e "$i/x86_64-elf-as"
-    set acompiler "$i/x86_64-elf-as"
-    echo using $acompiler as assembly compiler
-    break
+  if test -e "$i/nasm"
+    set acompiler "$i/nasm"
   end
 end
 
@@ -61,13 +56,6 @@ if test $acompiler = "none"
   if test (uname -m) != x86_64 -a (uname -m) != amd64
     echo ERROR: assembly cross compiler was not found, please install x86_64-elf-gcc package
     exit
-  end
-  for i in $PATH
-    if test -e "$i/as"
-      set acompiler "$i/as"
-      echo using $acompiler as assembly compiler
-      break
-    end
   end
 end
 
@@ -81,38 +69,32 @@ for i in (find ./kernel/src/ -name "*.asm")
 
 	echo compiling file $i
 
-	#nasm -f elf64 $i -o "./tmp/kernel/$bname"
-	$acompiler --64 -o "./tmp/kernel/$bname" $i
-
+  if test $DEBUG = "0"
+	  $acompiler -f elf64 -o "./tmp/kernel/$bname" $i
+  else
+    $acompiler -f elf64 -g -F dwarf -o "./tmp/kernel/$bname" $i
+  end
 end
 
-#set stdpath "/usr/include/c++"
-
-#if test ! -e $stdpath
-#  echo standard library was not found in /usr/include/c++
-#  exit
-#end
-
-#set stdpath "$stdpath/$(ls -r $stdpath)[1]"
-
-#echo "standard library: $stdpath"
+set global_gcc_params -I$stdpath -ffreestanding -fPIE -nostdlib -nostartfiles \
+-march=x86-64 -mgeneral-regs-only -Wall -Wextra -Werror \
+"-DKERNEL_VERSION=\"$(cat ./kernel/version)\"" "-DKERNEL_BUILD_TIME=\"$(date +"%m-%d-%Y")\"" \
+"-DKERNEL_NAME=\"H-OS CORE-$(cat ./kernel/version)\"" "-DKERNEL_BUILD_GUID=\"$(uuidgen)\"" -masm=intel \
+-fno-exceptions -fPIE -m64 -c
 
 echo;echo;echo;echo		#	endl
 echo compiling kernel ...
 
-set compiler_params "-O0"
+if test $DEBUG = "0"
+  $ccompiler $global_gcc_params -finline-functions -finline-limit=1000 -fno-stack-protector -fno-stack-check \
+  -fno-lto -mno-mmx -mno-sse -mno-sse2 -mno-red-zone "./kernel/src/kernel.c" -o "./tmp/kernel/kernel.o" -O3
 
-if test $is_test -eq 1
-  set compiler_params "-O3"
+else
+  $ccompiler $global_gcc_params -fno-inline -g -O0 -fno-omit-frame-pointer -DDEBUG \
+  "./kernel/src/kernel.c" -o "./tmp/kernel/kernel.o"
 end
 
-
-$ccompiler $compiler_params -fno-exceptions -finline-functions -finline-limit=1000 \
--I$stdpath -Wno-missing-field-initializers -ffreestanding \
--fno-stack-protector -fno-stack-check -fno-lto -fPIE -nostdlib \
--nostartfiles -march=x86-64 -mno-mmx -mno-sse -mno-sse2 \
--mno-red-zone -m64 -c -Wall "./kernel/src/kernel.c" \
--o "./tmp/kernel/kernel.o" -I /mnt/usr/include \
-"-DKERNEL_VERSION=\"$(cat ./kernel/version)\"" "-DKERNEL_BUILD_TIME=\"$(date +"%m-%d-%Y")\"" \
-"-DKERNEL_NAME=\"H-OS CORE-$(cat ./kernel/version)\"" "-DKERNEL_BUILD_GUID=\"$(uuidgen)\"" -masm=intel\
- -Wall -Werror -Wextra
+if test ! -e "./tmp/kernel/kernel.o"
+  echo ERROR: kernel compilation failure
+  exit
+end

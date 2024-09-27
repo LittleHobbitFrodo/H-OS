@@ -1,11 +1,9 @@
-#
-#   interrupts.asm
-#       part of the CORE kernel belonging to the H-OS project
-#
+;;
+;;  interrupts.asm
+;;      part of the CORE kernel belonging to the H-OS project
+;;
 
-.intel_syntax noprefix
-
-.macro INTERRUPT_ENTER
+%macro INTERRUPT_ENTER 0
     push rax
     push rbx
     push rcx
@@ -25,9 +23,9 @@
     push rax
     cld
     mov rdi, rsp
-.endm
+%endmacro
 
-.macro INTERRUPT_LEAVE
+%macro INTERRUPT_LEAVE 0
     add rsp, 8
     pop r15
     pop r14
@@ -44,15 +42,11 @@
     pop rcx
     pop rbx
     pop rax
-.endm
+%endmacro
 
-.section .text
-.global isr_int_timer_pit
-.extern interrupt_timer_pit
-
-
-
-
+section .text
+	global isr_int_timer_pit
+	extern interrupt_timer_pit
 
 isr_int_timer_pit:
 	INTERRUPT_ENTER

@@ -8,9 +8,7 @@ function help_build
 	echo "build --help:	do the same thing"
 end
 
-echo pwd (pwd)
-
-set is_test "0"
+set DEBUG "0"
 
 if test ! (basename (pwd)) = "H-OS"
 	echo run in project root directory
@@ -32,26 +30,30 @@ if test (count $argv) -ge 1
 				set MKIMAGE 1
 			case "true"
 				set MKIMAGE 1
-			case "test"
-			  set is_test "1"
+			case "debug"
+			  echo building kernel with debug options
+			  set DEBUG "1"
 		end
 	end
 end
 
-echo "starting build: H-OS $KERNEL_VERSION"
+echo "starting build: CORE $KERNEL_VERSION"
 
 ./scripts/kernel/rmimage	#	deletes disk image (if existent)
 ./scripts/kernel/clean		#	delete files used in previous builds
-if test $is_test -eq 0
-  ./scripts/kernel/compile test
+
+if test $DEBUG -eq 1
+  ./scripts/kernel/compile debug
 else
   ./scripts/kernel/compile
 end
+
 ./scripts/kernel/link		#	links kernel objects
+
 if test -e "./bin/kernel/H-OS.bin"
-	echo "kernel compiled successfully"
+	echo "kernel build: success"
 else
-	echo "kernel compilation failure"
+	echo "kernel build: failure"
 	exit
 end
 

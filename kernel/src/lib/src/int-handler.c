@@ -5,19 +5,10 @@
 
 #pragma once
 
-#ifdef H_OS_LIB_INT_HANDLER_H
-	#ifndef H_OS_LIB_INT_HANDLER_C
-		#define H_OS_LIB_INT_HANDLER_C
+void interrupt_timer_pit([[maybe_unused]] int_stack_frame *frame) {
+	print("Interrupt timer pit:\t");
 
-		void interrupt_timer_pit([[maybe_unused]] int_stack_frame* frame) {
-			print("Interrupt timer pit:\t");
+	tick++;
 
-			tick++;
-
-			//outb(0x20, 0x20);
-		}
-
-	#endif
-#else
-	#error int-handler.c: int-handler.h not included
-#endif
+	//outb(0x20, 0x20);
+}

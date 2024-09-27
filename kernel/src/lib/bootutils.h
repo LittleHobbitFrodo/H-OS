@@ -5,11 +5,10 @@
 
 #pragma once
 
-#ifndef H_OS_LIB_BOOTUTILS_H
-	#define H_OS_LIB_BOOTUTILS_H
+	#include <limine.h>
 
 	#ifndef KERNEL_STACK_SIZE
-		#define KERNEL_STACK_SIZE 64
+		#define KERNEL_STACK_SIZE 8
 	#endif
 
 	#ifndef INTERRUPT_STACK_SIZE
@@ -57,5 +56,3 @@
 		.id = LIMINE_FRAMEBUFFER_REQUEST,
 		.revision = 0
 	};
-
-#endif
