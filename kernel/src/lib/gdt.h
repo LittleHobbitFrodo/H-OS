@@ -10,8 +10,6 @@
 #define GDT_LIMIT_MAX 1048575
 #define GDT_LIMIT_MAX_GRANULAR 4294963200
 
-extern void* long_jump;
-
 typedef struct gdt_entry {
 	//	data structure of regular gdt entry (descriptor)
 
@@ -177,6 +175,8 @@ static struct gdt {
 	gdt_entry kernel_data;
 	gdt_entry user_code;
 	gdt_entry user_data;
+	gdt_entry code;
+		//	I have no idea why, but cs register is set to 0x28 (index 5) at some point so this segment is additional to actually make it work
 
 	gdt_tss_entry tss;
 } __attribute((packed, aligned(8))) gdt;

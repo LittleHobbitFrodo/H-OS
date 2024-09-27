@@ -54,7 +54,7 @@ void interrupts_init() {
 
 	asm volatile("lidt %0" :: "m"(idt_pointer));
 
-	//pic_remap(); //	reconfigure interrupt controller
+	pic_remap(); //	reconfigure interrupt controller
 
 	asm volatile("sti");
 

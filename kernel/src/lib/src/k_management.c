@@ -30,11 +30,6 @@ const void* init() {
 
 	//	basic hardware initialization
 
-	if (vocality >= vocality_report_everything) {
-		report("proceeding to initialize hardware\n", report_warning);
-		for (size_t i = 0; i < MAX_U16; i++);
-	}
-
 	hardware_init();
 
 	return KERNEL_STACK_END;

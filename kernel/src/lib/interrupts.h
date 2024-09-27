@@ -3,8 +3,6 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
-///NOTE:	interrupt handlers are compiled separately
-
 #pragma once
 #include "./integers.h"
 

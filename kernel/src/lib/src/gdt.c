@@ -14,9 +14,11 @@ void gdt_init() {
 	gdt.kernel_code.flags = (gdt.user_code.flags = 0xA0);
 	gdt.kernel_data.flags = (gdt.user_data.flags = 0xA0);
 
-	//	code segments
 	gdt.kernel_code.access = (gdt.user_code.access = 0x9A);
 	gdt.kernel_data.access = (gdt.user_code.access = 0x92);
+
+	gdt.code.access = (gdt.user_code.access = 0x9A);
+	gdt.code.flags = (gdt.user_data.flags = 0xA0);
 
 
 	//	tss
@@ -57,7 +59,7 @@ void gdt_update() {
 	}
 
 	segment_t tsss;
-	tsss.index = 5;
+	tsss.index = 6;
 	tsss.privilege = 0;
 	tsss.TI = 0;
 	//	load tss segment into CPU

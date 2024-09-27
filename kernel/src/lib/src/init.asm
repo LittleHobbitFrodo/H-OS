@@ -31,14 +31,3 @@ hang:
 halt:
 	hlt
 	ret
-
-;update_segment_registers:
-;	mov ax, 0x10    ; 2
-;	mov ds, ax
-;	mov es, ax
-;	mov fs, ax
-;	mov gs, ax
-;	mov ss, ax
-;	;pop rax
-;	ret
-

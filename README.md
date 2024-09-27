@@ -1,7 +1,5 @@
 # H-OS
 
-**Disclaimer**: The current version of H-OS kernel (0.1.3.0) always causes an exception and is therefore unusable. I'm already working on it
-
 ### H-OS is simple operating system project
 
 H-OS is still at a **very early stage of development**, the vast majority of things are not yet operational and some that are operational do not work as they should. There is **no guarantee that the system will work**
@@ -112,8 +110,8 @@ You can upload it to a flash drive, **the upload will completely erase the drive
     - [x] Initialize GDT with TSS.
     - [ ] Reinitialize paging.
   - [ ] **Interrupts**
-    - [ ] Get exception handling to work.
-    - [ ] Initialize other interrupts.
+    - [x] Get exception handling to work.
+    - [x] Initialize other interrupts.
     - [ ] Get keyboard input.
   - [ ] **Initialize hardware**
     - [ ] Be able to read from disk.
