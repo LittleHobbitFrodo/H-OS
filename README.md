@@ -112,6 +112,7 @@ You can upload it to a flash drive, **the upload will completely erase the drive
   - [ ] **Interrupts**
     - [x] Get exception handling to work.
     - [x] Initialize other interrupts.
+    - [x] Time and timer interrupt
     - [ ] Get keyboard input.
   - [ ] **Initialize hardware**
     - [ ] Be able to read from disk.
