@@ -17,11 +17,5 @@ void kernel() {
 	output.color = col.white;
 
 	printl("hello world!");
-	time_update();
-	char* str = format_time((timespec_t*)&timespec, time_format_str);
-
-	print("string: "); printl(str);
-
-	free(str);
 
 }

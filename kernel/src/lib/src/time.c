@@ -18,7 +18,7 @@ void time_init() {
 		unixtime = req_boot_time.response->boot_time;
 	}
 
-	timespec.date.days = unixtime / SECONDS_PER_DAY;
+	timespec.date.days = unixtime / SECONDS_PER_DAY + 1;
 
 	unixtime %= SECONDS_PER_DAY;
 
@@ -40,18 +40,13 @@ void time_init() {
 	for (;timespec.date.days >= (u32)(days_in_month[timespec.date.months] + ((timespec.date.months == 1) && (is_leap_year(timespec.date.years)))); timespec.date.months++) {
 		timespec.date.days -= days_in_month[timespec.date.months] + ((timespec.date.months == 1) && (is_leap_year(timespec.date.years)));
 	}
+	timespec.date.months++;
 
 	#ifdef DEBUG
 	u32 c = output.color;
 	output.color = col.cyan;
 	report("system time:\t", report_debug);
-	printu(timespec.date.days+1); printc(':');
-	printu(timespec.date.months+1); printc(':');
-	printu(timespec.date.years); print(" | ");
-
-	printu(timespec.time.hours); printc(':');
-	printu(timespec.time.minutes); printc(':');
-	printu(timespec.time.seconds); printc('\n');
+	printl(format_time((timespec_t*)&timespec, time_format_str));
 	output.color = c;
 	#endif
 
@@ -74,7 +69,7 @@ void time_update() {
 	}
 }
 
-char* format_time([[maybe_unused]] timespec_t* time, const char* format) {
+char* format_time(timespec_t* time, const char* format) {
 	string ret;
 	str(&ret);
 	size_t len = strlen(format);

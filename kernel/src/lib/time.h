@@ -51,7 +51,7 @@ static void time_init();
 static inline void time_update();
 	//	writes data into
 
-__attribute__((returns_nonnull)) static char* format_time(timespec_t* time, const char* format);
+[[maybe_unused]] __attribute__((returns_nonnull)) static char* format_time(timespec_t* time, const char* format);
 
 __attribute__((always_inline)) static inline bool is_leap_year(ssize_t year) {
 	return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
@@ -60,7 +60,7 @@ __attribute__((always_inline)) static inline bool is_leap_year(ssize_t year) {
 
 static volatile timespec_t timespec;
 
-static char* time_format_str = TIME_FORMAT_DEFAULT;
+[[maybe_unused]] static char* time_format_str = TIME_FORMAT_DEFAULT;
 
 
 
