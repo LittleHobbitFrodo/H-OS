@@ -4,6 +4,8 @@
 //
 
 #pragma once
+#include "../integers.h"
+#include "../memory/aligned_ptr.h"
 
 #ifndef H_OS_LIB_MEMORY_PAGING_H
 	#define H_OS_LIB_MEMORY_PAGING_H
@@ -11,8 +13,8 @@
 	#define PAGE_ALIGN_DOWN(x) (((x) / PAGE_SIZE)*PAGE_SIZE)
 	//	each pdpt entry covers 1GB of RAM
 
-	static void* virtual_base = null;
-	static void* physical_base = null;
+	[[maybe_unused]] static void* virtual_base = null;
+	[[maybe_unused]] static void* physical_base = null;
 
 	#define PAGE_COUNT 512
 	#define PAGE_SIZE 4096
@@ -57,9 +59,9 @@
 
 	typedef u64 page_entry;
 
-	page_entry* page_find();
+	[[maybe_unused]] page_entry* page_find();
 
-	void page_entry_info(page_entry ent);
+	[[maybe_unused]] void page_entry_info(page_entry ent);
 
 	typedef struct page_table {
 		//	helps managing paging on heap
@@ -69,64 +71,64 @@
 	} page_table;
 
 
-	__attribute__((always_inline)) inline void* page_address(page_entry entry) {
+	[[maybe_unused]] __attribute__((always_inline)) inline void* page_address(page_entry entry) {
 		return (void*)(entry & 0xFFFFFFFFF000);
 	}
 
-	__attribute__((always_inline)) inline void page_set_address(page_entry* entry, void* ptr) {
+	[[maybe_unused]] __attribute__((always_inline)) inline void page_set_address(page_entry* entry, void* ptr) {
 		*entry &= ~0x000ffffffffff000;
 		*entry |= ((size_t)ptr) & 0xFFFFFFFFF000;
 	}
 
-	__attribute__((always_inline)) inline u64 page_flags(page_entry entry) {
+	[[maybe_unused]] __attribute__((always_inline)) inline u64 page_flags(page_entry entry) {
 		return entry & (0x8ff | ((u64)1 << (u64)63));
 	}
 
-	__attribute__((always_inline)) inline void page_set_flags(page_entry* entry, u64 flags) {
+	[[maybe_unused]] __attribute__((always_inline)) inline void page_set_flags(page_entry* entry, u64 flags) {
 		*entry &= ~(0x8ff | ((u64)1 << (u64)63));
 		*entry |= flags & (0x8ff | ((u64)1 << (u64)63));
 	}
 
-	__attribute__((always_inline)) inline bool page_exec(page_entry entry) {
+	[[maybe_unused]] __attribute__((always_inline)) inline bool page_exec(page_entry entry) {
 		return (entry & no_exec) != 0;
 	}
 
-	__attribute__((always_inline)) inline bool page_present(page_entry entry) {
+	[[maybe_unused]] __attribute__((always_inline)) inline bool page_present(page_entry entry) {
 		return (entry & present);
 	}
 
 	typedef void* virtual_addr;
 
-	__attribute__((always_inline)) inline size_t va_offset(virtual_addr addr) {
+	[[maybe_unused]] __attribute__((always_inline)) inline size_t va_offset(virtual_addr addr) {
 		return ((size_t)addr & 0xfff);
 	}
 
-	__attribute__((always_inline)) inline size_t va_index(virtual_addr addr, u8 level) {
+	[[maybe_unused]] __attribute__((always_inline)) inline size_t va_index(virtual_addr addr, u8 level) {
 		//	level starts at 0 (0 = pt)
 		return ((size_t)addr >> (12 + (level * 9))) & 0x1ff;
 	}
 
-	__attribute__((always_inline)) __attribute__((nonnull)) inline void va_set_index(virtual_addr* addr, u16 index, u8 level) {
+	[[maybe_unused]] __attribute__((always_inline)) __attribute__((nonnull)) inline void va_set_index(virtual_addr* addr, u16 index, u8 level) {
 		size_t shift = 12 + (level * 9);
 		*((size_t*)addr) &= ~(0x1ffUL << shift);
 		*((size_t*)addr) |= (index & 0x1ff) << shift;
 	}
 
-	__attribute__((always_inline)) __attribute__((nonnull)) inline void va_set_offset(virtual_addr* addr, u16 offset) {
+	[[maybe_unused]] __attribute__((always_inline)) __attribute__((nonnull)) inline void va_set_offset(virtual_addr* addr, u16 offset) {
 		*((size_t*)addr) &= ~0xfff;
 		*((size_t*)addr) |= offset & 0xfff;
 	}
 
-	extern void* physical(void* virt);
-	extern void* virtual_(void* phys);
+	[[maybe_unused]] extern void* physical(void* virt);
+	[[maybe_unused]] extern void* virtual_(void* phys);
 
-	static page_entry* pml4 = null;
-	static struct pd {
+	[[maybe_unused]] static page_entry* pml4 = null;
+	[[maybe_unused]] static struct pd {
 		//	linear pdpt entries for ring0 data
 		aligned_ptr ptr;
 		size_t count;
 	} pd;
-	static struct pt {
+	[[maybe_unused]] static struct pt {
 		aligned_ptr ptr;
 		size_t count;
 	} pt;

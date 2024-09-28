@@ -16,6 +16,18 @@ typedef struct vector {
 	size_t bsize; //	size of each element
 } vector;
 
+typedef struct aligned_vector {
+	//NOTE:		destruction of each popped/freed element must be done manually
+
+	aligned_ptr data;
+	size_t bsize;
+	size_t len;
+} aligned_vector;
+
+
+
+
+
 __attribute__((always_inline, nonnull(1)))
 inline void vec(vector *this) {
 	//	initializes empty vector
@@ -124,14 +136,10 @@ inline void vec_clear(vector *this, void (*destruct)(void *)) {
 	}
 }
 
+__attribute__((nonnull(1)))
+void vec_take_over(vector* this, vector* other);
+	//	will not delete free the "this" vector
 
-typedef struct aligned_vector {
-	//NOTE:		destruction of each popped/freed element must be done manually
-
-	aligned_ptr data;
-	size_t bsize;
-	size_t len;
-} aligned_vector;
 
 __attribute__((always_inline, nonnull(1))) inline void avec(aligned_vector *this) {
 	//	initializes empty avector

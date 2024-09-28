@@ -14,7 +14,7 @@ page_entry *page_find() {
 }
 
 void page_init() {
-	virtual_base = (void *) req_k_address.response->virtual_base;
+	/*virtual_base = (void *) req_k_address.response->virtual_base;
 	physical_base = (void *) req_k_address.response->physical_base;
 
 	//	default paging layout
@@ -100,7 +100,7 @@ void page_init() {
 	}
 
 	//	connect pdpt to pd, pd to pts
-	page_set_address(connect /*pdpt*/, pd.ptr.ptr); {
+	page_set_address(connect, pd.ptr.ptr); {
 		size_t len = pt.count / PAGE_COUNT;
 		page_entry *pd_ = (page_entry *) pd.ptr.ptr, *pt_ = (page_entry *) pt.ptr.ptr;
 		for (size_t i = 0; i < len; i++) {
@@ -135,7 +135,7 @@ void page_init() {
 
 	if (vocality >= vocality_vocal) {
 		report("paging initialization completed\n", report_note);
-	}
+	}*/
 }
 
 void page_entry_info(page_entry ent) {

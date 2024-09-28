@@ -5,6 +5,8 @@
 
 #pragma once
 #include "./integers.h"
+#include "./font.h"
+//#include "./string.h"
 
 
 #define FONT_PLACE_SUB 31

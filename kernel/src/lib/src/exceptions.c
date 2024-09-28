@@ -62,10 +62,23 @@ void handle_exception(exception_stack_frame *frame) {
 		}
 		case exception_segment_not_present: {
 			report("segment not present\n", report_error);
+			#ifdef DEBUG
+			print("rip:\t");
+			printp((void *) frame->rip);
+			endl();
+			print("code:\t");
+			printu(frame->code);
+			endl();
+			print("cs:\t"); printp((void*)frame->cs); endl();
+			print("ss:\t"); printp((void*)frame->ss); endl();
+			#endif
+			hang();
+
 			break;
 		}
 		case exception_stack_segment_fault: {
-			report("stack segment fault\n", report_error);
+			report("stack segment fault\n", report_critical);
+			hang();
 			break;
 		}
 		case exception_general_protection: {
@@ -85,6 +98,7 @@ void handle_exception(exception_stack_frame *frame) {
 		}
 		case exception_page_fault: {
 			report("page fault\n", report_critical);
+			hang();
 			break;
 		}
 		case exception_floating_point: {

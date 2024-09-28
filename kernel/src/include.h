@@ -41,6 +41,7 @@
 #include "./lib/cpu.h"
 #include "./lib/k_management.h"
 #include "./lib/pic.h"
+#include "./lib/time.h"
 #include "./lib/timer.h"
 
 
@@ -49,6 +50,7 @@
 #include "./lib/memory/heap.h"
 #include "./lib/memory/paging.h"
 
+#include "./lib/memory/aligned_ptr.h"
 #include "./lib/vector.h"
 #include "./lib/segmentation.h"
 #include "./lib/tss.h"
@@ -75,12 +77,14 @@
 #include "./lib/src/gdt.c"
 #include "./lib/src/tss.c"
 
+#include "./lib/src/time.c"
 #include "./lib/src/font.c"
 #include "./lib/src/k_management.c"
 #include "./lib/src/timer.c"
 #include "./lib/src/convert.c"
 #include "./lib/src/cpu.c"
 #include "./lib/src/string.c"
+#include "./lib/src/memory/aligned_ptr.c"
 #include "./lib/src/vector.c"
 
 #include "./lib/src/int-handler.c"

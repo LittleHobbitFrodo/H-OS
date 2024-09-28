@@ -46,10 +46,13 @@
 
 section .text
 	global isr_int_timer_pit
-	extern interrupt_timer_pit
+	extern tick
 
 isr_int_timer_pit:
-	INTERRUPT_ENTER
-	call interrupt_timer_pit
-	INTERRUPT_LEAVE
+	;   increase tick
+	push rax
+	mov rax, [rel tick]
+	inc rax
+	mov [rel tick], rax
+	pop rax
 	iretq

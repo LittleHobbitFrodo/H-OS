@@ -4,23 +4,29 @@
 //
 
 #pragma once
-#include "memory/heap.h"
+#include "./integers.h"
 
 #define KB 1024
 #define MB (1024 * 1024)
 #define GB (1024 * 1024 * 1024)
+
+
+static u8 KERNEL_STACK[32*KB];
+
+static u8 INTERRUPT_STACK[(8*7)*KB];
+
 
 static bool kaslr = false;
 //	enable/disable kaslr
 //		enabled: places kernel stack and heap to "random" place
 //		disabled: always places stack and heap to the same location
 
-//	kernel stack (initialized in init.asm)
-static unsigned char KERNEL_STACK[8192] __attribute__((aligned(4096)));
-//extern void* KERNEL_STACK;
-extern void* KERNEL_STACK_END;
+typedef struct stack_holder {
+	void* kernel;
+	void* interrupt[7];
+} stack_holder;
 
-static unsigned char INTERRUPT_STACKS[7][INTERRUPT_STACK_SIZE * KB] __attribute__((aligned(4096)));
+static stack_holder stack;
 
 static void memory_init();
 
@@ -38,6 +44,7 @@ static struct meminfo {
 
 	size_t unmapped; //	bad memory
 } meminfo;
+
 
 enum memmap_types {
 	memmap_usable,
@@ -59,61 +66,17 @@ typedef struct memmap_entry {
 	enum memmap_types type;
 } memmap_entry;
 
+static void memmap_parse();
+
+static void memmap_reclaim();
+
+static void memmap_analyze();
+
 enum memmap_types memmap_entry_type(u64 constant);
 
-void memmap_parse();
 
-void memmap_reclaim();
-
-void memmap_display(bool original);
-
-
-typedef struct aligned_ptr {
-	void *ptr;
-	size_t offset; //	offset from start of the block
-	size_t align;
-} aligned_ptr;
-
-__attribute__((always_inline, nonnull)) inline void aptr(aligned_ptr *this) {
-	this->ptr = null;
-	this->offset = 0;
-	this->align = 0;
-}
-
-__attribute__((always_inline, nonnull)) inline void aptrs(aligned_ptr *this, size_t align) {
-	this->ptr = null;
-	this->offset = align;
-	this->align = align;
-}
-
-__attribute__((always_inline, nonnull)) inline void aptrse(aligned_ptr *this, size_t bytes, size_t align) {
-	this->align = (this->offset = align);
-	this->ptr = palign_alloc(bytes, &this->offset);
-}
-
-__attribute__((nonnull(1))) void *aptr_alloc(aligned_ptr *this, size_t bytes);
-
-__attribute__((nonnull(1), returns_nonnull)) void *aptr_realloc(aligned_ptr *this, size_t bytes);
-
-__attribute__((nonnull(1), returns_nonnull)) void *aptr_reallocf(aligned_ptr *this, size_t bytes, void (*on_realloc)(void *));
-
-__attribute__((nonnull(1), returns_nonnull)) void *aptr_realloca(aligned_ptr *this, size_t bytes, size_t add);
-
-__attribute__((nonnull(1), returns_nonnull)) void *aptr_reallocaf(aligned_ptr *this, size_t bytes, size_t add, void (*on_realloc)(void *));
-
-__attribute__((always_inline, nonnull(1))) inline void aptr_free(aligned_ptr *this) {
-	align_free(this->ptr, this->offset);
-	this->ptr = null;
-	this->align = (this->offset = 0);
-}
-
-void va_info(void *addr);
-
-typedef struct stack_frame {
-	//	get -> read rbp
-	struct stack_frame *rbp;
-	u64 rip;
-} __attribute__((packed)) stack_frame;
+[[maybe_unused]] static void memmap_display();
+[[maybe_unused]] static void memmap_display_original();
 
 
 //	memmap vector is declared in vector.h

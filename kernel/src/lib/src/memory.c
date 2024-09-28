@@ -4,178 +4,13 @@
 //
 
 #pragma once
-
-void *KERNEL_STACK_END = (void*)((size_t)&KERNEL_STACK + KERNEL_STACK_SIZE - 1);
-
-void *kernel_stack_address = null;
-//void* heap_virtual_base = null;
-//void* interrupt_stack_address = null;
-//void* pml4_address = null;
-void *kernel_stack_base = null;
-
-enum memmap_types memmap_entry_type(u64 constant) {
-	switch (constant) {
-		case LIMINE_MEMMAP_USABLE: {
-			return memmap_usable;
-		}
-		case LIMINE_MEMMAP_RESERVED: {
-			return memmap_reserved;
-		}
-		case LIMINE_MEMMAP_FRAMEBUFFER: {
-			return memmap_other;
-		}
-		case LIMINE_MEMMAP_BAD_MEMORY: {
-			return memmap_bad;
-		}
-		case LIMINE_MEMMAP_ACPI_NVS:
-		case LIMINE_MEMMAP_ACPI_RECLAIMABLE: {
-			return memmap_acpi;
-		}
-		case LIMINE_MEMMAP_KERNEL_AND_MODULES: {
-			return memmap_kernel;
-		}
-		case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE: {
-			return memmap_reclaimable;
-		}
-		default: {
-			return memmap_undefined;
-		}
-	}
-}
-
-void memmap_display(bool original) {
-	if ((memmap.data == null) || (original)) {
-		struct limine_memmap_entry **ents = req_memmap.response->entries;
-		size_t size = req_memmap.response->entry_count;
-		printl("original memory map:");
-		struct limine_memmap_entry *ent;
-		for (size_t i = 0; i < size; i++) {
-			output.color = col.white;
-			ent = ents[i];
-			printu(i + 1);
-			print(":\t");
-			switch (ent->type) {
-				case LIMINE_MEMMAP_USABLE: {
-					output.color = col.green;
-					print("usable:\t\t");
-					break;
-				}
-				case LIMINE_MEMMAP_RESERVED: {
-					output.color = col.grey;
-					print("reserved:\t");
-					break;
-				}
-				case LIMINE_MEMMAP_BAD_MEMORY: {
-					output.color = col.red;
-					print("bad mem:\t");
-					break;
-				}
-				case LIMINE_MEMMAP_FRAMEBUFFER: {
-					output.color = col.cyan;
-					print("fbuffer:\t");
-					break;
-				}
-				case LIMINE_MEMMAP_KERNEL_AND_MODULES: {
-					output.color = col.yellow;
-					print("kernel:\t\t");
-					break;
-				}
-				case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE: {
-					output.color = col.green;
-					print("reclaim:\t");
-					break;
-				}
-				case LIMINE_MEMMAP_ACPI_NVS:
-				case LIMINE_MEMMAP_ACPI_RECLAIMABLE: {
-					output.color = col.yellow;
-					print("ACPI:\t\t");
-					break;
-				}
-				default: {
-					output.color = col.critical;
-					print("UNKNOWN:\t");
-					break;
-				}
-			}
-			printp((void *) ent->base);
-			print("\tto\t");
-			printp((void *) (ent->base + ent->length));
-			endl();
-		}
-	} else {
-		memmap_entry *ents = (memmap_entry *) memmap.data;
-		printl("costom memory map");
-		for (size_t i = 0; i < memmap.len; i++) {
-			output.color = col.white;
-			printu(i + 1);
-			print(":\t");
-			switch (ents[i].type) {
-				case memmap_usable: {
-					output.color = col.green;
-					print("usable:\t\t");
-					break;
-				}
-				case memmap_reserved: {
-					output.color = col.grey;
-					print("reserved:\t");
-					break;
-				}
-				case memmap_bad: {
-					output.color = col.red;
-					print("bad memory:\t");
-					break;
-				}
-				case memmap_other: {
-					output.color = col.cyan;
-					print("other:\t\t");
-					break;
-				}
-				case memmap_kernel: {
-					output.color = col.yellow;
-					print("kernel:\t\t");
-					break;
-				}
-				case memmap_reclaimable: {
-					output.color = col.green;
-					print("reclaim:\t");
-					break;
-				}
-				case memmap_paging: {
-					output.color = col.yellow;
-					print("paging:\t\t");
-					break;
-				}
-				case memmap_acpi: {
-					output.color = col.green;
-					print("acpi:\t\t");
-					break;
-				}
-				case memmap_heap: {
-					output.color = col.orange;
-					print("heap:\t\t");
-					break;
-				}
-				case memmap_stack: {
-					output.color = col.blue;
-					print("stack:\t\t");
-					break;
-				}
-				default: {
-					output.color = col.critical;
-					print("UNKNOWN:\t");
-					break;
-				}
-			}
-			printp((void *) ents[i].base);
-			print("\tto\t");
-			printp((void *) (ents[i].base + ents[i].len));
-			endl();
-		}
-	}
-	output.color = col.white;
-}
+#include "../memory.h"
 
 void memory_init() {
+
+	//	prepare stack structure
+	memset(&stack, sizeof(stack_holder), 0);
+
 	if (req_memmap.response->entries == null) {
 		report("memory map not found", report_critical);
 		panic(panic_code_memmap_not_found);
@@ -208,24 +43,44 @@ void memory_init() {
 	//	initialize global descriptor table
 	gdt_init();
 
-	tss_init();
-
 	if (vocality >= vocality_vocal) {
 		report("memory initialization completed\n", report_note);
 	}
 }
 
+void va_info(void *addr) {
+	printp(addr);
+	printl(":");
+	print("pml4\t[");
+	printu(va_index(addr, 3));
+	printl("]");
+	print("pdpt\t[");
+	printu(va_index(addr, 2));
+	printl("]");
+	print("pd\t\t[");
+	printu(va_index(addr, 1));
+	printl("]");
+	print("pt\t\t[");
+	printu(va_index(addr, 0));
+	printl("]");
+	print("offset:\t");
+	printu(va_offset(addr));
+	endl();
+}
 
 void memmap_parse() {
+	//	parse limine memory map and simplify it
+		//	join entries of same type ...
+
 	vecs(&memmap, sizeof(memmap_entry));
-	size_t msize = req_memmap.response->entry_count;
+	ssize_t msize = req_memmap.response->entry_count, heap_index = 0, stack_index = -1;
 	struct limine_memmap_entry **ents = req_memmap.response->entries;
+	memmap_entry *stck = null;
 	enum memmap_types tmp = memmap_undefined;
-	ssize_t stack_index = -1;
-	size_t paging_address = (size_t) page_find();
 
 	struct limine_memmap_entry *ent;
-	size_t i = 0; {
+	ssize_t i = 0;
+	{
 		//	prepare first entry
 		memmap_entry *first = (memmap_entry *) vec_push(&memmap, 1);
 		first->base = ents[0]->base;
@@ -236,30 +91,41 @@ void memmap_parse() {
 		++i;
 	}
 
-	bool stack_defined = false;
-
-	size_t heap_index = 0;
+	{
+		//	find place for stack
+		ssize_t start = -1;
+		size_t len = 0;
+		for (ssize_t ii = msize - 1; ii >= 0; --ii) {
+			if (ents[ii]->type == LIMINE_MEMMAP_USABLE) {
+				if (start < 0) {
+					start = ii;
+				}
+				len += ents[ii]->length;
+				if (len >= ALL_STACK_SIZE) {
+					stack_index = start;
+					break;
+				}
+			} else {
+				start = -1;
+				len = 0;
+			}
+		}
+	}
 
 	for (; i < msize; i++) {
 		ent = ents[i];
 
 		if (ent->base == (size_t) heap_start) {
+			//	initialize heap entry
 			memmap_entry *h = (memmap_entry *) vec_push(&memmap, 1);
 			h->base = ent->base;
 			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
 			h->type = memmap_heap;
 			heap_index = memmap.len - 1;
-		} else if (ent->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) {
-			if ((paging_address > ent->base) && (paging_address < ent->base + ent->length)) {
-				memmap_entry *p = (memmap_entry *) vec_push(&memmap, 1);
-				p->base = ent->base;
-				p->len = ent->length;
-				p->type = memmap_paging;
-				continue;
-			}
 		}
 
 		tmp = memmap_entry_type(ent->type);
+		//	skip entries of same type
 		for (++i; (i < msize) && (memmap_entry_type(ents[i]->type) == tmp); i++);
 		--i;
 
@@ -272,23 +138,226 @@ void memmap_parse() {
 			new->len = ents[i]->base + ents[i]->length - new->base;
 		}
 
-		if (((ssize_t) i >= stack_index) && (!stack_defined)) {
-			memmap_entry *stck = (memmap_entry *) vec_push(&memmap, 1);
-			stck->len = (KERNEL_STACK_SIZE + INTERRUPT_STACK_SIZE) * KB;
+		if ((i == stack_index) && (stck == null)) {
+			//	initialize stack entry (kernel + interrupts)
+			stck = vec_push(&memmap, 1);
+			stck->len = ALL_STACK_SIZE;
 			stck->base = new->base + new->len - stck->len;
 			stck->type = memmap_stack;
 			new->len -= stck->len;
-			stack_defined = true;
 		}
 	}
+	if (stck == null) {
+		report("could not find stack memory entry\n", report_critical);
+		panic(panic_code_cannot_allocate_memory_for_stacks);
+	}
 
-	//	set heap entry
-	memmap_entry *es = memmap.data;
+	//	make heap entry not overlap other entries
+	memmap_entry* es = memmap.data;
 	es[heap_index + 1].base += es[heap_index].len;
 	es[heap_index + 1].len -= es[heap_index].len;
 
 
-	//	initialize meminfo structure (memory.h)
+	//	gather info about memory usage
+	memmap_analyze();
+
+	//	apply stacks (stck != null)
+		//	paging is not initialized yet -> special allocated memory will be used for stacks (memory.h)
+	//stack.kernel = (void*)(stck->base + stck->len - 1);
+	stack.kernel = (void*)((size_t)&KERNEL_STACK + (32*KB) - 1);
+	for (i = 0; i < 7; i++) {
+		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
+		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
+	}
+
+
+	if (vocality >= vocality_report_everything) {
+		report("memory map parsed successfully\n", report_note);
+	}
+}
+
+
+enum memmap_types memmap_entry_type(u64 constant) {
+	//	converts limine memmap entry types into enum memmap_types
+	switch (constant) {
+		case LIMINE_MEMMAP_USABLE: {
+			return memmap_usable;
+		}
+		case LIMINE_MEMMAP_RESERVED: {
+			return memmap_reserved;
+		}
+		case LIMINE_MEMMAP_FRAMEBUFFER: {
+			return memmap_other;
+		}
+		case LIMINE_MEMMAP_BAD_MEMORY: {
+			return memmap_bad;
+		}
+		case LIMINE_MEMMAP_ACPI_NVS: {
+			return memmap_acpi;
+		}
+		case LIMINE_MEMMAP_KERNEL_AND_MODULES: {
+			return memmap_kernel;
+		}
+		case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE: case LIMINE_MEMMAP_ACPI_RECLAIMABLE: {
+			return memmap_reclaimable;
+		}
+		default: {
+			return memmap_undefined;
+		}
+	}
+}
+
+void memmap_display() {
+
+	u32 c = output.color;
+	memmap_entry *ents = (memmap_entry *) memmap.data;
+
+	if (ents == null) {
+		report("custom memmap does not exist\n", report_problem);
+		return;
+	}
+
+	printl("custom memory map");
+	for (size_t i = 0; i < memmap.len; i++) {
+		output.color = col.white;
+		printu(i + 1);
+		print(":\t");
+		switch (ents[i].type) {
+			case memmap_usable: {
+				output.color = col.green;
+				print("usable:\t\t");
+				break;
+			}
+			case memmap_reserved: {
+				output.color = col.grey;
+				print("reserved:\t");
+				break;
+			}
+			case memmap_bad: {
+				output.color = col.red;
+				print("bad memory:\t");
+				break;
+			}
+			case memmap_other: {
+				output.color = col.cyan;
+				print("other:\t\t");
+				break;
+			}
+			case memmap_kernel: {
+				output.color = col.yellow;
+				print("kernel:\t\t");
+				break;
+			}
+			case memmap_reclaimable: {
+				output.color = col.green;
+				print("reclaim:\t");
+				break;
+			}
+			case memmap_paging: {
+				output.color = col.yellow;
+				print("paging:\t\t");
+				break;
+			}
+			case memmap_acpi: {
+				output.color = col.green;
+				print("acpi:\t\t");
+				break;
+			}
+			case memmap_heap: {
+				output.color = col.orange;
+				print("heap:\t\t");
+				break;
+			}
+			case memmap_stack: {
+				output.color = col.blue;
+				print("stack:\t\t");
+				break;
+			}
+			default: {
+			output.color = col.critical;
+				print("UNKNOWN:\t");
+				break;
+			}
+		}
+		printp((void *) ents[i].base);
+		print("\tto\t");
+		printp((void *) (ents[i].base + ents[i].len));
+		endl();
+	}
+	output.color = c;
+}
+
+void memmap_display_original() {
+	u32 c = output.color;
+	struct limine_memmap_entry **ents = req_memmap.response->entries;
+	size_t size = req_memmap.response->entry_count;
+
+	if (ents == null) {
+		report("original memmap does not exist\n", report_problem);
+		return;
+	}
+
+	printl("original memory map:");
+	struct limine_memmap_entry *ent;
+	for (size_t i = 0; i < size; i++) {
+		output.color = col.white;
+		ent = ents[i];
+		printu(i + 1);
+		print(":\t");
+		switch (ent->type) {
+			case LIMINE_MEMMAP_USABLE: {
+				output.color = col.green;
+				print("usable:\t\t");
+				break;
+			}
+			case LIMINE_MEMMAP_RESERVED: {
+				output.color = col.grey;
+				print("reserved:\t");
+				break;
+			}
+			case LIMINE_MEMMAP_BAD_MEMORY: {
+				output.color = col.red;
+				print("bad mem:\t");
+				break;
+			}
+			case LIMINE_MEMMAP_FRAMEBUFFER: {
+				output.color = col.cyan;
+				print("fbuffer:\t");
+				break;
+			}
+			case LIMINE_MEMMAP_KERNEL_AND_MODULES: {
+				output.color = col.yellow;
+				print("kernel:\t\t");
+				break;
+			}
+			case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE: {
+				output.color = col.green;
+				print("reclaim:\t");
+				break;
+			}
+			case LIMINE_MEMMAP_ACPI_NVS:
+			case LIMINE_MEMMAP_ACPI_RECLAIMABLE: {
+				output.color = col.yellow;
+				print("ACPI:\t\t");
+				break;
+			}
+			default: {
+				output.color = col.critical;
+				print("UNKNOWN:\t");
+				break;
+			}
+		}
+		printp((void *) ent->base);
+		print("\tto\t");
+		printp((void *) (ent->base + ent->length));
+		endl();
+	}
+	output.color = c;
+}
+
+void memmap_analyze() {
+	//	gather info about memory usage
+
 	meminfo.total = 0;
 	meminfo.usable = 0;
 	meminfo.used = 0;
@@ -296,7 +365,9 @@ void memmap_parse() {
 	meminfo.ring0 = 0;
 	meminfo.unmapped = 0;
 
-	for (i = 0; i < msize; i++) {
+	memmap_entry *es = memmap.data;
+
+	for (size_t i = 0; i < memmap.len; i++) {
 		switch (es[i].type) {
 			case memmap_usable: {
 				//	usable memory
@@ -337,67 +408,69 @@ void memmap_parse() {
 	}
 
 	meminfo.total = es[memmap.len - 1].base + es[memmap.len - 1].len;
+}
+
+void memmap_reclaim() {
+	//	reclaims reclaimable entries
+
+	if (memmap.data == null) {
+		report("memmap_reclaim: memory map does not exist\n", report_critical);
+		panic(panic_code_memmap_not_found);
+	}
+
+	memmap_entry* olds = memmap.data;
+
+	//	change all reclaimable entries to usable
+	for (size_t i = 0; i < memmap.len; i++) {
+		if (olds[i].type == memmap_reclaimable) {
+			olds[i].type = memmap_usable;
+		}
+	}
+
+	vector old;
+	vec_take_over(&old, &memmap);
+	vecs(&memmap, sizeof(memmap_entry));
+
+	enum memmap_types tmp = memmap_undefined;
+
+	ssize_t i = 0;
+	{
+		//	prepare first entry
+		memmap_entry *first = (memmap_entry *) vec_push(&memmap, 1);
+		first->base = olds[0].base;
+		first->type = olds[0].type;
+		tmp = first->type;
+		for (++i; (i < (ssize_t)old.len) && (olds[i].type == tmp); i++);
+		--i;
+		first->len = olds[i].base + olds[i].len - first->base;
+		++i;
+	}
+
+	memmap_entry* ent;
+	for (; i < (ssize_t)old.len; i++) {
+		ent = &olds[i];
+
+		tmp = ent->type;
+		for (++i; (i < (ssize_t)old.len) && (olds[i].type == tmp); i++);
+		--i;
+
+		memmap_entry *new = (memmap_entry *) vec_push(&memmap, 1);
+		new->base = ent->base;
+		new->type = tmp;
+		if (i + 1 < (ssize_t)old.len) {
+			new->len = olds[i + 1].base - new->base;
+		} else {
+			new->len = olds[i].base + olds[i].len - new->base;
+		}
+
+	}
+
+	vec_free(&old);
+
+	//	gather info about memory usage
+	memmap_analyze();
 
 	if (vocality >= vocality_report_everything) {
-		report("memory map parsed successfully\n", report_note);
+		report("memory reclaimed\n", report_note);
 	}
-}
-
-
-void *aptr_alloc(aligned_ptr *this, size_t bytes) {
-	if (this->ptr == null) {
-		this->offset = this->align;
-		this->ptr = palign_alloc(bytes, &this->offset);
-		return this->ptr;
-	}
-	return null;
-}
-
-void *aptr_realloc(aligned_ptr *this, size_t bytes) {
-	if (this->ptr == null) {
-		return aptr_alloc(this, bytes);
-	}
-	return (this->ptr = palign_realloc(this->ptr, &this->offset, this->align, bytes));
-}
-
-void *aptr_reallocf(aligned_ptr *this, size_t bytes, void (*on_realloc)(void *)) {
-	if (this->ptr == null) {
-		return aptr_alloc(this, bytes);
-	}
-	return (this->ptr = palign_reallocf(this->ptr, &this->offset, this->align, bytes, on_realloc));
-}
-
-void *aptr_realloca(aligned_ptr *this, size_t bytes, size_t add) {
-	if (this->ptr == null) {
-		return aptr_alloc(this, bytes);
-	}
-	return (this->ptr = palign_realloca(this->ptr, &this->offset, this->align, bytes, add));
-}
-
-void *aptr_reallocaf(aligned_ptr *this, size_t bytes, size_t add, void (*on_realloc)(void *)) {
-	if (this->ptr == null) {
-		return aptr_alloc(this, bytes);
-	}
-	return (this->ptr = palign_reallocaf(this->ptr, &this->offset, this->align, bytes, add, on_realloc));
-}
-
-
-void va_info(void *addr) {
-	printp(addr);
-	printl(":");
-	print("pml4\t[");
-	printu(va_index(addr, 3));
-	printl("]");
-	print("pdpt\t[");
-	printu(va_index(addr, 2));
-	printl("]");
-	print("pd\t\t[");
-	printu(va_index(addr, 1));
-	printl("]");
-	print("pt\t\t[");
-	printu(va_index(addr, 0));
-	printl("]");
-	print("offset:\t");
-	printu(va_offset(addr));
-	endl();
 }

@@ -29,10 +29,14 @@ const void* init() {
 	interrupts_init();
 
 	//	basic hardware initialization
-
 	hardware_init();
 
-	return KERNEL_STACK_END;
+	//	reclaim memory
+	memmap_reclaim();
+
+	//	paging is not setup yet, so custom allocated memory will be used for kernel and interrupt stacks
+
+	return stack.kernel;
 }
 
 

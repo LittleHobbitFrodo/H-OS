@@ -39,24 +39,8 @@ void gdt_update() {
 
 	//	load gdt pointer to the cpu
 	asm volatile("lgdt %0" : : "m"(gdt_pointer));
-	{
-		//	update segment registers
-		segment_t ds, ss;
-		ds.privilege = 0;
-		ds.TI = 0;
-		ds.index = 2;
 
-		ss.privilege = 0;
-		ss.TI = 0;
-		ss.index = 2;
-
-		asm volatile("mov ds, %0" :: "r"(ds));
-		asm volatile("mov es, %0" :: "r"(ds));
-		asm volatile("mov fs, %0" :: "r"(ds));
-		asm volatile("mov gs, %0" :: "r"(ds));
-		asm volatile("mov ss, %0" :: "r"(ss));
-		//update_cs(long_jump);
-	}
+	update_segment_registers();
 
 	segment_t tsss;
 	tsss.index = 6;

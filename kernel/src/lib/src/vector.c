@@ -113,6 +113,17 @@ void vec_popd(vector *this, size_t count, void (*destruct)(void *)) {
 	}
 }
 
+void vec_take_over(vector* this, vector* other) {
+	this->data = other->data;
+	this->bsize = other->bsize;
+	this->len = other->len;
+
+	other->data = null;
+	other->bsize = 0;
+	other->len = 0;
+}
+
+
 void avec_resize(aligned_vector *this, size_t len) {
 	if (this->data.ptr == null) {
 		this->len = len;

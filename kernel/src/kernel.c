@@ -5,6 +5,10 @@
 
 #include "./include.h"
 
+//TODO:	more debug stuff
+	//	paging
+		//	port stacks and heap into virtual address space
+
 void kernel() {
 
 	output.color = col.green;
@@ -13,5 +17,11 @@ void kernel() {
 	output.color = col.white;
 
 	printl("hello world!");
+	time_update();
+	char* str = format_time((timespec_t*)&timespec, time_format_str);
+
+	print("string: "); printl(str);
+
+	free(str);
 
 }

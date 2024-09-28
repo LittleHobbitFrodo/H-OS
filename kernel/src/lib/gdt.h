@@ -187,4 +187,4 @@ static void gdt_init();
 
 static void gdt_update();
 
-extern void update_segment_registers(void* jump_address);
+extern void update_segment_registers();

@@ -10,17 +10,21 @@ section .text
 	global hang
 	global _start
 	global update_segment_registers
-	global long_jump
 
 _start:
 	cli
 
 	;   initialize machine
-	call init
+	call init   ;   returns pointer to kernel stack
+
 	;   move kernel stack
 	mov rsp, rax
 
 	call kernel
+
+	.hlt:
+	hlt
+	jmp .hlt
 
 hang:
 	cli
@@ -30,4 +34,18 @@ hang:
 
 halt:
 	hlt
+	ret
+
+update_segment_registers:
+	push rax
+
+	mov ax, 16
+	mov ds, ax
+	mov ss, ax
+
+	mov ax, 0
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	pop rax
 	ret

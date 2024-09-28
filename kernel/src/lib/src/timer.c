@@ -8,6 +8,10 @@
 #include "../timer.h"
 
 void timer_init() {
+
+	time_init();
+
+
 	//	configure PIT
 	disable_interrupts;
 	outb(0x70, 0x8a);

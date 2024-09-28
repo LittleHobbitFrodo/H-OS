@@ -43,6 +43,17 @@ void str_pushs(string *this, const string *other) {
 	this->size += other->size;
 }
 
+void str_pushc(string* this, const char c) {
+	if (this->data == null) {
+		this->size = 1;
+		this->data = (char*)palloc(4);
+		this->data[0] = c;
+		return;
+	}
+	this->data = (char*)prealloca(this->data, ++this->size, string_realloc_add);
+	this->data[this->size - 1] = c;
+}
+
 void str_pop(string *this, size_t count) {
 	if (this->data == null) {
 		return;

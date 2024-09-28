@@ -13,3 +13,4 @@ stuff/test
 test/
 os-version
 .gitignore
+qemu.log
