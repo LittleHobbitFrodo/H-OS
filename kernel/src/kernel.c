@@ -5,10 +5,6 @@
 
 #include "./include.h"
 
-//TODO:	test on real hw
-	//	create -force kernel parameter and document it
-		//	-force kb-scan-code 1
-			//	forces scan code 1 (wont ask to change it)
 void kernel() {
 	//	kernel() -> starts the OS
 
@@ -26,7 +22,7 @@ void kernel() {
 
 	do {
 
-		print("enter your command:\t");
+		print("user <-> H-OS: ");
 
 		input = keyboard_getline(true);
 		if (input.data == null) {

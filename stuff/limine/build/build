@@ -1,18 +1,15 @@
 #!/usr/bin/fish
 
-#	checks if limine is installed
-
 set uninstall "0"
 
+#	checks if limine is installed
 for i in $PATH
 	if test -e "$i/limine"
 		echo "limine bootloader is already installed on your system"
-		#echo "do you wish to procees? [Y/n] "
 		read -l input --prompt-str "do you wish to proceed? [Y/n]"
     switch $input
       case '' 'Y' 'y'
         echo "building limine while it is already installed may break something..."
-        #echo "did you uninstall limine? [Y/n]"
         read -l input --prompt-str "did you uninstall limine? [Y/n]"
         if test $input = "n" -o $input = "n"
           echo "allright, script will try to uninstall limine manually"
