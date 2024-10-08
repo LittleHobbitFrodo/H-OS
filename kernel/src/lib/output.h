@@ -20,7 +20,7 @@
 #define OUT_TAB_SPACE_COUNT 4
 #endif
 
-static struct screen {
+typedef struct screen_t {
 	u64 count;
 
 	//	no framebuffer => everything 0 and address null
@@ -30,16 +30,16 @@ static struct screen {
 	u16 bpp;
 
 	u32 *address;
-} screen;
+} screen_t;
+
+static screen_t screen;
 
 void screen_init();
 
-__attribute__((always_inline)) static inline void screen_flush() {
-	size_t size = screen.w * screen.h;
-	for (size_t i = 0; i < size; i++) {
-		screen.address[i] = 0;
-	}
-}
+static void screen_flush();
+
+static void screen_flush_at(size_t column, size_t line);
+
 
 static struct col {
 	u32 white;
@@ -101,7 +101,7 @@ void printb(size_t bin);
 
 
 __attribute__((target("general-regs-only"))) static inline void printc(const char c) {
-	if (c >= 0) {
+	if (((c >= ' ') && (c <= '~')) || ((c == '\t') || (c == '\n'))) {
 		switch (c) {
 			case '\n': {
 				endl();
@@ -168,7 +168,7 @@ __attribute__((target("general-regs-only"))) static inline void printc(const cha
 
 
 				output.column++;
-				if (output.column >= screen.w) {
+				if ((output.column * font.size) >= screen.w) {
 					endl();
 				}
 			}

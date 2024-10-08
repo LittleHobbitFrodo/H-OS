@@ -65,6 +65,7 @@
 #include "./lib/int-handler.h"
 
 #include "./lib/hardware.h"
+#include "./lib/hw/keyboard.h"
 
 
 //  sources
@@ -93,3 +94,5 @@
 #include "./lib/src/pic.c"
 
 #include "./lib/src/hardware.c"
+#include "./lib/src/hw/keyboard.c"
+#include "./lib/src/hw/kb-keys.c"

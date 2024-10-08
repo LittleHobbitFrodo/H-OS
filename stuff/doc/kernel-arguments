@@ -3,7 +3,7 @@ kernel parameters
 
 	format: -<option> <value>
 
-	-vocality <value>:	printing information during startup
+	-vocality <value>:		: printing information during startup
 		
 		values:
 		stfu			disables initial output, only critical errors are reported
@@ -12,3 +12,11 @@ kernel parameters
 		vocal			reports all importand information
 		report-everything	reports everything happening during initialization
 
+	-force <option> <value>		: forces option to value
+		options:
+			kb-scan-code-set <value>
+					forces keyboard scan code set to X
+					keyboard driver will not ask keyboard to change scan code set
+					may be useful with emulator virtual keyboard issues
+			kb-scan-code-set-noask <value>
+					assumes that set X is used and does not ask for it

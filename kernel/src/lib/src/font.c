@@ -147,7 +147,7 @@ void font_init() {
 	for (ii = 0; ii < 8; ii++) {
 		default_font.table[i][ii] = 0;
 	}
-	default_font.table[i][4] = 0xff;
+	default_font.table[i][4] = 0b00111100;
 
 	//  .
 	i = 15;

@@ -8,9 +8,11 @@
 #include "../exceptions.h"
 
 void handle_exception(exception_stack_frame *frame) {
+	#ifdef DEBUG
 	print("exception ");
 	printu(frame->type);
 	endl();
+	#endif
 	switch (frame->type) {
 		case exception_divide_by_zero: {
 			//	fault
@@ -61,8 +63,8 @@ void handle_exception(exception_stack_frame *frame) {
 			break;
 		}
 		case exception_segment_not_present: {
-			report("segment not present\n", report_error);
 			#ifdef DEBUG
+			report("segment not present\n", report_error);
 			print("rip:\t");
 			printp((void *) frame->rip);
 			endl();
@@ -71,9 +73,19 @@ void handle_exception(exception_stack_frame *frame) {
 			endl();
 			print("cs:\t"); printp((void*)frame->cs); endl();
 			print("ss:\t"); printp((void*)frame->ss); endl();
+			//u16 seg;
+			//asm volatile("mov %0, ds" : "=r"(seg));
+			//print("ds:\t"); printu(seg); endl();
 			#endif
-			hang();
+			//hang();
 
+
+			if ((frame->cs & 0b11) == 0) {
+				//	repair segments
+				frame->cs = 0x08;
+				frame->ss = 0x10;
+				asm volatile("mov ax, 16\nmov ds, ax\nmov ss, ax\nmov ax, 0\nmov es, ax\nmov fs, ax\nmov gs, ax" ::: "rax");
+			}
 			break;
 		}
 		case exception_stack_segment_fault: {
@@ -97,7 +109,11 @@ void handle_exception(exception_stack_frame *frame) {
 			break;
 		}
 		case exception_page_fault: {
-			report("page fault\n", report_critical);
+			report("page fault", report_critical);
+			if (frame->cr2 == 0) {
+				print(" (NULL)");
+			}
+			endl();
 			hang();
 			break;
 		}

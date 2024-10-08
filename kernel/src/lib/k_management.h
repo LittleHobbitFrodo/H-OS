@@ -18,11 +18,11 @@ enum kernel_states {
 } kernel_states;
 
 enum vocal {
-	vocality_stfu = 0,
-	vocality_quiet_please = 1,
-	vocality_normal = 2,
-	vocality_vocal = 3,
-	vocality_report_everything = 4
+	vocality_stfu = 0,		//	critical errors only
+	vocality_quiet_please = 1,	//	errors only
+	vocality_normal = 2,	//	warnings
+	vocality_vocal = 3,		//	warnings, important notes
+	vocality_report_everything = 4	//	notes
 } vocal;
 
 static enum vocal vocality = vocality_normal;
@@ -41,7 +41,8 @@ enum panic_codes {
 	panic_code_cpu_vendor_not_found,
 	panic_code_cannot_locate_kernel_stack,
 	panic_code_paging_initialization_failure,
-	panic_code_gdt_initialization_failure
+	panic_code_gdt_initialization_failure,
+	panic_code_keyboard_initialization_failure
 } panic_codes;
 
 extern void panic(enum panic_codes code);

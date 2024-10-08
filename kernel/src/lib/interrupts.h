@@ -51,7 +51,8 @@ enum idt_bits {
 
 enum idt_gate_types {
 	idt_gate_type_interrupt = 0xe,
-	idt_gate_type_trap = 0xf
+	idt_gate_type_trap = 0xf,
+	idt_gate_type_hardware = 0x8F
 } idt_gate_types;
 
 

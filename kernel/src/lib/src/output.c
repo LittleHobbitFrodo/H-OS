@@ -49,6 +49,27 @@ void screen_init() {
 	screen.w = f->width;
 }
 
+void screen_flush() {
+	size_t size = screen.w * screen.h;
+	for (size_t i = 0; i < size; i++) {
+		screen.address[i] = 0;
+	}
+}
+
+void screen_flush_at(size_t column, size_t line) {
+	if ((column * font.size >= screen.w) || (line * font.size >= screen.h)) {
+		return;
+	}
+
+	u32* ptr = screen.address + ((line * screen.w * (font.size + output.space_between_lines))) + (column * font.size);
+	for (u16 i = 0; i < font.size; i++) {
+		for (u16 ii = 0; ii < font.size; ii++) {
+			*(ptr + (i * screen.w) + (font.size - ii)) = 0;
+		}
+	}
+}
+
+
 void output_init() {
 	output.line = (output.column = 0);
 	output.space_between_lines = SPACE_BETWEEN_LINES_DEFAULT;

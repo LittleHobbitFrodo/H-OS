@@ -32,7 +32,7 @@ const void* init() {
 	hardware_init();
 
 	//	reclaim memory
-	memmap_reclaim();
+	//memmap_reclaim();
 
 	//	paging is not setup yet, so custom allocated memory will be used for kernel and interrupt stacks
 
@@ -143,6 +143,11 @@ void __parse_cmd_out_of_bounds(const string *token) {
 	printl("\', got nothing");
 }
 
+inline void __parse_cmd_report(const char* msg, enum report_seriousness seriousness) {
+	report("command line argument error:\t", seriousness);
+	print(msg);
+}
+
 void parse_cmd() {
 	struct limine_file *file = req_kernel_file.response->kernel_file;
 	if (file == null) {
@@ -151,57 +156,14 @@ void parse_cmd() {
 	}
 	const char *cmd = file->cmdline;
 	if (file->cmdline == null) {
-		report("no given command line arguments\n", report_note);
+		report("no command line arguments given\n", report_note);
 		return;
 	}
 
 	//	tokenize cmd
 	vector tokens; //	strings
-	vecs(&tokens, sizeof(string)); {
-		string token;
-		str(&token);
-		size_t tlen = 0;
-		char *tstart = null;
-
-		size_t cmdlen = strlen(cmd);
-
-		for (size_t i = 0; i < cmdlen; ++i) {
-			switch (cmd[i]) {
-				case ' ':
-				case '\t':
-				case '\n': {
-					//	push
-					if (likely(tlen > 0)) {
-						str_setss(&token, tstart, tlen); //	copy data from cmdline
-						string *nstr = vec_push(&tokens, 1); //	push to strings
-						str(nstr); //	initialize string
-						str_take_over(nstr, &token); //	take over token string
-					}
-					tlen = 0;
-					tstart = null;
-					break;
-				}
-				case '\0': {
-					//	important
-					break;
-				}
-				default: {
-					if (tstart == null) {
-						tstart = (char *) cmd + i;
-					}
-					tlen++;
-					break;
-				}
-			}
-		}
-		//	push if last word is not pushed
-		if (likely(tlen > 0)) {
-			str_setss(&token, tstart, tlen); //	copy data from cmdline
-			string *nstr = vec_push(&tokens, 1); //	push to strings
-			str(nstr); //	initialize new string
-			str_take_over(nstr, &token); //	take over token string
-		}
-	}
+	vecs(&tokens, sizeof(string));
+	str_tokenize(cmd, &tokens);
 
 	string *s = tokens.data;
 
@@ -220,7 +182,7 @@ void parse_cmd() {
 					vocality = vocality_report_everything;
 					report("setting kernel vocality to \'report-everything\'\n", report_note);
 				} else {
-					report("command line argument error: unknown word \'", report_problem);
+					__parse_cmd_report("unknown word \'", report_problem);
 					prints(&s[i]);
 					printl("\' for \'-vocality\' switch, setting default vocality to \'normal\'");
 				}
@@ -240,7 +202,7 @@ void parse_cmd() {
 					}
 					kaslr = false;
 				} else {
-					report("command line argument error: expected \'enable\' or \'disable\' for \'", report_problem);
+					__parse_cmd_report("expected \'enable\' or \'disable\' for \'", report_problem);
 					prints(&s[i]);
 					printl("\', skipping");
 				}
@@ -248,7 +210,7 @@ void parse_cmd() {
 				__parse_cmd_out_of_bounds(&s[i - 1]);
 			}
 		} else {
-			report("command line argument error: unknown word \'", report_problem);
+			__parse_cmd_report("unknown word \'", report_problem);
 			prints(&s[i]);
 			printl("\', skipping");
 		}

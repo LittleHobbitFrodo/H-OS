@@ -8,21 +8,10 @@
 
 typedef struct exception_stack_frame {
 	u64 cr2;
-	u64 r15;
-	u64 r14;
-	u64 r13;
-	u64 r12;
-	u64 r11;
-	u64 r10;
-	u64 r9;
-	u64 r8;
-	u64 rbp;
-	u64 rdi;
-	u64 rsi;
-	u64 rdx;
-	u64 rcx;
-	u64 rbx;
-	u64 rax;
+	u64 r15, r14, r13, r12, r11, r10, r9, r8;
+
+	u64 rbp, rdi, rsi, rdx, rcx, rbx, rax;
+
 	u64 type;
 	u64 code;
 	u64 rip;

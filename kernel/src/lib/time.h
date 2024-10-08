@@ -65,11 +65,6 @@ static volatile timespec_t timespec;
 
 
 
-
-
-
-
-
 //	helpers
 
 enum __format_time_token_switch {

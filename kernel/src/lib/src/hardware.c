@@ -12,6 +12,8 @@ void hardware_init() {
 
 	timer_init();
 
+	keyboard_init();
+
 	if (vocality >= vocality_report_everything) {
 		report("hardware initialization success\n", report_note);
 	}

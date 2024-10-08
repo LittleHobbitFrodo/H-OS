@@ -14,6 +14,9 @@ void to_stringi(char *str, ssize_t val);
 
 void to_hex(char *str, void *ptr);
 
+__attribute__((nonnull(1))) size_t to_int(const char* str);
+ssize_t to_inti(const char* str);
+
 #define HEXLEN_PTR (sizeof(void*) * 2) + 3
 
 #define INTLEN_I8 4

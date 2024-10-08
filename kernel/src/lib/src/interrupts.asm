@@ -41,12 +41,19 @@
     pop rdx
     pop rcx
     pop rbx
+    mov ax, 0x20
+    out 0x20, ax
     pop rax
 %endmacro
 
 section .text
+
 	global isr_int_timer_pit
 	extern tick
+
+	global isr_int_keyboard_input
+	extern interrupt_keyboard_input
+
 
 isr_int_timer_pit:
 	;   increase tick
@@ -54,5 +61,16 @@ isr_int_timer_pit:
 	mov rax, [rel tick]
 	inc rax
 	mov [rel tick], rax
+
+	;   end interrupt
+	mov ax, 0x20
+    out 0x20, ax
 	pop rax
+	iretq
+
+
+isr_int_keyboard_input:
+	INTERRUPT_ENTER
+	call interrupt_keyboard_input
+	INTERRUPT_LEAVE
 	iretq

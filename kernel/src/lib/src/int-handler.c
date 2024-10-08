@@ -4,15 +4,26 @@
 //
 
 #pragma once
+void interrupt_keyboard_input(void) {
+	u8 code = keyboard_receive_byte();
 
-/*void interrupt_timer_pit([[maybe_unused]] int_stack_frame *frame) {
-	#ifdef DEBUG
-	print("(int: PIT)");
-	#endif
+	keycode* key = keyboard.scancodes[code & ~(1 << 7)];
+	//print("code:\t"); printu(code); print(" : "); printu(code & ~(1 << 7)); endl();
 
-	tick++;
+	if (key != null) {
+		key->state = (code & (1 << 7)) == 0;
+		if (keyboard_shift()) {
+			keyboard.last = key->shift;
+		} else {
+			keyboard.last = key->code;
+		}
+	} else {
+		report("unknown keyboard input (", report_error);
+		printu(code); printl(")");
+		return;
+	}
 
-	//	end the interrupt
-	outb(0x20, 0x20);
-
-}*/
+	if ((code & (1 << 7)) == 0) {
+		keyboard.hit = true;
+	}
+}

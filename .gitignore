@@ -14,3 +14,4 @@ test/
 os-version
 .gitignore
 qemu.log
+docs

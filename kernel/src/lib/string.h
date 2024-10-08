@@ -63,3 +63,7 @@ __attribute__((always_inline)) inline void str_clear(string *this) {
 	}
 	this->size = 0;
 }
+
+struct vector;
+
+static void str_tokenize(const char* input, vector *output);

@@ -78,3 +78,5 @@ static inline void outb(u16 port, u8 data) {
 static inline void iowait() {
 	outb(0x80, 0);
 }
+
+static void memnull(void* ptr, size_t size);

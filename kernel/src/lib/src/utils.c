@@ -29,3 +29,10 @@ void waitaminute(size_t max, const char *msg) {
 	printl(msg);
 	for (size_t i = 0; i < MAX_I32 / max; i++);
 }
+
+void memnull(void* ptr, size_t size) {
+	//	sets chunk of memory to 0
+	for (size_t i = 0; i < size; i++) {
+		((u8*)ptr)[i] = 0;
+	}
+}

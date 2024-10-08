@@ -52,3 +52,41 @@ void to_stringi(char *str, ssize_t val) {
 	str[i] = '\0';
 	strrev(str, i);
 }
+
+
+size_t to_int(const char* str) {
+	ssize_t len = strlen(str);
+	ssize_t i = 0;
+	size_t result = 0, mul = 1;
+	for (; (i < len) && ((str[i] >= '0') && (str[i] <= '9')); i++);
+	--i;
+
+	for (; (i >= 0) && ((str[i] >= '0') && (str[i] <= '9')); i--) {
+		result += (str[i] - '0') * mul;
+		mul *= 10;
+	}
+
+	return result;
+}
+
+ssize_t to_inti(const char* str) {
+	ssize_t len = strlen(str);
+	ssize_t i = 0;
+	ssize_t result = 0;
+	size_t mul = 1;
+	if (str[0] == '-') {
+		i++;
+	}
+	for (; (i < len) && ((str[i] >= '0') && (str[i] <= '9')); i++);
+	--i;
+
+	for (; (i >= 0) && ((str[i] >= '0') && (str[i] <= '9')); i--) {
+		result += (str[i] - '0') * mul;
+		mul *= 10;
+	}
+	if (str[i] == '-') {
+		result = -result;
+	}
+
+	return result;
+}

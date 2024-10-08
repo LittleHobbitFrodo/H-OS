@@ -51,6 +51,7 @@ void interrupts_init() {
 
 	//	timer interrupt
 	idt_set_address(&idt[32], (void *) &isr_int_timer_pit);
+	//	keyboard interrupt is set up in keyboard_init()
 
 	asm volatile("lidt %0" :: "m"(idt_pointer));
 

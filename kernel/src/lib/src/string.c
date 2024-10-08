@@ -167,3 +167,52 @@ bool str_cmpbs(const string *s1, const string *s2) {
 	}
 	return true;
 }
+
+
+void str_tokenize(const char* input, vector* output) {
+	string token;
+	str(&token);
+	vecs(output, sizeof(string));
+
+	size_t cmdlen = strlen(input);
+	char* tstart = null;
+	size_t tlen = 0;
+
+	for (size_t i = 0; i < cmdlen; ++i) {
+		switch (input[i]) {
+			case ' ':
+			case '\t':
+			case '\n': {
+				//	push
+				if (likely(tlen > 0)) {
+					str_setss(&token, tstart, tlen); //	copy data from cmdline
+					string *nstr = vec_push(output, 1); //	push to strings
+					str(nstr); //	initialize string
+					str_take_over(nstr, &token); //	take over token string
+				}
+				tlen = 0;
+				tstart = null;
+				break;
+			}
+			case '\0': {
+				//	important
+				break;
+			}
+			default: {
+				if (tstart == null) {
+					tstart = (char *) input + i;
+				}
+				tlen++;
+				break;
+			}
+		}
+	}
+	//	push if last word is not pushed
+	if (likely(tlen > 0)) {
+		str_setss(&token, tstart, tlen); //	copy data from cmdline
+		string *nstr = vec_push(output, 1); //	push to strings
+		str(nstr); //	initialize string
+		str_take_over(nstr, &token); //	take over token string
+		nstr->size = tlen;
+	}
+}
