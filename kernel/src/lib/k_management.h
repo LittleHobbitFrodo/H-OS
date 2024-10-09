@@ -42,7 +42,8 @@ enum panic_codes {
 	panic_code_cannot_locate_kernel_stack,
 	panic_code_paging_initialization_failure,
 	panic_code_gdt_initialization_failure,
-	panic_code_keyboard_initialization_failure
+	panic_code_unable_to_locate_RSDP,
+	panic_code_unable_to_pick_acpi_memmap_entry
 } panic_codes;
 
 extern void panic(enum panic_codes code);

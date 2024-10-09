@@ -74,6 +74,22 @@ void panic(enum panic_codes code) {
 			printl("cannot locate kernel stack");
 			break;
 		}
+		case panic_code_paging_initialization_failure: {
+			printl("memory protection initialization failed");
+			break;
+		}
+		case panic_code_gdt_initialization_failure: {
+			printl("legacy memory protection initialization failed");
+			break;
+		}
+		case panic_code_unable_to_locate_RSDP: {
+			printl("unable to locate ACPI tables");
+			break;
+		}
+		case panic_code_unable_to_pick_acpi_memmap_entry: {
+			printl("unable to pick ACPI memory map entry");
+			break;
+		}
 		default: {
 			printl("unknown critical error");
 			break;

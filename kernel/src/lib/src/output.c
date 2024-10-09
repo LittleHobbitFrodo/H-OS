@@ -54,6 +54,8 @@ void screen_flush() {
 	for (size_t i = 0; i < size; i++) {
 		screen.address[i] = 0;
 	}
+	output.column = 0;
+	output.line = 0;
 }
 
 void screen_flush_at(size_t column, size_t line) {
