@@ -5,7 +5,7 @@
 
 #pragma once
 
-typedef struct acpi_std_header {
+typedef struct acpi_sdt_header {
 	//	standard header, used in other acpi structures
 	char signature[4];
 	u32 length;
@@ -17,7 +17,9 @@ typedef struct acpi_std_header {
 	char acpi_compiler[4];		//	info about compiler used to build acpi
 	u32 acpi_compiler_revision;
 
-} __attribute__((packed)) acpi_std_header;
+} __attribute__((packed)) acpi_sdt_header;
+
+typedef acpi_sdt_header acpi_rsdt_t;
 
 typedef struct acpi_addresses_t {
 	u8 address_space;
@@ -28,10 +30,10 @@ typedef struct acpi_addresses_t {
 
 } __attribute__((packed)) acpi_addresses_t;
 
-typedef struct acpi_fadt {
+typedef struct acpi_fadt_t {
 	//	fixed acpi descriptor table
 
-	acpi_std_header header;
+	acpi_sdt_header header;
 	u32 firmware_ctrl;
 	u32 dst;
 
@@ -92,9 +94,7 @@ typedef struct acpi_fadt {
 	acpi_addresses_t GPE_0_block_X;
 	acpi_addresses_t GPE_1_block_X;
 
-} __attribute__((packed)) acpi_fadt;
-
-
+} __attribute__((packed)) acpi_fadt_t;
 
 
 enum acpi_addresses_address_space {

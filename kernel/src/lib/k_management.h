@@ -10,11 +10,14 @@ extern void kernel();
 extern const void* init();
 	//	returns pointer to kernel stack
 
+extern void shutdown();
+
 void parse_cmd();
 
 enum kernel_states {
-	kstate_init_memory,
-	k_state_init_interrupts
+	k_state_init_memory,
+	k_state_init_interrupts,
+	k_state_init_hardware,
 } kernel_states;
 
 enum vocal {
@@ -24,10 +27,6 @@ enum vocal {
 	vocality_vocal = 3,		//	warnings, important notes
 	vocality_report_everything = 4	//	notes
 } vocal;
-
-static enum vocal vocality = vocality_normal;
-
-static enum kernel_states kernel_state = kstate_init_memory;
 
 enum panic_codes {
 	panic_code_ok,
@@ -43,10 +42,9 @@ enum panic_codes {
 	panic_code_paging_initialization_failure,
 	panic_code_gdt_initialization_failure,
 	panic_code_unable_to_locate_RSDP,
-	panic_code_unable_to_pick_acpi_memmap_entry
+	panic_code_unable_to_pick_acpi_memmap_entry,
+	panic_code_failed_to_initialize_acpi
 } panic_codes;
-
-extern void panic(enum panic_codes code);
 
 enum report_seriousness {
 	//	report_seriousness corresponds with enum vocal
@@ -59,4 +57,12 @@ enum report_seriousness {
 	report_critical = 0 //	report critical error (mostly system failure)
 } report_seriousness;
 
+
+extern void panic(enum panic_codes code);
+
 void report(const char *msg, enum report_seriousness seriousness);
+
+
+static enum vocal vocality = vocality_normal;
+
+static enum kernel_states kernel_status = k_state_init_memory;

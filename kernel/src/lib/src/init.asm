@@ -6,6 +6,8 @@
 section .text
 	extern init
 	extern kernel
+	extern shutdown
+
 	global halt
 	global hang
 	global _start
@@ -21,6 +23,8 @@ _start:
 	mov rsp, rax
 
 	call kernel
+
+	call shutdown
 
 	.hlt:
 	hlt

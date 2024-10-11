@@ -8,6 +8,8 @@
 
 void memory_init() {
 
+	kernel_status = k_state_init_memory;
+
 	//	prepare stack structure
 	memset(&stack, sizeof(stack_holder), 0);
 
@@ -259,7 +261,7 @@ void memmap_display() {
 				break;
 			}
 			case memmap_acpi: {
-				output.color = col.green;
+				output.color = col.yellow;
 				print("acpi:\t\t");
 				break;
 			}
@@ -291,6 +293,11 @@ void memmap_display_original() {
 	u32 c = output.color;
 	struct limine_memmap_entry **ents = req_memmap.response->entries;
 	size_t size = req_memmap.response->entry_count;
+
+	if (ents == null) {
+		report("original memmap does not exist\n", report_problem);
+		return;
+	}
 
 	if (ents == null) {
 		report("original memmap does not exist\n", report_problem);

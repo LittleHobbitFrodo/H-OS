@@ -150,10 +150,10 @@ enum keycodes {		//	these keycodes are used only in H-OS
 	keycode_lshift = 28,
 	keycode_rshift = 29,
 	keycode_enter = '\n',			//	10
-	keycode_lctrl = 33,		//	'!'
-	keycode_rctrl = 34,		//	'\'"'
-	keycode_lalt = 35,		//	'#'
-	keycode_ralt = 36,		//	'$'
+	keycode_lctrl = 150,
+	keycode_rctrl = 151,
+	keycode_lalt = 152,
+	keycode_ralt = 153,
 	keycode_escape = 30,
 
 	keycode_page_up = 20,

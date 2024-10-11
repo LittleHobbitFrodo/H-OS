@@ -54,7 +54,7 @@
 
 //	scancode to keycode resolution structures
 
-#define KEYCODE_COUNT 150
+#define KEYCODE_COUNT 160
 #define SCANCODE_COUNT 0x61
 
 typedef struct keycode {

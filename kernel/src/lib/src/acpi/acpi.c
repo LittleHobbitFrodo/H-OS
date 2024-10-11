@@ -7,9 +7,13 @@
 #include "../../k_management.h"
 #include "../../acpi/acpi.h"
 
+#include "../../k_management.h"
+
 void acpi_init() {
 
 	memnull(&acpi, sizeof(acpi_t));
+
+	vecs(&acpi.tables, sizeof(void*));
 
 	if (vocality >= vocality_vocal) {
 		report("proceeding to initialize ACPI\n", report_warning);
@@ -21,12 +25,9 @@ void acpi_init() {
 	}
 
 	acpi.rsdp = (acpi_rsdp_extended_t*)req_rsdp.response->address;
+	acpi.rsdt = (acpi_rsdt_t*)((size_t)acpi.rsdp->rsdt_address);
 
-	printl("acpi info:");
-	print("signature:\t"); printl((const char*)&acpi.rsdp->signature);
-	print("oem ID:\t"); printl((const char*)&acpi.rsdp->oemid);
-	print("revision:\t"); printu(acpi.rsdp->revision); endl();
-	print("rsdt address:\t"); printp((void*)((size_t)acpi.rsdp->rsdt_address)); endl();
+	//acpi_connect();
 
 	//	check if acpi memory map entry is present
 		//	if not mark it as acpi
@@ -48,7 +49,8 @@ void acpi_init() {
 					ents[i].type = memmap_acpi;
 					found = true;
 					if (vocality >= vocality_vocal) {
-						report("ACPI memory map entry resolved\n", report_note);
+						report("ACPI memory map entry resolved:", report_note);
+						printu(i); endl();
 					}
 					break;
 				}
@@ -58,16 +60,19 @@ void acpi_init() {
 			report("unable to pick ACPI memory map entry\n", report_critical);
 			panic(panic_code_unable_to_pick_acpi_memmap_entry);
 		}
-	}
 
-	acpi.version = acpi_detect_version();
+	}
 
 }
 
+void __acpi_report(const char* msg, enum report_seriousness seriousness) {
+	report("ACPI:\t", seriousness);
+	print(msg);
+}
 
-u32 acpi_detect_version() {
-	//	detects acpi version
-	if (acpi.rsdp->revision == 0) {
-		return 1;
+bool acpi_compare(const acpi_sdt_header* h, const char* str) {
+	if (strlen(str) != 4) {
+		return false;
 	}
+	return (h->signature[0] == str[0]) && (h->signature[1] == str[1]) && (h->signature[2] == str[2]) && (h->signature[3] == str[3]);
 }

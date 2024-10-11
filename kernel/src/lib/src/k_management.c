@@ -90,6 +90,10 @@ void panic(enum panic_codes code) {
 			printl("unable to pick ACPI memory map entry");
 			break;
 		}
+		case panic_code_failed_to_initialize_acpi: {
+			printl("failed to initialize ACPI");
+			break;
+		}
 		default: {
 			printl("unknown critical error");
 			break;
@@ -98,8 +102,8 @@ void panic(enum panic_codes code) {
 
 	print("\t->\t");
 	output.color = col.critical;
-	switch (kernel_state) {
-		case kstate_init_memory: {
+	switch (kernel_status) {
+		case k_state_init_memory: {
 			printl("FAILED TO INITIALIZE MEMORY");
 			break;
 		}
@@ -107,11 +111,18 @@ void panic(enum panic_codes code) {
 			printl("FAILED TO INITIALIZE INTERRUPTS");
 			break;
 		}
+		case k_state_init_hardware: {
+			printl("FAILED TO INITIALIZE HARDWARE");
+			break;
+		}
+		default: break;
 	}
 
 	output.color = col.white;
 	printl("\n\nhalting system...");
 	hang();
+
+	__builtin_unreachable();
 }
 
 void report(const char *msg, enum report_seriousness seriousness) {
@@ -150,6 +161,12 @@ void report(const char *msg, enum report_seriousness seriousness) {
 	output.color = col.white;
 	print(":\t");
 	print(msg);
+}
+
+void shutdown() {
+	printl("THE SYSTEM IS SHUTTING DOWN ... ");
+
+	hang();	//	for now
 }
 
 

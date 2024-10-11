@@ -66,6 +66,7 @@
 
 #include "./lib/hardware.h"
 #include "./lib/hw/keyboard.h"
+#include "./lib/acpi/acpi.h"
 
 
 //  sources
@@ -96,3 +97,4 @@
 #include "./lib/src/hardware.c"
 #include "./lib/src/hw/keyboard.c"
 #include "./lib/src/hw/kb-keys.c"
+#include "./lib/src/acpi/acpi.c"
