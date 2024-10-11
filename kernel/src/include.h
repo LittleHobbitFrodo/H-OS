@@ -55,6 +55,7 @@
 #include "./lib/segmentation.h"
 #include "./lib/tss.h"
 #include "./lib/gdt.h"				//	needs vector.h
+#include "./lib/random.h"
 
 #include "./lib/string.h"
 #include "./lib/font.h"
@@ -96,3 +97,5 @@
 #include "./lib/src/hardware.c"
 #include "./lib/src/hw/keyboard.c"
 #include "./lib/src/hw/kb-keys.c"
+
+#include "./lib/src/random.c"

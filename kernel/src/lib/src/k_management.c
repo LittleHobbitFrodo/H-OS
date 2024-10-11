@@ -18,6 +18,9 @@ const void* init() {
 	//	initialize output structure
 	output_init();
 
+	//	initialize random number generator
+	random_init();
+
 	#ifdef DEBUG
 		report("starting in DEBUG mode\n", report_debug);
 	#endif
@@ -143,7 +146,7 @@ void __parse_cmd_out_of_bounds(const string *token) {
 	printl("\', got nothing");
 }
 
-inline void __parse_cmd_report(const char* msg, enum report_seriousness seriousness) {
+void __parse_cmd_report(const char* msg, enum report_seriousness seriousness) {
 	report("command line argument error:\t", seriousness);
 	print(msg);
 }

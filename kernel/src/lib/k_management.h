@@ -5,6 +5,20 @@
 
 #pragma once
 
+typedef struct kerninfo_t {
+
+	struct build {
+		char* time;
+		char* guid;
+	} build;
+
+	char* version;
+	char* name;
+
+} kerninfo_t;
+
+static const kerninfo_t kerninfo = {.build = {.guid = KERNEL_BUILD_GUID, .time = KERNEL_BUILD_TIME}, .version = KERNEL_VERSION, .name = KERNEL_NAME};
+
 extern void kernel();
 
 extern const void* init();

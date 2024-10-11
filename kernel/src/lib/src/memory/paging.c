@@ -7,6 +7,9 @@
 
 #include "../../memory/paging.h"
 
+#define PKEY_MASK 0x7800000000000000
+#define PKEY_SHIFT 59
+
 page_entry *page_find() {
 	page_entry *ret;
 	asm volatile("mov %0, cr3" : "=r"(ret));
@@ -14,138 +17,83 @@ page_entry *page_find() {
 }
 
 void page_init() {
-	/*virtual_base = (void *) req_k_address.response->virtual_base;
-	physical_base = (void *) req_k_address.response->physical_base;
+	memnull(&pages, sizeof(pages_base_t));
 
-	//	default paging layout
-	//	pml4[(highest used)]
-	//	pdpt[(highest unused)]
-	//	pd[1] ->	paging
-	//	pd[1 .. x]	heap
+	//	prepare structure
+	pages.base.physical = (void*)req_k_address.response->physical_base;
+	pages.base.virtual = (void*)req_k_address.response->virtual_base;
+	req_k_address.response = null;
 
-	enum page_flags nullf = present | no_exec;
+	aptrse(&pages.pml4, sizeof(page_entry) * PAGE_COUNT, 4096);
+	aptrse(&pages.kernel.pdpt,  sizeof(page_entry) * PAGE_COUNT, 4096);
+	memnull(pages.pml4.ptr, sizeof(page_entry) * PAGE_COUNT);
+	memnull(pages.kernel.pdpt.ptr, sizeof(page_entry) * PAGE_COUNT);
 
-	pml4 = page_find();
-	pd.ptr = (aligned_ptr){.ptr = null, .align = 4096, .offset = 0};
-	pd.count = PAGE_COUNT;
-	pt.ptr = (aligned_ptr){.ptr = null, .align = 4096, .offset = 0};
-	pt.count = 0;
+	//	connect pdpt to pml4
 
-	memmap_entry *hent = null, *pent = null; {
-		//	page count
-		memmap_entry *mem;
-		for (size_t i = 0; i < memmap.len; i++) {
-			switch ((mem = ((memmap_entry *) vec_at(&memmap, i)))->type) {
-				case memmap_heap: {
-					hent = mem;
-					break;
-				}
-				case memmap_paging: {
-					pent = mem;
-					break;
-				}
-				default: break;
-			}
-		}
-		u8 check = (hent == null) | ((pent == null) << 1);
-		if (check != 0) {
-			if (check & 0b1) {
-				report("could not find heap memory map entry\n", report_critical);
-			}
-			if ((check & 0b10) != 0) {
-				report("could not find page table memory map entry\n", report_critical);
-			}
-			panic(panic_code_paging_initialization_failure);
+	page_entry* page = &((page_entry*)pages.pml4.ptr)[va_index(pages.base.virtual, VA_INDEX_PML4)];
+
+	page_set_address(page, pages.kernel.pdpt.ptr);
+	*page |= pf_present | pf_write;
+
+	//	allocate and fill kernel pd
+	aptrs(&pages.kernel.pd.ptr, 4096);
+	memmap_entry* ent = null;
+	for (size_t i = 0; i < memmap.len; i++) {
+		memmap_entry* e = (memmap_entry*)vec_at(&memmap, i);
+		if (e->type == memmap_kernel) {
+			ent = e;
+			break;
 		}
 	}
-	//	hent, sent, pent != null
-
-	//	find highest used pml4 entry
-	page_entry *connect = null; {
-		page_entry *pdpt = null;
-		for (ssize_t i = PAGE_COUNT - 1; (i >= 0) && (connect == null); i--) {
-			if ((pdpt = page_address(pml4[i])) != null) {
-				for (ssize_t ii = PAGE_COUNT - 1; ii >= 0; ii--) {
-					if (page_address(pdpt[ii]) == null) {
-						connect = &pdpt[ii];
-						va_set_index(&kernel_stack_address, i, 3);
-						va_set_index(&kernel_stack_address, ii, 2);
-						break;
-					}
-				}
-			}
-		}
-		if (connect == null) {
-			report("could not find valid pdpt entry\n", report_critical);
-			panic(panic_code_paging_initialization_failure);
-		}
+	if (ent == null) {
+		report("could not find kernel memory map entry\n", report_critical);
+		panic(panic_code_cannot_locate_kernel_entry);
 	}
 
-	//	allocate pd and pt
-	aptr_alloc(&pd.ptr, pd.count * sizeof(page_entry));
-	for (size_t i = 0; i < pd.count; i++) {
-		((page_entry *) pd.ptr.ptr)[i] = (page_entry) nullf;
+	pages.kernel.pd.size = (ent->len / (2 * MB)) + (ent->len % (2 * MB) != 0);
+	printu(pages.kernel.pd.size); endl();
+	aptr_alloc(&pages.kernel.pd.ptr, PAGE_COUNT * sizeof(page_entry) * pages.kernel.pd.size);
+	memnull(pages.kernel.pd.ptr.ptr, PAGE_COUNT * sizeof(page_entry) * pages.kernel.pd.size);
+
+
+	//	connect pd to pdpt
+	page = &((page_entry*)pages.kernel.pdpt.ptr)[va_index(pages.base.virtual, VA_INDEX_PDPT)];
+	page_set_address(page, pages.kernel.pd.ptr.ptr);
+	*page |= pf_present | pf_write;
+
+	//	allocate and fill pts
+	aptrs(&pages.kernel.pt.ptr, 4096);
+	pages.kernel.pt.size = (ent->len / PAGE_SIZE) + (ent->len % PAGE_SIZE != 0);
+	aptr_alloc(&pages.kernel.pt.ptr, PAGE_COUNT * sizeof(page_entry) * pages.kernel.pt.size);
+	memnull(pages.kernel.pt.ptr.ptr, PAGE_COUNT * sizeof(page_entry) * pages.kernel.pt.size);
+
+	page = &((page_entry*)pages.kernel.pd.ptr.ptr)[va_index(pages.base.virtual, VA_INDEX_PD)];
+	for (size_t i = 0; i < pages.kernel.pt.size; i++) {
+		page_set_address(&page[i], (void*)((size_t)pages.kernel.pt.ptr.ptr + (i * PAGE_SIZE)));
+		page[i] |= pf_present | pf_write;
 	}
 
-	//	calculate page entries for ring0 data
-	pt.count = (((hent->len / PAGE_SIZE) / PAGE_COUNT * PAGE_COUNT)) + 1;
-	pt.count += (((pent->len / PAGE_SIZE) / PAGE_COUNT) * PAGE_COUNT) + 1;
-	pt.count *= PAGE_COUNT;
-
-	aptr_alloc(&pt.ptr, pt.count * sizeof(page_entry));
-	output.color = col.red;
-	va_set_index(&kernel_stack_address, 0, 1);
-	for (size_t i = 0; i < pt.count; i++) {
-		((page_entry *) pt.ptr.ptr)[i] = (page_entry) nullf;
+	page = &((page_entry*)pages.kernel.pt.ptr.ptr)[va_index(pages.base.virtual, VA_INDEX_PT)];
+	for (size_t i = 0; i * PAGE_SIZE < ent->len; i++) {
+		page_set_address(page, (void*)(ent->base + (i * PAGE_SIZE)));
+		page_set_flags(page, pf_present | pf_write);
 	}
 
-	//	connect pdpt to pd, pd to pts
-	page_set_address(connect, pd.ptr.ptr); {
-		size_t len = pt.count / PAGE_COUNT;
-		page_entry *pd_ = (page_entry *) pd.ptr.ptr, *pt_ = (page_entry *) pt.ptr.ptr;
-		for (size_t i = 0; i < len; i++) {
-			page_set_address(&pd_[i], &pt_[i * PAGE_COUNT]);
-		}
-	}
+	//asm volatile("mov cr3, %0" :: "r"(pages.pml4.ptr));
 
-	//	point pt addresses to actual memory locations
-	page_entry *pt_ = (page_entry *) pt.ptr.ptr;
-	size_t limit;
-	//	paging (index 0)
-	{
-		limit = (pent->len / PAGE_SIZE) + (pent->len % PAGE_SIZE != 0);
-		for (size_t i = 0; i < limit; i++) {
-			page_set_address(&pt_[i], (void *) (pent->base + (i * PAGE_SIZE)));
-		}
-	}
-	//	heap (index 1)
-	{
-		heap_virtual_base = kernel_stack_address;
-		pt_ += PAGE_COUNT;
-		limit = (hent->len / PAGE_SIZE) + (pent->len % PAGE_SIZE != 0);
-		for (size_t i = 0; i < limit; i++) {
-			page_set_address(&pt_[i], (void *) (hent->base + (i * PAGE_SIZE)));
-		}
-		va_set_index(&heap_virtual_base, 1, 1);
-		va_set_index(&heap_virtual_base, 0, 0);
-		va_set_offset(&heap_virtual_base, 0);
-		output.color = col.yellow;
-		output.color = col.white;
-	}
+	//printp((void*)((page_entry*)pages.pml4.ptr)[va_index(pages.base.virtual, VA_INDEX_PML4)]);
 
-	if (vocality >= vocality_vocal) {
-		report("paging initialization completed\n", report_note);
-	}*/
 }
 
 void page_entry_info(page_entry ent) {
-	enum page_flags pflags = present;
+	enum page_flags pflags = pf_present;
 	u32 c = output.color;
 	output.color = col.cyan;
 	if (ent & pflags) {
 		print("present ");
 	}
-	pflags = global;
+	pflags = pf_global;
 	if (ent & pflags) {
 		print("global ");
 	} {
@@ -158,49 +106,43 @@ void page_entry_info(page_entry ent) {
 			printl("NULL");
 		}
 	}
-	pflags = write;
+	pflags = pf_write;
 	print("\tperms:\t");
 	print((ent & pflags) ? "rw" : "r");
-	pflags = no_exec;
+	pflags = pf_no_exec;
 	printc('x' * (ent & pflags));
 	endl();
-	pflags = cache_disable;
+	pflags = pf_cache_disable;
 	print("\tcaching:\t");
 	if (ent & pflags) {
 		printl("disabled");
 	} else {
-		pflags = write_through;
+		pflags = pf_write_through;
 		printl((ent & pflags) ? "write-through" : "write-back");
 	}
-	pflags = accessed;
+	pflags = pf_accessed;
 	print("\tstate:\t");
 	if (ent & pflags) {
 		print("accessed, ");
 	}
-	pflags = dirty;
+	pflags = pf_dirty;
 	printl((ent & pflags) ? "dirty" : "clean");
-	pflags = PS;
+	pflags = pf_PS;
 	print("\tsize:\t\t");
 	printl((ent & pflags) ? "2MiB" : "4kb");
 	output.color = c;
 }
 
 void *physical(void *virt) {
-	page_entry ent = pml4[va_index(virt, 3)];
-	if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
-		print("\t\tlayer:\t4:\t");
-		printp((void *) pml4[va_index(virt, 3)]);
-		endl();
+	page_entry ent = ((page_entry*)pages.pml4.ptr)[va_index(virt, 3)];
+	if (unlikely((!(ent & pf_present)) || (page_address(ent) == null))) {
+		printl("layer 3");
 		return null;
 	}
 	for (i16 i = 2; i >= 0; --i) {
 		ent = PAGE_ALIGN_DOWN(((page_entry*)page_address(ent))[va_index(virt, i)]);
-		if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
-			print("\t\tlayer:\t");
-			printu(i);
-			print(":\t");
-			printp((void *) ent);
-			endl();
+		if (unlikely((!(ent & pf_present)) || (page_address(ent) == null))) {
+			print("layer "); printu(i); endl();
 			return null;
 		}
 	}

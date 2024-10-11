@@ -6,13 +6,11 @@
 #pragma once
 #include "../integers.h"
 #include "../memory/aligned_ptr.h"
+#include "../vector.h"
 
 
 #define PAGE_ALIGN_DOWN(x) (((x) / PAGE_SIZE)*PAGE_SIZE)
 //	each pdpt entry covers 1GB of RAM
-
-[[maybe_unused]] static void *virtual_base = null;
-[[maybe_unused]] static void *physical_base = null;
 
 #define PAGE_COUNT 512
 #define PAGE_SIZE 4096
@@ -26,33 +24,33 @@
 
 enum page_flags {
 	//	structure of page_entry
-	present = 1, //	page is present?
-	write = (1 << 1), //	writable or only readable?
-	user = (1 << 2), //	can user processes read it?
-	write_through = (1 << 3), //	write-through caching?
-	cache_disable = (1 << 4), //	disable caching?
-	accessed = (1 << 5), //	accessed?
-	ignored1 = (1 << 6), //	ignored bit
+	pf_present = 1, //	page is present?
+	pf_write = (1 << 1), //	writable or only readable?
+	pf_user = (1 << 2), //	can user processes read it?
+	pf_write_through = (1 << 3), //	write-through caching?
+	pf_cache_disable = (1 << 4), //	disable caching?
+	pf_accessed = (1 << 5), //	accessed?
+	pf_ignored1 = (1 << 6), //	ignored bit
 	//	in pml4, pdpt, pd if PS == 0
-	dirty = (1 << 6), //	has been written to?
+	pf_dirty = (1 << 6), //	has been written to?
 	//	only for PTs or larger (if PS == 1)
 	//	else ignored
-	PS = (1 << 7), //	page size
+	pf_PS = (1 << 7), //	page size
 	//			pml4, pt -> ignored
 	//			pdpt -> 1Gig
 	//			pt ->
-	global = (1 << 8), //	global? (used by more processes)
+	pf_global = (1 << 8), //	global? (used by more processes)
 	//	only in PT entries
-	available = (1 << 9 | 1 << 10 | 1 << 11), //	ignored by hardware
-	address = (0xffffffffff000),
-	available2 = (0x3fUL << 52),
-	reserved_ = (0b111UL << 59), //	used by hardware (must be set to 0)
+	pf_available = (1 << 9 | 1 << 10 | 1 << 11), //	ignored by hardware
+	pf_address = (0xffffffffff000),
+	pf_available2 = (0x3fUL << 52),
+	pf_reserved_ = (0b111UL << 59), //	used by hardware (must be set to 0)
 
 	//	bits 9,10,11 are ignored (can be used by OS)
 
-	no_exec = (1UL << 63), //	disable executing
+	pf_no_exec = (1UL << 63), //	disable executing
 
-	address_shift = 12
+	pf_address_shift = 12
 };
 
 
@@ -89,11 +87,11 @@ typedef struct page_table {
 }
 
 [[maybe_unused]] __attribute__((always_inline)) inline bool page_exec(page_entry entry) {
-	return (entry & no_exec) != 0;
+	return (entry & pf_no_exec) != 0;
 }
 
 [[maybe_unused]] __attribute__((always_inline)) inline bool page_present(page_entry entry) {
-	return (entry & present);
+	return (entry & pf_present);
 }
 
 typedef void *virtual_addr;
@@ -106,6 +104,11 @@ typedef void *virtual_addr;
 	//	level starts at 0 (0 = pt)
 	return ((size_t) addr >> (12 + (level * 9))) & 0x1ff;
 }
+
+#define VA_INDEX_PML4 3
+#define VA_INDEX_PDPT 2
+#define VA_INDEX_PD 1
+#define VA_INDEX_PT 0
 
 [[maybe_unused]] __attribute__((always_inline)) __attribute__((nonnull)) inline void va_set_index(virtual_addr *addr, u16 index, u8 level) {
 	size_t shift = 12 + (level * 9);
@@ -124,14 +127,39 @@ typedef void *virtual_addr;
 
 [[maybe_unused]] static page_entry *pml4 = null;
 
-[[maybe_unused]] static struct pd {
-	//	linear pdpt entries for ring0 data
-	aligned_ptr ptr;
-	size_t count;
-} pd;
+typedef struct pages_t {
+	aligned_ptr pages;
+	size_t used;
+	size_t allocated;
+} pages_t;
 
-[[maybe_unused]] static struct pt {
-	aligned_ptr ptr;
-	size_t count;
-} pt;
+typedef struct pages_base_t {
+
+	struct base {
+		void* virtual;
+		void* physical;
+	} base;
+
+	aligned_ptr pml4;
+	struct kernel {
+		aligned_ptr pdpt;
+
+		struct pd {
+			aligned_ptr ptr;
+			size_t size;
+		} pd;
+
+		struct pt {
+			aligned_ptr ptr;
+			size_t size;
+		} pt;
+
+		pages_t heap;
+		pages_t stack;
+		pages_t kernel;
+
+	} kernel;
+} pages_base_t;
+
+static pages_base_t pages;
 

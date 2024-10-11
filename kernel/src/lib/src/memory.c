@@ -35,7 +35,7 @@ void memory_init() {
 	memmap_parse();
 
 	//	initialize paging
-	//page_init();
+	page_init();
 
 	//	initialize task state segment (needed for GDT initialization)
 	tss_init();

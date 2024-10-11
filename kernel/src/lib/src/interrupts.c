@@ -5,6 +5,11 @@
 
 #pragma once
 
+void some_random_error() {
+	report("some random error", report_error);
+	hang();
+}
+
 void interrupts_init() {
 	//	set all idt entries to null
 	for (size_t i = 0; i < IDT_SIZE; i++) {
@@ -30,6 +35,7 @@ void interrupts_init() {
 	idt_set_address(&idt[6], (void *) &isr_ex_invalid_opcode);
 	idt_set_address(&idt[7], (void *) &isr_ex_device_not_available);
 	idt_set_address(&idt[8], (void *) &isr_ex_double_fault);
+	idt_set_address(&idt[9], (void*)&some_random_error);
 	//	9 is unused
 	idt_set_address(&idt[10], (void *) &isr_ex_invalid_tss);
 	idt_set_address(&idt[11], (void *) &isr_ex_segment_not_present);
