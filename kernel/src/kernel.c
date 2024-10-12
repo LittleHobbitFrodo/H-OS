@@ -6,7 +6,6 @@
 #include "./include.h"
 
 void kernel() {
-	//	kernel() -> starts the OS
 
 	output.color = col.green;
 	print("starting ");
