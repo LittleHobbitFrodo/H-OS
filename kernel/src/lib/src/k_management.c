@@ -94,6 +94,10 @@ void panic(enum panic_codes code) {
 			printl("failed to initialize ACPI");
 			break;
 		}
+		case panic_code_acpi_validation_failed: {
+			printl("ACPI data structure validation failed");
+			break;
+		}
 		default: {
 			printl("unknown critical error");
 			break;

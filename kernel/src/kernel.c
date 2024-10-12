@@ -19,6 +19,8 @@ void kernel() {
 	printl(KERNEL_NAME);
 	output.color = col.white;
 
+	print("acpi version:\t"); printu(acpi.version); endl();
+
 	string input;
 	vector cmd;
 

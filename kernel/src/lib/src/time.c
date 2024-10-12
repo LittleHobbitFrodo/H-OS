@@ -56,6 +56,7 @@ void time_update() {
 	timespec.time.seconds += tick / 1000;
 	timespec.time.milliseconds = tick %= 1000;	//	reset tick
 	timespec.time.minutes += timespec.time.seconds / 60;
+	timespec.time.seconds %= 60;
 	timespec.time.hours += timespec.time.minutes / 60;
 	timespec.date.days += timespec.time.hours / 24;
 

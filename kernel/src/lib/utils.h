@@ -32,6 +32,10 @@ __attribute__((always_inline)) inline bool strcmpb(const char *s1, const char *s
 	return r;
 }
 
+__attribute__((nonnull(1, 2))) i8 strncmp(const char* s1, const char* s2, size_t n);
+
+__attribute__((nonnull(1, 2))) bool strncmpb(const char* s1, const char* s2, size_t n);
+
 __attribute__((always_inline)) inline void memcpy(void *src, void *dest, size_t size) {
 	for (size_t i = 0; i < size; i++) {
 		((u8 *) dest)[i] = ((u8 *) src)[i];

@@ -39,7 +39,7 @@ typedef struct acpi_fadt_t {
 
 	//	used in ACPI v1.0, abandoned (used for compatibility)
 	u8 reserved;
-	u8 preferred_power_management_profile;
+	u8 power_management_profile;
 	u16 sci_interrupt;
 	u8 acpi_enable;
 	u8 acpi_disable;
@@ -96,6 +96,18 @@ typedef struct acpi_fadt_t {
 
 } __attribute__((packed)) acpi_fadt_t;
 
+enum power_management_profiles {
+	unspecified = 0,
+	desktop = 1,
+	mobile = 2,
+	workstation = 3,
+	server_enterprise = 4,
+	server_soho = 5,
+	aplliance_pc = 6,
+	server_performance = 7,
+	//	7+ are reserved
+} power_management_profiles;
+
 
 enum acpi_addresses_address_space {
 	//	for acpi_addresses_t
@@ -109,3 +121,38 @@ enum acpi_addresses_address_space {
 	//...
 	aaas_OEM_defined = 0x80	//	and higher values
 } acpi_addresses_address_space;
+
+enum acpi_tables {
+	acpi_table_bgrt,
+
+	acpi_table_madt,
+	acpi_table_bert,
+	acpi_table_crep,
+	acpi_table_dsdt,
+	acpi_table_ecdt,
+	acpi_table_einj,
+	acpi_table_erst,
+	acpi_table_fadt,
+	acpi_table_facs,
+	acpi_table_hest,
+	acpi_table_msct,
+	acpi_table_mpst,
+	acpi_table_oem,
+	acpi_table_pmtt,
+	acpi_table_psdt,
+	acpi_table_rasf,
+	acpi_table_sbst,
+	acpi_table_slit,
+	acpi_table_srat,
+	acpi_table_ssdt,
+	acpi_table_xsdt,
+	acpi_table_unsupported,
+	acpi_table_unknown
+} acpi_tables;
+
+static enum acpi_tables acpi_resolve_table(const char* signature);
+
+typedef struct acpi_table_t {
+	acpi_sdt_header* ptr;
+	enum acpi_tables type;
+} acpi_table_t;

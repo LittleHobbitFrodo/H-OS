@@ -36,3 +36,21 @@ void memnull(void* ptr, size_t size) {
 		((u8*)ptr)[i] = 0;
 	}
 }
+
+i8 strncmp(const char *s1, const char *s2, size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		if (s1[i] != s2[i]) {
+			return (i8)(((s1[i] > s2[i]) * 2) - 1);
+		}
+	}
+	return 0;
+}
+
+bool strncmpb(const char* s1, const char* s2, size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		if (s1[i] != s2[i]) {
+			return false;
+		}
+	}
+	return true;
+}
