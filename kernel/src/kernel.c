@@ -5,8 +5,6 @@
 
 #include "./include.h"
 
-//	TODO:	write simple runtime services library
-
 char* logo[5] = {".__",
 	"|  |___",
 	"|  |   |",
@@ -20,11 +18,6 @@ void kernel() {
 	print("starting ");
 	printl(KERNEL_NAME);
 	output.color = col.white;
-
-	print("dsdt.len:\t"); printu(acpi.dsdt->length - sizeof(acpi_sdt_header)); endl();
-	print("dsdt contents:\t");
-
-
 
 	string input;
 	vector cmd;

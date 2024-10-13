@@ -64,22 +64,10 @@ void acpi_init() {
 		acpi.version = acpi.fadt->header.revision;
 	}
 
-	print("rsdp oemid:\t\'"); printn((const char*)&acpi.rsdp->oemid, 6); printl("\'");
-	print("fadt oemid:\t\'"); printn((const char*)&acpi.fadt->header.oemid, 6); printl("\'");
-	print("fadt oem revision:\t"); printu(acpi.fadt->header.oem_revision); endl();
-	print("fadt oem table ID:\t"); printu(acpi.fadt->header.oem_table_id); print(" : "); printp((void*)acpi.fadt->header.oem_table_id); endl();
-
 	if (vocality >= vocality_report_everything) {
 		report("Power management initialization completed\n", report_note);
 	}
 }
-
-/*bool acpi_compare(const acpi_sdt_header* h, const char* str) {
-	if (strlen(str) != 4) {
-		return false;
-	}
-	return (h->signature[0] == str[0]) && (h->signature[1] == str[1]) && (h->signature[2] == str[2]) && (h->signature[3] == str[3]);
-}*/
 
 void acpi_query() {
 	//	find other tables

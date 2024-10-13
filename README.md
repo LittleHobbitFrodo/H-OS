@@ -98,7 +98,7 @@ You can upload it to a flash drive, **the upload will completely erase the drive
  - Hardware Enumeration: gather information about connected hardware
  - Paging: I should really make it work
 
-## Main tasks
+## Tasks
   - [x] **Hello world!** - Create bootable disk that displays simple ```hello world``` message.
   - [x] **Set up environment** - Add basic functionalities like printing numbers.
   - [x] **CPUID** - Gather some information about processor.
@@ -115,10 +115,16 @@ You can upload it to a flash drive, **the upload will completely erase the drive
     - [x] Get exception handling to work.
     - [x] Initialize other interrupts.
     - [x] Time and timer interrupt
-  - [ ] **Initialize hardware**
-    - [x] Get keyboard input.
-    - [ ] Be able to read from disk.
-  - [ ] **Get into userspace**
-    - [ ] Initialize system calls.
-    - [ ] Make elf file parser.
-    - [ ] Run "Hello world" program.
+  - [ ] **UEFI runtime services**
+    - [ ] Create simple library for UEFI runtime services
+  - [ ] **Power Management**
+    - [x] ACPI basic initialization
+    - [x] Shutdown (QEMU only)
+  - [ ] **Hardware Discovery**
+    - [ ] Implement libACPI
+    - [ ] Use libACPI to discover devices
+  - [ ] **Disk**
+    - [ ] Write driver for reading from disk
+    - [ ] Create a driver for desired filesystem
+
+...
