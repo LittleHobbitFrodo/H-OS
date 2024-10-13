@@ -47,6 +47,7 @@ typedef struct acpi_t {
 	acpi_fadt_t* fadt;
 	acpi_sdt_header* dsdt;
 	acpi_sdt_header* facs;
+	acpi_bgrt_t* bgrt;
 
 	//	vector of all tables (acpi_table_t)
 	vector tables;
@@ -61,4 +62,5 @@ static acpi_t acpi;
 static void acpi_init();
 static void acpi_query();
 static void acpi_check();
+static void acpi_hypervisor_detect();
 

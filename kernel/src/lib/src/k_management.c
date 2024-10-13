@@ -168,9 +168,15 @@ void report(const char *msg, enum report_seriousness seriousness) {
 }
 
 void shutdown() {
+	output.color = col.green;
 	printl("THE SYSTEM IS SHUTTING DOWN ... ");
 
-	hang();	//	for now
+	for (size_t i = 0; i < 1000; i++) {
+		asm volatile("hlt");
+	}
+
+	outw(0x604, 0x2000);	//	shutdown?
+	__builtin_unreachable();
 }
 
 

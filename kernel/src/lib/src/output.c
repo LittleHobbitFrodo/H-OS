@@ -131,3 +131,9 @@ void printb(size_t bin) {
 		printc('0' + ((bin >> i) & 1));
 	}
 }
+
+void printn(const char* str, size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		printc(str[i]);
+	}
+}

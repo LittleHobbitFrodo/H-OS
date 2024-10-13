@@ -79,6 +79,10 @@ static inline void outb(u16 port, u8 data) {
 	asm volatile("outb %1, %0" :: "a"(data), "Nd"(port));
 }
 
+static inline void outw(u16 port, u16 data) {
+	asm volatile("outw %1, %0":: "a"(data), "Nd"(port));
+}
+
 static inline void iowait() {
 	outb(0x80, 0);
 }

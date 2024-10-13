@@ -57,22 +57,29 @@ void acpi_init() {
 	acpi_query();
 	//	fills acpi structure
 
+	acpi_hypervisor_detect();
+
 	if (acpi.version != 1) {
 		//	gather more info about acpi version
 		acpi.version = acpi.fadt->header.revision;
 	}
+
+	print("rsdp oemid:\t\'"); printn((const char*)&acpi.rsdp->oemid, 6); printl("\'");
+	print("fadt oemid:\t\'"); printn((const char*)&acpi.fadt->header.oemid, 6); printl("\'");
+	print("fadt oem revision:\t"); printu(acpi.fadt->header.oem_revision); endl();
+	print("fadt oem table ID:\t"); printu(acpi.fadt->header.oem_table_id); print(" : "); printp((void*)acpi.fadt->header.oem_table_id); endl();
 
 	if (vocality >= vocality_report_everything) {
 		report("Power management initialization completed\n", report_note);
 	}
 }
 
-bool acpi_compare(const acpi_sdt_header* h, const char* str) {
+/*bool acpi_compare(const acpi_sdt_header* h, const char* str) {
 	if (strlen(str) != 4) {
 		return false;
 	}
 	return (h->signature[0] == str[0]) && (h->signature[1] == str[1]) && (h->signature[2] == str[2]) && (h->signature[3] == str[3]);
-}
+}*/
 
 void acpi_query() {
 	//	find other tables
@@ -114,23 +121,43 @@ void acpi_query() {
 			acpi_table_t* table = vec_push(&acpi.tables, 1);
 			table->ptr = entries[i];
 			table->type = tp;
-
-			switch (tp) {
-				case acpi_table_fadt: {
-					acpi.fadt = (acpi_fadt_t*)entries[i];
-					break;
-				}
-				case acpi_table_dsdt: {
-					acpi.dsdt = entries[i];
-					break;
-				}
-				case acpi_table_facs: {
-					acpi.facs = entries[i];
-				}
-				default: break;
-			}
 		}
 	}
+
+	if (acpi.tables.data == null) {
+		return;
+	}
+
+	acpi_table_t* table = null;
+	for (size_t i = 0; i < acpi.tables.len; i++) {
+		table = ((acpi_table_t*)vec_at(&acpi.tables, i));
+		switch (table->type) {
+			case acpi_table_fadt: {
+				acpi.fadt = (acpi_fadt_t*)table->ptr;
+				if (acpi.version == 1) {
+					acpi.facs = (acpi_sdt_header*)((size_t)acpi.fadt->firmware_ctrl_ptr);
+					acpi.dsdt = (acpi_sdt_header*)((size_t)acpi.fadt->dsdt_ptr);
+				} else {
+					acpi.facs = (acpi_sdt_header*)acpi.fadt->x_firmware_ctrl_ptr;
+					acpi.dsdt = (acpi_sdt_header*)acpi.fadt->x_dsdt_ptr;
+				}
+				break;
+			}
+			case acpi_table_dsdt: {
+				acpi.dsdt = table->ptr;
+				break;
+			}
+			case acpi_table_facs: {
+				acpi.facs = table->ptr;
+				break;
+			}
+			case acpi_table_bgrt: {
+				acpi.bgrt = (acpi_bgrt_t*)table->ptr;
+			}
+			default: break;
+		}
+	}
+
 }
 
 void acpi_check() {
@@ -153,7 +180,6 @@ void acpi_check() {
 	for (size_t i = 0; i < size; i++) {
 		sum += ((u8*)acpi.rsdt)[i];
 	}
-	print("rsdt sum:\t"); printu(sum); endl();
 	if (sum != 0) {
 		__acpi_report("RSDT table validation error\n", report_critical);
 		panic(panic_code_acpi_validation_failed);
@@ -172,4 +198,23 @@ enum acpi_tables acpi_resolve_table(const char* signature) {
 	} else {
 		return acpi_table_unknown;
 	}
+}
+
+void acpi_hypervisor_detect() {
+	//	detects hypervisor and stores it in cpu structure (cpu.h)
+
+	if (strncmpb((const char*)&acpi.fadt->header.oemid, "QEMU", 4)) {
+		cpu.hypervisor = hypervisor_qemu;
+		if (vocality >= vocality_vocal) {
+			report("Late hypervisor detection: QEMU\n", report_note);
+		}
+	} else if (strncmpb((const char*)&acpi.fadt->header.oemid, "BOCHS", 5)) {
+		cpu.hypervisor = hypervisor_bochs;
+		if (vocality >= vocality_vocal) {
+			report("Late hypervisor detection: BOCHS\n", report_note);
+		}
+	} else {
+		cpu.hypervisor = hypervisor_none;
+	}
+
 }

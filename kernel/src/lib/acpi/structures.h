@@ -34,8 +34,8 @@ typedef struct acpi_fadt_t {
 	//	fixed acpi descriptor table
 
 	acpi_sdt_header header;
-	u32 firmware_ctrl;
-	u32 dst;
+	u32 firmware_ctrl_ptr;
+	u32 dsdt_ptr;
 
 	//	used in ACPI v1.0, abandoned (used for compatibility)
 	u8 reserved;
@@ -82,8 +82,8 @@ typedef struct acpi_fadt_t {
 	u8 reserved3[3];
 
 	//	64bit pointers (ACPI 2.0+ only)
-	u64 firmware_control_ptr;
-	u64 dst_ptr;
+	u64 x_firmware_ctrl_ptr;
+	u64 x_dsdt_ptr;
 
 	acpi_addresses_t PM1_a_event_block_X;
 	acpi_addresses_t PM1_b_event_block_X;
@@ -156,3 +156,24 @@ typedef struct acpi_table_t {
 	acpi_sdt_header* ptr;
 	enum acpi_tables type;
 } acpi_table_t;
+
+typedef struct acpi_bgrt_t {
+	acpi_sdt_header header;
+	u16 version;		//	must be 1
+	u8 status;
+	u8 image_type;
+	u64 image_base;
+	struct image_offset {
+		u32 x;
+		u32 y;
+	} image_offset;
+} __attribute__((packed))acpi_bgrt_t;
+
+enum acpi_bgrt_status {
+	bgrt_status_bits_displayed = 0b1,
+	bgrt_status_bits_orientation = 0b110,	//	orientation is multiplied by 90 (0 = no offset, 1 = 90 degrees, ...)
+	bgrt_status_bits_reserved = 0b11111,
+} acpi_bgrt_status;
+
+
+

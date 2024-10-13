@@ -31,6 +31,9 @@ void cpu_info() {
 }
 
 void cpu_init() {
+
+	memnull(&cpu, sizeof(cpu_t));
+
 	cpu.vendor = null;
 
 	//	detect vendor

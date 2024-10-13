@@ -99,6 +99,8 @@ void printp(void *p);
 
 void printb(size_t bin);
 
+void printn(const char* str, size_t n);
+
 
 __attribute__((target("general-regs-only"))) static inline void printc(const char c) {
 	if (((c >= ' ') && (c <= '~')) || ((c == '\t') || (c == '\n'))) {

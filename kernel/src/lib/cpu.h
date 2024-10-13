@@ -12,16 +12,26 @@ enum environments {
 	environment_vm = 2
 } environments;
 
+enum hypervisors {
+	hypervisor_none = 0,
+	hypervisor_qemu = 1,
+	hypervisor_bochs = 2,
+	hypervisor_unsupported = 3,
+} hypervisors;
+
 typedef struct cpu_vendor_t {
 	char *name;
 	char *id;
 	enum environments environment;
 } cpu_vendor_t;
 
-static struct cpu {
+typedef struct cpu_t {
 	cpu_vendor_t *vendor;
 	char model[49]; //	48 + nullbyte
-} cpu;
+	enum hypervisors hypervisor;
+} cpu_t;
+
+static cpu_t cpu;
 
 static void cpu_init();
 
