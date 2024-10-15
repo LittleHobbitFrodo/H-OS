@@ -17,6 +17,14 @@ echo "creating image for H-OS"
 
 ./scripts/kernel/rmimage
 
+set DEBUG 0
+
+for i in $argv
+  if test $i = "debug"
+    set DEBUG 1
+  end
+end
+
 if test ! -e "./bin/kernel/H-OS.bin"
 	echo "kernel binary not found"
 	echo "do you wish to compile it? [Y/n]"
@@ -39,7 +47,7 @@ echo;echo;echo
 echo "starting creating image..."
 echo
 
-set PATH_LIMINE "./stuff/limine"		#	for better usability -> if wanted to choose different or the actual version, just change the path
+set PATH_LIMINE "$(pwd)/stuff/limine"		#	for better usability -> if wanted to choose different or the actual version, just change the path
 
 set MEMP -i H-OS.hdd@@1M			#	memory management command arguments (repeats a lot)
 
@@ -71,16 +79,26 @@ mcopy $MEMP bin/kernel/H-OS.bin ::/boot			#	don`t have the kernel yet lol
 	#	copy kernel binary into /boot
 echo
 
-mcopy $MEMP $PATH_LIMINE/limine.cfg $PATH_LIMINE/limine-bios.sys ::/boot/limine
-	#	copy limine config and limine-bios.sys (idk what is does)
-echo
+# delete symlink
+rm $PATH_LIMINE/limine.conf
+
+echo limine path $PATH_LIMINE
+
+# create symlink
+if test $DEBUG = "0"
+  ln -s $PATH_LIMINE/configs/limine.conf $PATH_LIMINE/limine.conf
+else
+  ln -s $PATH_LIMINE/configs/limine-debug.conf $PATH_LIMINE/limine.conf
+end
+
+mcopy $MEMP $PATH_LIMINE/limine.conf $PATH_LIMINE/background.png $PATH_LIMINE/limine-bios.sys ::/boot/limine
 
 mcopy $MEMP $PATH_LIMINE/BOOTX64.EFI ::/EFI/BOOT
 	#	copy limine 64bit binary (the actual program)
 echo
 
 mcopy $MEMP $PATH_LIMINE/BOOTIA32.EFI ::/EFI/BOOT
-	#	copy limine 32bit binary⏎
+	#	copy limine 32bit binary
 
 echo;echo;echo
 echo "completed, if no error reported, your OS should be working just fine..."

@@ -18,7 +18,7 @@ const void* init() {
 	//	initialize output structure
 	output_init();
 
-	#ifdef DEBUG
+	#ifdef KERNEL_DEBUG
 		report("starting in DEBUG mode\n", report_debug);
 	#endif
 
@@ -175,7 +175,11 @@ void shutdown() {
 		asm volatile("hlt");
 	}
 
-	outw(0x604, 0x2000);	//	shutdown?
+	if (uefi.supported) {
+		uefi_reset(uefi__shutdown);
+	} else {
+		outw(0x604, 0x2000);	//	shutdown?
+	}
 	__builtin_unreachable();
 }
 
@@ -186,7 +190,10 @@ void __parse_cmd_out_of_bounds(const string *token) {
 	printl("\', got nothing");
 }
 
-inline void __parse_cmd_report(const char* msg, enum report_seriousness seriousness) {
+#ifndef KERNEL_DEBUG
+__attribute__((always_inline)) inline
+#endif
+void __parse_cmd_report(const char* msg, enum report_seriousness seriousness) {
 	report("command line argument error:\t", seriousness);
 	print(msg);
 }

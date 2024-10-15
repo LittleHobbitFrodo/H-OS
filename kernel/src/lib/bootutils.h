@@ -74,12 +74,12 @@ static volatile struct limine_rsdp_request req_rsdp = {
 	.revision = 0
 };
 
-/*static volatile struct limine_smbios_request req_smbios = {
+static volatile struct limine_smbios_request req_smbios = {
 	.id = LIMINE_SMBIOS_REQUEST,
 	.revision = 0
 };
 
 static volatile struct limine_efi_system_table_request req_efi_system_table = {
 	.id = LIMINE_EFI_SYSTEM_TABLE_REQUEST,
-	.revision = 0
-};*/
+	.revision = 0,
+};

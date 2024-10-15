@@ -50,6 +50,8 @@
 #include "./lib/memory/heap.h"
 #include "./lib/memory/paging.h"
 
+#include "./lib/uefi.h"
+
 #include "./lib/memory/aligned_ptr.h"
 #include "./lib/vector.h"
 #include "./lib/segmentation.h"
@@ -98,3 +100,4 @@
 #include "./lib/src/hw/keyboard.c"
 #include "./lib/src/hw/kb-keys.c"
 #include "./lib/src/acpi/acpi.c"
+#include "./lib/src/uefi.c"

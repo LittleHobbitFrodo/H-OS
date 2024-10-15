@@ -16,7 +16,10 @@ void hardware_init() {
 
 	keyboard_init();
 
-	acpi_init();
+	uefi_init();
+		//	uefi runtime services
+
+	//acpi_init();
 
 	if (vocality >= vocality_report_everything) {
 		report("hardware initialization success\n", report_note);

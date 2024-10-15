@@ -15,3 +15,4 @@ os-version
 .gitignore
 qemu.log
 docs
+gnu-efi/

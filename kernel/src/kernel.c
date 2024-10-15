@@ -44,7 +44,18 @@ void kernel() {
 		string* str = vec_at(&cmd, 0);
 
 		output.color = col.blue;
-		if (str_cmpb(str, "time")) {
+		if (str_cmpb(str, "help")) {
+			printl("commands:");
+			output.color = col.white; print("time"); output.color = col.blue; printl(":\t\tdisplay current time");
+			output.color = col.white;print("echo"); output.color = col.blue; printl(":\t\tprints text");
+			printl("\t-no-linebreak switch will disable line braking between tokens\n");
+			output.color = col.white; print("exit"); output.color = col.blue; printl(":\t\tcloses shell and turn the computer off");
+			output.color = col.white; print("clear"); output.color = col.blue; printl(":\t\tclears screen");
+			output.color = col.white; print("memmap"); output.color = col.blue; printl(":\t\tdisplays memory map");
+			printl("\t\'original\' subcommand prints memory map given by bootloader (if available)\n");
+			output.color = col.white; print("microfetch"); output.color = col.blue; printl(":\t\tdisplays device info with style");
+			output.color = col.white; print("shutdown"); output.color = col.blue; printl(":\t\tturns the computer down");
+		} else if (str_cmpb(str, "time")) {
 			time_update();
 			char* out = format_time((timespec_t*)&timespec, time_format_str);
 			print("time:\t"); printl(out);
@@ -127,8 +138,9 @@ void kernel() {
 			}
 			endl();
 
-
 			output.color = col.blue; printl(logo[4]);
+		} else if (str_cmpb(str, "shutdown")) {
+			shutdown();
 		} else {
 			output.color = col.white;
 			report("unrecognized command \'", report_error);

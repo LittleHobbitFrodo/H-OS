@@ -59,7 +59,7 @@ static acpi_t acpi;
 
 
 //	if those functions fail the system initialization will be halted
-static void acpi_init();
+[[maybe_unused]] static void acpi_init();
 static void acpi_query();
 static void acpi_check();
 static void acpi_hypervisor_detect();

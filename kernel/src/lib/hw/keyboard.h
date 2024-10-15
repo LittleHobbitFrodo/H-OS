@@ -118,13 +118,17 @@ __attribute__((always_inline)) static inline bool keyboard_writeready() {
 
 __attribute__((always_inline)) static inline u8 keyboard_receive_byte() {
 	//	receives byte from keyboard
-	while (!keyboard_readready());
+	while (!keyboard_readready()) {
+		iowait();	//	wait few nanoseconds
+	}
 	return inb(KEYBOARD_PORT_DATA);
 }
 
 __attribute__((always_inline)) static inline void keyboard_send_byte(u8 data) {
 	//	sends byte to keyboard
-	while (!keyboard_writeready());
+	while (!keyboard_writeready()) {
+		iowait();	//	wait few nanoseconds
+	}
 	outb(KEYBOARD_PORT_DATA, data);
 }
 
