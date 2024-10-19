@@ -7,9 +7,9 @@
 
 #include "../../memory/heap.h"
 
-void* heap_virtual_base = null;
-
 bool heap_reserve_memory(bool include_reclaimable_entries) {
+
+	memnull(&heap, sizeof(heap_t));
 
 	struct limine_memmap_entry* mstart = null;
 	size_t mlen = 0;
@@ -40,8 +40,8 @@ bool heap_reserve_memory(bool include_reclaimable_entries) {
 			}
 			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
 				//	mlen != 0 => mstart != null
-				heap_start = (heap_segment*)mstart->base;
-				heap_end_physical = (void*)((mstart->base + mlen));
+				heap.start = (heap_segment_t*)mstart->base;
+				heap.end_physical = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
 				return true;
 			}
 		}
@@ -68,8 +68,8 @@ bool heap_reserve_memory(bool include_reclaimable_entries) {
 			}
 			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
 				//	mlen != 0 => mstart != null
-				heap_start = (heap_segment*)mstart->base;
-				heap_end_physical = (void*)((mstart->base + mlen));
+				heap.start = (heap_segment_t*)mstart->base;
+				heap.end_physical = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
 				return true;
 			}
 		}
@@ -79,7 +79,7 @@ bool heap_reserve_memory(bool include_reclaimable_entries) {
 
 void heap_debug() {
 	u32 c = output.color;
-	heap_segment* i = heap_start;
+	heap_segment_t* i = heap.start;
 	output.color = col.cyan;
 	printl("heap scheme: ");
 	size_t ii = 0;
@@ -101,10 +101,11 @@ void heap_debug() {
 }
 void heap_init() {
 	//	heap_reserve_memory() must be called before this function
-	heap_start->next = null;
-	heap_start->used = false;
-	heap_start->size = HEAP_INITIAL_BLOCK_SIZE;
-	heap_end = (heap_used_until = heap_start);
+	heap.start->next = null;
+	heap.start->used = false;
+	heap.start->size = HEAP_INITIAL_BLOCK_SIZE;
+	heap.base_virtual = heap.start;
+	heap.end = (heap.used_until = heap.start);
 }
 
 #include "./heap/physical.c"

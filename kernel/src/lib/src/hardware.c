@@ -9,6 +9,8 @@ void hardware_init() {
 
 	kernel_status = k_state_init_hardware;
 
+	smbios_init();
+
 	//	initialize cpu (cpuid)
 	cpu_init();
 

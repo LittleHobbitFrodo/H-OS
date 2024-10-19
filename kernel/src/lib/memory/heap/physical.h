@@ -16,14 +16,14 @@
 		//	reserve more/less space if reallocation is needed
 
 	__attribute__((always_inline, nonnull)) inline size_t heap_bsize(void* ptr) {
-		return ((heap_segment*)((size_t)ptr - sizeof(heap_segment)))->size;
+		return ((heap_segment_t*)((size_t)ptr - sizeof(heap_segment_t)))->size;
 	}
 
 	[[nodiscard]] void* pheap_expand(size_t bytes) __attribute__((returns_nonnull));
 
-	void heap_connect(heap_segment* beg, heap_segment* end) __attribute__((nonnull(1, 2)));
+	void heap_connect(heap_segment_t* beg, heap_segment_t* end) __attribute__((nonnull(1, 2)));
 
-	heap_segment* heap_divide(heap_segment* seg, size_t size);
+	heap_segment_t* heap_divide(heap_segment_t* seg, size_t size);
 
 	[[nodiscard]] void* pheap_enlarge(size_t bytes) __attribute__((returns_nonnull));
 

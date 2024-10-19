@@ -33,6 +33,7 @@ void kernel() {
 			continue;
 		}
 
+
 		str_pushc(&input, '\0');
 		str_tokenize(input.data, &cmd);
 		str_clear(&input);

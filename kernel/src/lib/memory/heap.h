@@ -15,27 +15,44 @@
 	#define HEAP_MINIMAL_ENTRY_SIZE 512
 		//	minimum memmap entry size (in kb)
 
-	typedef struct heap_segment{
-		struct heap_segment* next;
+	typedef struct heap_segment_t{
+		struct heap_segment_t* next;
 		size_t size;
 		bool used;
-	} heap_segment;
+	} heap_segment_t;
 
 	bool heap_reserve_memory(bool include_reclaimable_entries);
 
+	typedef struct heap_t {
+
+		heap_segment_t* used_until;
+
+		heap_segment_t* start;
+		void* end_physical;
+		heap_segment_t* end;
+
+		void* base_virtual;
+
+		[[maybe_unused]] bool uses_virtual;
+
+	} heap_t;
+
+	static heap_t heap;
+
 	void heap_init();
 
-	static heap_segment* heap_start = null;
-	static void* heap_end_physical = null;
+	//heap_segment_t* heap_start = null;
+	//static void* heap_end_physical = null;
 
-	static heap_segment* heap_used_until = null;
-	static heap_segment* heap_end = null;
+	//static heap_segment_t* heap_used_until = null;
+	//static heap_segment_t* heap_end = null;
 
+	//void* heap_virtual_base = null;
 	void heap_debug();
 
 
 	__attribute__((always_inline, nonnull)) inline void free(void* ptr) {
-		((heap_segment*)((size_t)ptr - sizeof(heap_segment)))->used = false;
+		((heap_segment_t*)((size_t)ptr - sizeof(heap_segment_t)))->used = false;
 	}
 
 	__attribute__((always_inline, nonnull(1))) inline void align_free(void* ptr, size_t offset) {
@@ -47,7 +64,6 @@
 
 	#include "./heap/physical.h"
 	#include "./heap/virtual.h"
-
 
 #endif
 //	#warning memory/heap.h already included

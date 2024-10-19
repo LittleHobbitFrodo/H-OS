@@ -5,6 +5,7 @@
 
 #pragma once
 #include "./integers.h"
+#include "./memory/aligned_ptr.h"
 
 static size_t vector_realloc_add = 4;
 
@@ -45,12 +46,12 @@ inline void vecs(vector *this, size_t bsize) {
 }
 
 __attribute__((always_inline, nonnull(1)))
-inline void *vecsa(vector *this, size_t len, size_t bsize) {
+static inline void *vecsa(vector *this, size_t len, size_t bsize) {
 	//	initializes vector and allocates memory for it
 	this->len = len;
 	this->bsize = bsize;
 	if (this->len > 0) {
-		this->data = palloc(this->len * this->bsize);
+		this->data = alloc(this->len * this->bsize);
 	} else {
 		this->data = null;
 	}
@@ -58,12 +59,12 @@ inline void *vecsa(vector *this, size_t len, size_t bsize) {
 }
 
 __attribute__((nonnull(1, 4)))
-inline void vecsac(vector *this, size_t len, size_t bsize, void (*construct)(void *)) {
+static inline void vecsac(vector *this, size_t len, size_t bsize, void (*construct)(void *)) {
 	//	initializes vector, allocates memory and constructs each element
 	this->len = len;
 	this->bsize = bsize;
 	if (this->len > 0) {
-		this->data = palloc(this->len * this->bsize);
+		this->data = alloc(this->len * this->bsize);
 		for (size_t i = 0; i < this->len; i++) {
 			construct((void *) ((size_t) this->data + (i * this->bsize)));
 		}
@@ -148,7 +149,7 @@ __attribute__((always_inline, nonnull(1))) inline void avec(aligned_vector *this
 	this->bsize = 0;
 }
 
-__attribute__((always_inline, nonnull(1))) inline void avecsa(aligned_vector *this, size_t len, size_t bsize, size_t align) {
+__attribute__((always_inline, nonnull(1))) static inline void avecsa(aligned_vector *this, size_t len, size_t bsize, size_t align) {
 	//	initializes vector with allocation
 	this->len = len;
 	this->bsize = bsize;

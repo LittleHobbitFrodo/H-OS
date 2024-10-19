@@ -9,6 +9,14 @@
 void memory_init() {
 
 	kernel_status = k_state_init_memory;
+	if (req_k_address.response == null) {
+		report("unable to get virtual/physical base address\n", report_critical);
+		panic(panic_code_base_addresses_not_available);
+		__builtin_unreachable();
+	}
+
+	base.virtual = (void*)req_k_address.response->virtual_base;
+	base.physical = (void*)req_k_address.response->physical_base;
 
 	//	prepare stack structure
 	memset(&stack, sizeof(stack_holder), 0);
@@ -37,7 +45,7 @@ void memory_init() {
 	memmap_parse();
 
 	//	initialize paging
-	//page_init();
+	page_init();
 
 	//	initialize task state segment (needed for GDT initialization)
 	tss_init();
@@ -50,7 +58,7 @@ void memory_init() {
 	}
 }
 
-void va_info(void *addr) {
+/*void va_info(void *addr) {
 	printp(addr);
 	printl(":");
 	print("pml4\t[");
@@ -68,7 +76,7 @@ void va_info(void *addr) {
 	print("offset:\t");
 	printu(va_offset(addr));
 	endl();
-}
+}*/
 
 void memmap_parse() {
 	//	parse limine memory map and simplify it
@@ -117,7 +125,7 @@ void memmap_parse() {
 	for (; i < msize; i++) {
 		ent = ents[i];
 
-		if (ent->base == (size_t) heap_start) {
+		if (ent->base == (size_t)heap.start) {
 			//	initialize heap entry
 			memmap_entry *h = (memmap_entry *) vec_push(&memmap, 1);
 			h->base = ent->base;

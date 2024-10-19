@@ -10,6 +10,12 @@
 #define MB (1024 * 1024)
 #define GB (1024 * 1024 * 1024)
 
+static struct base {
+	void* virtual;
+	void* physical;
+	void* hhdm;
+} base;
+
 
 static u8 KERNEL_STACK[32*KB];
 

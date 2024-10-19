@@ -11,15 +11,15 @@ void vec_resize(vector *this, size_t len) {
 	//	destruction of each popped element must be done manually
 	if (this->data == null) {
 		this->len = len;
-		this->data = palloc(this->len * this->bsize);
+		this->data = alloc(this->len * this->bsize);
 		return;
 	} else if (this->len == len) {
 		return;
 	}
 	if (this->len < len) {
-		this->data = prealloc(this->data, len * this->bsize);
+		this->data = realloc(this->data, len * this->bsize);
 	} else {
-		this->data = prealloc(this->data, len * this->bsize);
+		this->data = realloc(this->data, len * this->bsize);
 	}
 	this->len = len;
 }
@@ -27,7 +27,7 @@ void vec_resize(vector *this, size_t len) {
 void vec_resizecd(vector *this, size_t len, void (*construct)(void *), void (*destruct)(void *)) {
 	if (this->data == null) {
 		this->len = len;
-		this->data = palloc(this->len * this->bsize);
+		this->data = alloc(this->len * this->bsize);
 	} else if (this->len == len) {
 		return;
 	}
@@ -40,7 +40,7 @@ void vec_resizecd(vector *this, size_t len, void (*construct)(void *), void (*de
 		}
 		this->data = realloc(this->data, len * this->bsize);
 	} else {
-		this->data = prealloc(this->data, len * this->bsize);
+		this->data = realloc(this->data, len * this->bsize);
 		if (construct != null) {
 			//	construct elements
 			for (size_t i = this->len; i < len; i++) {
@@ -54,7 +54,7 @@ void vec_resizecd(vector *this, size_t len, void (*construct)(void *), void (*de
 void *vec_push(vector *this, size_t count) {
 	if (this->data == null) {
 		this->len = count;
-		this->data = palloc(this->len * this->bsize);
+		this->data = alloc(this->len * this->bsize);
 		return this->data;
 	}
 	size_t olen = this->len;
@@ -66,7 +66,7 @@ void *vec_push(vector *this, size_t count) {
 void *vec_pushc(vector *this, size_t count, void (*construct)(void *)) {
 	if (this->data == null) {
 		this->len = count;
-		this->data = palloc(this->len * this->bsize);
+		this->data = alloc(this->len * this->bsize);
 		for (size_t i = 0; i < this->len; i++) {
 			construct((void *) ((size_t) this->data + (i * this->bsize)));
 		}
@@ -89,7 +89,7 @@ void vec_pop(vector *this, size_t count) {
 			this->len = 0;
 		} else {
 			this->len -= count;
-			this->data = prealloc(this->data, this->len * this->bsize);
+			this->data = realloc(this->data, this->len * this->bsize);
 		}
 	}
 }
@@ -108,7 +108,7 @@ void vec_popd(vector *this, size_t count, void (*destruct)(void *)) {
 				destruct((void *) ((size_t) this->data + (i * this->bsize)));
 			}
 			this->len -= count;
-			this->data = prealloc(this->data, this->len * this->bsize);
+			this->data = realloc(this->data, this->len * this->bsize);
 		}
 	}
 }
