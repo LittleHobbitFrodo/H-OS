@@ -44,16 +44,24 @@ typedef struct page_heap_t {
 		void* end;
 	} physical;
 
+	size_t size;	//	size in pages (4KB)
+
+	struct tmp {
+		aligned_ptr pdpt;
+		aligned_ptr pd;	//	if pd is null pdpt is mapped to itself
+		aligned_ptr pt;
+	} tmp;
+
 } page_heap_t;
 
 static page_heap_t page_heap;
 
 [[maybe_unused]] static void page_heap_init();
 
-[[maybe_unused]] static void page_heap_reseve_memory();
+static memmap_entry* page_heap_reserve_memory();
 
 void page_alloc(page_alloc_t* ptr, size_t tables);
-//__attribute__((nonnull(1))) void page_free(page_table_t* table);
+
 #ifndef KERNEL_DEBUG
 __attribute__((always_inline, nonnull(1))) static inline void page_free(page_alloc_t* table)
 #else

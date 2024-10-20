@@ -25,11 +25,13 @@ typedef struct page_entry {
 	u64 accessed: 1;
 	u64 dirty: 1;
 	u64 page_size: 1;
+		//	change page size: pml4 = 512GB, pdpt = 1GB, pd = 2MB, pt = undefined
 	u64 global: 1;
 	u64 reserved: 3;
 	u64 address: 40;
 	//	address must be shifted before accessing/setting it
-	u64 expansion: 11;
+	u64 expansion: 8;
+	u64 key: 3;		//	process individual protection key
 	u64 execute_disable : 1;
 } __attribute__((packed)) page_entry;
 
@@ -44,26 +46,20 @@ typedef struct virtual_address {
 	u64 sign: 16;
 } virtual_address;
 
-union virtual_u64 {
+union virtual_union {
 	virtual_address virtual_address;
 	u64 u64;
-} virtual_u64;
-union virtual_void {
-	virtual_address virtual_address;
-	void* ptr;
-} virtual_void;
-
-union page_u64 {
-	page_entry page_entry;
-	u64 u64;
-} page_u64;
-
-union page_void {
-	page_entry page_entry;
 	void* voidptr;
-} page_void;
+} virtual_union;
+
+union page_union {
+	page_entry page_entry;
+	u64 u64;
+	void* voidptr;
+} page_union;
 
 #define VA_SHIFT 12
+#define PAGE_SHIFT 12
 
 #ifndef KERNEL_DEBUG
 	__attribute__((always_inline)) inline
@@ -97,13 +93,8 @@ page_table_t* page_find();
 void* physical(virtual_address address);
 void* virtual_(void* physical);
 
-typedef struct pages_t {
-	struct tmp {
-		vector page_heap;		//	aligned_ptr
-	} tmp;
-} pages_t;
+void va_info(virtual_address address);
 
-static pages_t pages;
 
 /*#define PAGE_ALIGN_DOWN(x) (((x) / PAGE_SIZE)*PAGE_SIZE)
 //	each pdpt entry covers 1GB of RAM

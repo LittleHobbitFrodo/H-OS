@@ -28,80 +28,99 @@ void page_init() {
 		panic(panic_code_paging_initialization_failure);
 		__builtin_unreachable();
 	}
-	//base.hhdm = (void*)req_page_hhdm.response->offset;
+	base.hhdm = (void*)req_page_hhdm.response->offset;
 
-	//	allocates pages for heap
-	vecs(&pages.tmp.page_heap, sizeof(aligned_ptr));
+	//	allocate pages for page_heap
+		//	calculate minimal page heap size
+	page_heap.size = ((size_t)heap.end_physical - (size_t)heap.start);
+	//print("page heap init size:\t"); printu(page_heap.init_size); endl();
 
+	page_heap.size = (page_heap.size / PAGE_SIZE) + (page_heap.size % PAGE_SIZE != 0);
+		//	get page count
+	page_heap.size = (((page_heap.size / PAGE_COUNT) + 1) * PAGE_COUNT);
+		//	round to 512
 
+	aptrs(&page_heap.tmp.pdpt, 4096);
+	aptrs(&page_heap.tmp.pd, 4096);
+	aptrs(&page_heap.tmp.pt, 4096);
 
-	/*print("virtual base:\t"); printp(base.virtual); endl();
-	page_table_t* pages = page_find();
-	page_entry ent = (*pages)[va_index(base.virtual, 3)];
-	if ((!ent.present) || (ent.address == 0)) {
-		report("page not present: 3\n", report_error);
-		return;
+	memmap_entry* phme = page_heap_reserve_memory();
+	if (phme == null) {
+		report("cannot allocate memory for kernel page heap\n", report_error);
+		page_heap.size = 0;
 	}
-	pages = (page_table_t*)(page_address(ent));
-	ent = (*pages)[va_index(base.virtual, 2)];
-	if ((!ent.present) || (ent.address == 0)) {
-		report("page not present: 2\n", report_error);
-		return;
-	}
-	pages = (page_table_t*)((size_t)ent.address << VA_SHIFT);
-	ent = (*pages)[va_index(base.virtual, 1)];
-	if ((!ent.present) || (ent.address == 0)) {
-		report("page not present: 1\n", report_error);
-		return;
-	}
-	pages = (page_table_t*)((size_t)ent.address << VA_SHIFT);
+	page_heap.base.physical = (void*)phme->base;
+	page_table_t* pml4 = page_find();
 
+	if (page_heap.size < PAGE_COUNT*PAGE_COUNT) {	//	fits into one pd table
+		bool found = false;
+		union virtual_union vbase;
+		vbase.u64 = 0;
+		page_table_t* pdpt;
 
-	const size_t heap_size = (size_t)heap.end_physical - (size_t)heap.start;
-	size_t pages_needed = (heap_size / PAGE_SIZE) + (heap_size % PAGE_SIZE != 0);
-
-	u8 ad;
-	for (size_t i = 0; i < pages_needed; i++) {
-		ad = ((*pages)[i].accessed) | ((*pages)[i].dirty << 1);
-		if (ad != 0) {
-			print("page["); printu(i); print("]:\t");
-			if (ad & 1) {
-				print("accessed ");
+		for (size_t i = PAGE_COUNT - 1; (i & (1 << 8)) != 0; i--) {
+			//	find null entry in higher-half part of pml4
+			if ((*pml4)[i].address == 0) {
+				vbase.virtual_address.pml4 = i;
+				print("page heap virtual base (pml4):\t"); printu(vbase.virtual_address.pml4); endl();
+				found = true;
+				break;
 			}
-			if ((ad & 0b10) != 0) {
-				print("dirty ");
-			}
-			endl();
 		}
-	}*/
-
-	/*for (size_t i = 0; i < pages_needed; i++) {
-		if ((*pages)[i].address != 0) {
-			print("page "); printu(i+1); print("is not null");
-			if (!(*pages)[i].present) {
-				printl(" and also no present");
-			}
-			endl();
-		} else if (!(*pages)[i].present) {
-			print("page "); printu(i+1); printl("is not present");
+		if (!found) {
+			report("cannot find place to allocate page heap in higher-half memory\n", report_warning);
+			hang();
 		}
+		vbase.virtual_address.sign = 0xFFFF;
 
-	}*/
+		//	allocate and prepare pdpt
+		aptr_alloc(&page_heap.tmp.pdpt, sizeof(page_entry) * PAGE_COUNT);
+		memnull(page_heap.tmp.pdpt.ptr, sizeof(page_entry) * PAGE_COUNT);
+		(*pml4)[vbase.virtual_address.pml4].address = (size_t)page_heap.tmp.pdpt.ptr >> PAGE_SHIFT;
+		(*pml4)[vbase.virtual_address.pml4].present = true;
+		(*pml4)[vbase.virtual_address.pml4].execute_disable = true;
+		(*pml4)[vbase.virtual_address.pml4].write = true;
+		pdpt = page_heap.tmp.pdpt.ptr;
 
-	//ent = (*pages)[va_index(base.virtual, 0)];
-	/*if ((!ent.present) || (ent.address == 0)) {
-		report("page not present: 0\n", report_error);
-		union page_void pv;
-		pv.page_entry = ent;
-		print("page:\t"); printp(pv.voidptr); endl();
-		return;
-	}*/
-	/*union virtual_void vv;
-	vv.ptr = base.virtual;*/
+		//	map pdpt page to itself
+		(*pdpt)[0].address = (size_t)pdpt >> PAGE_SHIFT;
+		(*pdpt)[0].present = true;
+		(*pdpt)[0].execute_disable = true;
+		(*pdpt)[0].write = true;
+
+		//	since pdpt is mapped to itself it now counts as pd
+		for (size_t i = 0; i < (page_heap.size / PAGE_COUNT); i++) {
+			(*pdpt)[i+1].page_size = true;
+			(*pdpt)[i+1].address = ((size_t)page_heap.base.physical + ((2*MB) * i)) >> PAGE_SHIFT;
+			(*pdpt)[i+1].present = true;
+			(*pdpt)[i+1].execute_disable = true;
+			(*pdpt)[i+1].write = true;
+		}
+		vbase.virtual_address.pd = 1;
+
+		page_heap.base.virtual_ = vbase.voidptr;
+	}
+
 
 	if (vocality >= vocality_report_everything) {
 		report("memory protection initialized successfully\n", report_note);
 	}
+}
+
+void va_info(virtual_address address) {
+	union virtual_union vu;
+	vu.virtual_address = address;
+	if (address.sign > 0) {
+		print("higherhalf address ");
+	} else {
+		print("lowerhalf address ");
+	}
+	printp(vu.voidptr); printl(":");
+	print("\tpml4:\t"); printu(address.pml4); endl();
+	print("\tpdpt:\t"); printu(address.pdpt); endl();
+	print("\tpd:\t\t"); printu(address.pd); endl();
+	print("\tpt:\t\t"); printu(address.pt); endl();
+	print("\toffset:\t"); printu(address.offset); endl();
 }
 
 void* physical(virtual_address address) {
@@ -133,6 +152,7 @@ void* physical(virtual_address address) {
 	}
 	return (void*)((size_t)ent.address << VA_SHIFT);
 }
+
 
 /*void *physical(void *virt) {
 	page_entry ent = pml4[va_index(virt, 3)];

@@ -78,6 +78,8 @@ static void memmap_parse();
 
 static void memmap_analyze();
 
+[[maybe_unused]] static memmap_entry* memmap_find(enum memmap_types type);
+
 enum memmap_types memmap_entry_type(u64 constant);
 
 

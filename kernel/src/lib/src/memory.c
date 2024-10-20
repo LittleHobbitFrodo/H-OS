@@ -58,34 +58,13 @@ void memory_init() {
 	}
 }
 
-/*void va_info(void *addr) {
-	printp(addr);
-	printl(":");
-	print("pml4\t[");
-	printu(va_index(addr, 3));
-	printl("]");
-	print("pdpt\t[");
-	printu(va_index(addr, 2));
-	printl("]");
-	print("pd\t\t[");
-	printu(va_index(addr, 1));
-	printl("]");
-	print("pt\t\t[");
-	printu(va_index(addr, 0));
-	printl("]");
-	print("offset:\t");
-	printu(va_offset(addr));
-	endl();
-}*/
-
 void memmap_parse() {
 	//	parse limine memory map and simplify it
 		//	join entries of same type ...
 
 	vecs(&memmap, sizeof(memmap_entry));
-	ssize_t msize = req_memmap.response->entry_count, heap_index = 0, stack_index = -1;
+	ssize_t msize = req_memmap.response->entry_count, heap_index = 0;
 	struct limine_memmap_entry **ents = req_memmap.response->entries;
-	memmap_entry *stck = null;
 	enum memmap_types tmp = memmap_undefined;
 
 	struct limine_memmap_entry *ent;
@@ -99,27 +78,6 @@ void memmap_parse() {
 		--i;
 		first->len = ents[i]->base + ents[i]->length - first->base;
 		++i;
-	}
-
-	{
-		//	find place for stack
-		ssize_t start = -1;
-		size_t len = 0;
-		for (ssize_t ii = msize - 1; ii >= 0; --ii) {
-			if (ents[ii]->type == LIMINE_MEMMAP_USABLE) {
-				if (start < 0) {
-					start = ii;
-				}
-				len += ents[ii]->length;
-				if (len >= ALL_STACK_SIZE) {
-					stack_index = start;
-					break;
-				}
-			} else {
-				start = -1;
-				len = 0;
-			}
-		}
 	}
 
 	for (; i < msize; i++) {
@@ -147,19 +105,6 @@ void memmap_parse() {
 		} else {
 			new->len = ents[i]->base + ents[i]->length - new->base;
 		}
-
-		if ((i == stack_index) && (stck == null)) {
-			//	initialize stack entry (kernel + interrupts)
-			stck = vec_push(&memmap, 1);
-			stck->len = ALL_STACK_SIZE;
-			stck->base = new->base + new->len - stck->len;
-			stck->type = memmap_stack;
-			new->len -= stck->len;
-		}
-	}
-	if (stck == null) {
-		report("could not find stack memory entry\n", report_critical);
-		panic(panic_code_cannot_allocate_memory_for_stacks);
 	}
 
 	//	make heap entry not overlap other entries
@@ -488,4 +433,15 @@ void memmap_reclaim() {
 	if (vocality >= vocality_report_everything) {
 		report("memory reclaimed\n", report_note);
 	}
+}
+
+memmap_entry* memmap_find(enum memmap_types type) {
+	memmap_entry* ret;
+	for (size_t i = 0; i < memmap.len; i++) {
+		ret = vec_at(&memmap, i);
+		if (ret->type == type) {
+			return ret;
+		}
+	}
+	return null;
 }

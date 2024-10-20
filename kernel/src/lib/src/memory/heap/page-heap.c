@@ -23,10 +23,36 @@ void page_heap_init() {
 
 }
 
-void page_heap_reseve_memory() {
-	//	inserts into memmap vector
-	//	find valid space
-	//	fills page_heap structure
+memmap_entry* page_heap_reserve_memory() {
+	//	page_heap.size must be set before calling this function
+
+	memmap_entry *ent, *last = null;
+	memmap_display();
+	memmap_entry* new = null;
+	for (size_t i = 0; i < memmap.len; i++) {
+		if (i > 0) {
+			last = ent;
+		}
+		ent = vec_at(&memmap, i);
+		if ((ent->type == memmap_usable) && ((last != null) && (last->type != memmap_heap))) {
+			if (ent->len >= (page_heap.size * PAGE_SIZE)) {
+				print("chosen:\t"); printu(i+1); endl();
+				new = vec_insert(&memmap, i, 1);
+				ent = vec_at(&memmap, i+1);
+				if (new == null) {
+					return null;
+				}
+				new->base = ent->base;
+				new->len = page_heap.size * PAGE_SIZE;
+				new->type = memmap_heap;
+
+				ent->len -= new->len;
+				ent->base += new->len;
+				break;
+			}
+		}
+	}
+	return new;
 }
 
 void page_alloc(page_alloc_t* ptr, size_t tables) {

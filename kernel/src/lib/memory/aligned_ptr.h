@@ -51,8 +51,6 @@ __attribute__((always_inline, nonnull(1))) inline void aptr_free(aligned_ptr *th
 	this->align = (this->offset = 0);
 }
 
-void va_info(void *addr);
-
 typedef struct stack_frame {
 	//	get -> read rbp
 	struct stack_frame *rbp;

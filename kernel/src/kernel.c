@@ -11,6 +11,10 @@ char* logo[5] = {".__",
 	"|   \\  |",
 	"|___|__|"};
 
+//TODO: implement vec_insert()
+//TODO: page_heap_reserve_memory()
+//TODO: initialize paging
+
 void kernel() {
 	//	kernel() -> starts the OS
 

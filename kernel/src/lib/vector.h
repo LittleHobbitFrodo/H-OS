@@ -19,7 +19,6 @@ typedef struct vector {
 
 typedef struct aligned_vector {
 	//NOTE:		destruction of each popped/freed element must be done manually
-
 	aligned_ptr data;
 	size_t bsize;
 	size_t len;
@@ -73,7 +72,8 @@ static inline void vecsac(vector *this, size_t len, size_t bsize, void (*constru
 	}
 }
 
-__attribute__((nonnull(1))) void vec_resize(vector *this, size_t len);
+__attribute__((nonnull(1)))
+void vec_resize(vector *this, size_t len);
 
 //	resize vector
 __attribute__((nonnull(1)))
@@ -91,7 +91,8 @@ inline void *vec_last(vector *this) {
 	return r;
 }
 
-__attribute__((always_inline)) inline void *vec_at(vector *this, size_t at) {
+__attribute__((always_inline))
+inline void *vec_at(vector *this, size_t at) {
 	//	returns target element (or NULL)
 	void *r = null;
 	if (this->data != null) {
@@ -117,7 +118,8 @@ void vec_popd(vector *this, size_t count, void (*destruct)(void *));
 
 //	pops vector and destructs popped elements
 
-__attribute__((always_inline, nonnull(1))) inline void vec_free(vector *this) {
+__attribute__((always_inline, nonnull(1)))
+inline void vec_free(vector *this) {
 	//	frees vector data (destruction of each object must be done manually)
 	if (this->data != null) {
 		free(this->data);
@@ -142,21 +144,24 @@ void vec_take_over(vector* this, vector* other);
 	//	will not delete free the "this" vector
 
 
-__attribute__((always_inline, nonnull(1))) inline void avec(aligned_vector *this) {
+__attribute__((always_inline, nonnull(1)))
+inline void avec(aligned_vector *this) {
 	//	initializes empty avector
 	aptr(&this->data);
 	this->len = 0;
 	this->bsize = 0;
 }
 
-__attribute__((always_inline, nonnull(1))) static inline void avecsa(aligned_vector *this, size_t len, size_t bsize, size_t align) {
+__attribute__((always_inline, nonnull(1)))
+static inline void avecsa(aligned_vector *this, size_t len, size_t bsize, size_t align) {
 	//	initializes vector with allocation
 	this->len = len;
 	this->bsize = bsize;
 	aptrse(&this->data, this->len * this->bsize, align);
 }
 
-__attribute__((nonnull(1))) void avec_resize(aligned_vector *this, size_t len);
+__attribute__((nonnull(1)))
+void avec_resize(aligned_vector *this, size_t len);
 
 //	resize vector
 __attribute__((nonnull(1, 3)))
@@ -215,14 +220,16 @@ void avec_popf(aligned_vector *this, size_t count, void (*onrealloc)(void *));
 __attribute__((nonnull(1, 3, 4)))
 void avec_popdf(aligned_vector *this, size_t count, void (*destruct)(void *), void (*onrealloc)(void *));
 
-__attribute__((always_inline, nonnull(1))) inline void avec_free(aligned_vector *this) {
+__attribute__((always_inline, nonnull(1)))
+inline void avec_free(aligned_vector *this) {
 	if (this->data.ptr != null) {
 		aptr_free(&this->data);
 		this->len = 0;
 	}
 }
 
-__attribute__((always_inline, nonnull(1))) inline void avec_clear(aligned_vector *this, void (*destruct)(void *)) {
+__attribute__((always_inline, nonnull(1)))
+inline void avec_clear(aligned_vector *this, void (*destruct)(void *)) {
 	if (this->data.ptr != null) {
 		for (size_t i = 0; i < this->len; i++) {
 			destruct((void *) ((size_t) this->data.ptr + i * this->bsize));
@@ -231,6 +238,9 @@ __attribute__((always_inline, nonnull(1))) inline void avec_clear(aligned_vector
 		this->len = 0;
 	}
 }
+
+__attribute__((nonnull(1)))
+void* vec_insert(vector* this, size_t index, size_t count);
 
 
 static vector memmap;

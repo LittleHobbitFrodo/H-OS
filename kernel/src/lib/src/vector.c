@@ -334,3 +334,14 @@ void avec_popdf(aligned_vector *this, size_t count, void (*destruct)(void *), vo
 		}
 	}
 }
+
+void* vec_insert(vector* this, size_t index, size_t count) {
+	if (this->data != null) {
+		vec_push(this, count);
+		for (ssize_t i = this->len - 1; (i+1 > (ssize_t)index) && (i > 0); i--) {
+			memcpy(vec_at(this, i-1), vec_at(this, i), this->bsize);
+		}
+		return vec_at(this, index);
+	}
+	return null;
+}
