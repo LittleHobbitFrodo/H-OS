@@ -4,19 +4,23 @@
 //
 
 #pragma once
+
+#pragma once
 #include "./integers.h"
 
 
 i8 strcmp(const char *s1, const char *s2);
 
-[[nodiscard]] __attribute__((always_inline)) inline size_t strlen(const char *s) {
+[[nodiscard]] __attribute__((always_inline))
+static inline size_t strlen(const char *s) {
 	size_t i = 0;
 	for (; s[i] != '\0'; i++);
 	++i;
 	return i;
 }
 
-__attribute__((always_inline)) inline bool strcmpb(const char *s1, const char *s2) {
+__attribute__((always_inline))
+static inline bool strcmpb(const char *s1, const char *s2) {
 	size_t l = strlen(s1);
 	bool r = true;
 	if (l == strlen(s2)) {
@@ -32,11 +36,14 @@ __attribute__((always_inline)) inline bool strcmpb(const char *s1, const char *s
 	return r;
 }
 
-__attribute__((nonnull(1, 2))) i8 strncmp(const char* s1, const char* s2, size_t n);
+__attribute__((nonnull(1, 2)))
+i8 strncmp(const char* s1, const char* s2, size_t n);
 
-__attribute__((nonnull(1, 2))) bool strncmpb(const char* s1, const char* s2, size_t n);
+__attribute__((nonnull(1, 2)))
+bool strncmpb(const char* s1, const char* s2, size_t n);
 
-__attribute__((always_inline)) inline void memcpy(void *src, void *dest, size_t size) {
+__attribute__((always_inline))
+static inline void memcpy(void *src, void *dest, size_t size) {
 	for (size_t i = 0; i < size; i++) {
 		((u8 *) dest)[i] = ((u8 *) src)[i];
 	}

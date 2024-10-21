@@ -11,9 +11,10 @@ char* logo[5] = {".__",
 	"|   \\  |",
 	"|___|__|"};
 
-//TODO: implement vec_insert()
-//TODO: page_heap_reserve_memory()
-//TODO: initialize paging
+//TODO: re-implement page heap allocations...
+//TODO: re-allocate the page heap pdpt in page heap
+//TODO: (someday) resolve SIMD and GPRs
+	//	-mavx512f?
 
 void kernel() {
 	//	kernel() -> starts the OS

@@ -41,15 +41,14 @@ void page_init() {
 		//	round to 512
 
 	aptrs(&page_heap.tmp.pdpt, 4096);
-	aptrs(&page_heap.tmp.pd, 4096);
-	aptrs(&page_heap.tmp.pt, 4096);
 
-	memmap_entry* phme = page_heap_reserve_memory();
-	if (phme == null) {
+	//	pre-initialize page heap
+	memmap_entry* page_heap_memmap_ent = page_heap_reserve_memory();
+	if (page_heap_memmap_ent == null) {
 		report("cannot allocate memory for kernel page heap\n", report_error);
 		page_heap.size = 0;
 	}
-	page_heap.base.physical = (void*)phme->base;
+	page_heap.base.physical = (void*)page_heap_memmap_ent->base;
 	page_table_t* pml4 = page_find();
 
 	if (page_heap.size < PAGE_COUNT*PAGE_COUNT) {	//	fits into one pd table
@@ -62,7 +61,6 @@ void page_init() {
 			//	find null entry in higher-half part of pml4
 			if ((*pml4)[i].address == 0) {
 				vbase.virtual_address.pml4 = i;
-				print("page heap virtual base (pml4):\t"); printu(vbase.virtual_address.pml4); endl();
 				found = true;
 				break;
 			}
@@ -72,10 +70,11 @@ void page_init() {
 			hang();
 		}
 		vbase.virtual_address.sign = 0xFFFF;
+			//	mark that the pointer is in higher-half of virtual memory
 
 		//	allocate and prepare pdpt
-		aptr_alloc(&page_heap.tmp.pdpt, sizeof(page_entry) * PAGE_COUNT);
-		memnull(page_heap.tmp.pdpt.ptr, sizeof(page_entry) * PAGE_COUNT);
+		aptr_alloc(&page_heap.tmp.pdpt, PAGE_TABLE_SIZE);
+		memnull(page_heap.tmp.pdpt.ptr, PAGE_TABLE_SIZE);
 		(*pml4)[vbase.virtual_address.pml4].address = (size_t)page_heap.tmp.pdpt.ptr >> PAGE_SHIFT;
 		(*pml4)[vbase.virtual_address.pml4].present = true;
 		(*pml4)[vbase.virtual_address.pml4].execute_disable = true;
@@ -99,6 +98,38 @@ void page_init() {
 		vbase.virtual_address.pd = 1;
 
 		page_heap.base.virtual_ = vbase.voidptr;
+
+		//	initialize page heap
+		page_heap_init();
+
+		//	prepare structure for static page heap allocations
+		page_heap.static_tables.pdpt = (page_alloc_t){.entries = null, .seg_entry = 0, .table_count = 0};
+
+		//	re-allocate page heap pdpt inside of page heap
+		/*page_alloc(&page_heap.static_tables.pdpt, 1);
+		return;
+		memnull(page_heap.static_tables.pdpt.entries, PAGE_TABLE_SIZE);
+		pdpt = page_heap.static_tables.pdpt.entries;
+		(*pdpt)[0].address = (size_t)pdpt >> PAGE_SHIFT;
+		(*pdpt)[0].present = true;
+		(*pdpt)[0].execute_disable = true;
+		(*pdpt)[0].write = true;
+
+		//	since pdpt is mapped to itself it now counts as pd
+		for (size_t i = 0; i < (page_heap.static_tables.pdpt.table_count); i++) {
+			(*pdpt)[i+1].page_size = true;
+			(*pdpt)[i+1].address = ((size_t)page_heap.base.physical + ((2*MB) * i)) >> PAGE_SHIFT;
+			(*pdpt)[i+1].present = true;
+			(*pdpt)[i+1].execute_disable = true;
+			(*pdpt)[i+1].write = true;
+		}
+		(*pml4)[vbase.virtual_address.pml4].address = (((size_t)page_heap.static_tables.pdpt.entries - (size_t)page_heap.base.virtual_) + (size_t)page_heap.base.physical) >> PAGE_SHIFT;
+		aptr_free(&page_heap.tmp.pdpt);
+
+
+
+		asm volatile("mov cr3, %0" ::"r"(page_find()));*/
+
 	}
 
 
@@ -153,141 +184,3 @@ void* physical(virtual_address address) {
 	return (void*)((size_t)ent.address << VA_SHIFT);
 }
 
-
-/*void *physical(void *virt) {
-	page_entry ent = pml4[va_index(virt, 3)];
-	if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
-		print("\t\tlayer:\t4:\t");
-		printp((void *) pml4[va_index(virt, 3)]);
-		endl();
-		return null;
-	}
-	for (i16 i = 2; i >= 0; --i) {
-		ent = PAGE_ALIGN_DOWN(((page_entry*)page_address(ent))[va_index(virt, i)]);
-		if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
-			print("\t\tlayer:\t");
-			printu(i);
-			print(":\t");
-			printp((void *) ent);
-			endl();
-			return null;
-		}
-	}
-	return (void *) ((size_t) page_address(ent) + va_offset(virt));
-}*/
-
-/*extern void* _start;
-
-void page_init() {
-
-	printl("pages:");
-	page_entry* pages = page_find();
-	print("_start:\t"); printp(_start); endl();
-	size_t hhdm = (size_t)_start;//req_k_address.response->virtual_base;
-	if (page_address(pages[va_index((void*)hhdm, 3)]) != null) {
-		print("page["); printu(va_index((void*)hhdm, 3)); printl("] is valid");
-		pages = (page_entry*)page_address(pages[va_index((void*)hhdm, 3)]);
-		if (page_address(pages[va_index((void*)hhdm, 2) + 1]) != null) {
-			print("page[x]["); printu(va_index((void*)hhdm, 2) + 1); printl("] is valid");
-			pages = (page_entry*)page_address(pages[va_index((void*)hhdm, 2) + 1]);
-			if (page_address(pages[va_index((void*)hhdm, 1)]) != null) {
-				print("page[x][y]["); printu(va_index((void*)hhdm, 1)); printl("] is valid");
-				pages = (page_entry*)page_address(pages[va_index((void*)hhdm, 1)]);
-				if (page_address(pages[va_index((void*)hhdm, 0)]) != null) {
-					print("page[x][y][z]["); printu(va_index((void*)hhdm, 0)); printl("] is valid");
-					pages = (page_entry*)page_address(pages[va_index((void*)hhdm, 0)]);
-					print("address:\t"); printp(pages); endl();
-					print("base physical:\t"); printp(physical_base); endl();
-				} else {
-					print("page[x][y][z]["); printu(va_index((void*)hhdm, 0)); printl("] is invalid");
-				}
-			} else {
-				print("page[x][y]["); printu(va_index((void*)hhdm, 1)); printl("] is invalid");
-				print("\n\n\nscan:\t"); printu(va_index((void*)hhdm, 2)); endl();
-				for (size_t i = 0; i < PAGE_COUNT; i++) {
-					if (page_address(pages[i]) != null) {
-						printu(i); print(" : "); printp((void*)pages[i]); endl();
-					}
-				}
-			}
-		} else {
-			print("page[x]["); printu(va_index((void*)hhdm, 2)); printl("] is invalid");
-		}
-	} else {
-		print("page["); printu(va_index((void*)hhdm, 3)); printl("] is invalid");
-	}
-
-}
-
-void page_entry_info(page_entry ent) {
-	enum page_flags pflags = present;
-	u32 c = output.color;
-	output.color = col.cyan;
-	if (ent & pflags) {
-		print("present ");
-	}
-	pflags = global;
-	if (ent & pflags) {
-		print("global ");
-	} {
-		void *addr = page_address(ent);
-		print("page entry:\t");
-		if (addr == null) {
-			printp(addr);
-			endl();
-		} else {
-			printl("NULL");
-		}
-	}
-	pflags = write;
-	print("\tperms:\t");
-	print((ent & pflags) ? "rw" : "r");
-	pflags = no_exec;
-	printc('x' * (ent & pflags));
-	endl();
-	pflags = cache_disable;
-	print("\tcaching:\t");
-	if (ent & pflags) {
-		printl("disabled");
-	} else {
-		pflags = write_through;
-		printl((ent & pflags) ? "write-through" : "write-back");
-	}
-	pflags = accessed;
-	print("\tstate:\t");
-	if (ent & pflags) {
-		print("accessed, ");
-	}
-	pflags = dirty;
-	printl((ent & pflags) ? "dirty" : "clean");
-	pflags = PS;
-	print("\tsize:\t\t");
-	printl((ent & pflags) ? "2MiB" : "4kb");
-	output.color = c;
-}
-
-void *physical(void *virt) {
-	page_entry ent = pml4[va_index(virt, 3)];
-	if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
-		print("\t\tlayer:\t4:\t");
-		printp((void *) pml4[va_index(virt, 3)]);
-		endl();
-		return null;
-	}
-	for (i16 i = 2; i >= 0; --i) {
-		ent = PAGE_ALIGN_DOWN(((page_entry*)page_address(ent))[va_index(virt, i)]);
-		if (unlikely((!(ent & present)) || (page_address(ent) == null))) {
-			print("\t\tlayer:\t");
-			printu(i);
-			print(":\t");
-			printp((void *) ent);
-			endl();
-			return null;
-		}
-	}
-	return (void *) ((size_t) page_address(ent) + va_offset(virt));
-}
-
-void page_map_all() {
-
-}*/

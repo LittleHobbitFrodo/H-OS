@@ -3,6 +3,9 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
+//	simple and fast multipurpose heap implementation
+//	for aligned allocations use the aligned_ptr structure
+
 #pragma once
 
 #ifndef H_OS_LIB_MEMORY_HEAP_H

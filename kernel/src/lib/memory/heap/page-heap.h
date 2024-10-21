@@ -6,6 +6,7 @@
 #pragma once
 
 //	heap implementation dedicated for page table management
+//	works with aligned data with fixed sizes
 
 #include "../../integers.h"
 #include "../paging.h"
@@ -36,8 +37,6 @@ typedef struct page_heap_t {
 
 	size_t used_until;
 		//	index in vector
-	page_heap_segment_t* start;
-	page_heap_segment_t* end;
 
 	struct physical {
 		void* start;
@@ -48,32 +47,37 @@ typedef struct page_heap_t {
 
 	struct tmp {
 		aligned_ptr pdpt;
-		aligned_ptr pd;	//	if pd is null pdpt is mapped to itself
-		aligned_ptr pt;
 	} tmp;
+
+	struct static_tables {
+		page_alloc_t pdpt;
+	} static_tables;
 
 } page_heap_t;
 
+#define PAGE_TABLE_SIZE (sizeof(page_entry) * PAGE_COUNT)
+
 static page_heap_t page_heap;
 
-[[maybe_unused]] static void page_heap_init();
+static void page_heap_init();
 
 static memmap_entry* page_heap_reserve_memory();
 
 void page_alloc(page_alloc_t* ptr, size_t tables);
 
-#ifndef KERNEL_DEBUG
-__attribute__((always_inline, nonnull(1))) static inline void page_free(page_alloc_t* table)
-#else
-__attribute__((nonnull(1))) static void page_free(page_alloc_t* table)
-#endif
-{
+__attribute__((always_inline, nonnull(1)))
+static inline void page_free(page_alloc_t* table) {
 	((page_heap_segment_t*)vec_at(&page_heap.segments, table->seg_entry))->used = false;
 }
 
-__attribute__((nonnull(1))) void page_realloc(page_alloc_t* ptr, size_t tables, bool* reallocated);
+__attribute__((nonnull(1)))
+void page_realloc(page_alloc_t* ptr, size_t tables, bool* reallocated);
+
 void page_heap_divide_block(size_t segment, size_t tables);
 
-__attribute__((nonnull(1))) void page_heap_enlarge(page_alloc_t* ptr, size_t tables);
-__attribute__((nonnull(1))) void page_heap_expand(page_alloc_t* ptr, size_t tables);
+__attribute__((nonnull(1)))
+void page_heap_enlarge(page_alloc_t* ptr, size_t tables);
+
+__attribute__((nonnull(1)))
+void page_heap_expand(page_alloc_t* ptr, size_t tables);
 	//	these two functions returns physical addresses
