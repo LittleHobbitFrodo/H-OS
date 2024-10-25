@@ -14,6 +14,39 @@ page_table_t* page_find() {
 }
 
 void page_init() {
+
+	report("proceeding to initialize paging\n", report_warning);
+
+	//	1)	find place for both heaps
+	//	2)	crate virtual address space (VAS) for page heap
+	//	3)	do static allocations into page heap (map/remap both heaps)
+		//	test it
+	//	4)	initialize regular heap
+	//	5)	initialize page heap
+
+	//	1)	find place for both heaps
+	if (!heap_reserve_memory(false) || !page_heap_reserve_memory()) {
+		report("failed to find space for kernel heap", report_critical);
+		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
+	}
+
+	print("reservation for regular heap:\t"); printp(heap.physical.start); endl();
+	print("reservation for page heap:\t"); printp(page_heap.physical.start); endl();
+
+	memmap_display_original();
+
+	//	2)	crate virtual address space for page heap
+	page_heap_map();
+
+	//	3)	do static allocations into page heap (map/remap both heap VAS)
+
+
+
+	hang();
+
+}
+
+/*void page_init() {
 	//	allocate virtual addresses for heap, stack and reserved areas
 	if (req_page_mode.response == null) {
 		report("cannot get paging mode, continuing blind\n", report_warning);
@@ -29,6 +62,10 @@ void page_init() {
 		__builtin_unreachable();
 	}
 	base.hhdm = (void*)req_page_hhdm.response->offset;
+
+
+	memnull(&page_heap, sizeof(page_heap_t));
+	vvecs(&page_heap.segments, sizeof(page_heap_segment_t));
 
 	//	allocate pages for page_heap
 		//	calculate minimal page heap size
@@ -97,46 +134,17 @@ void page_init() {
 		}
 		vbase.virtual_address.pd = 1;
 
-		page_heap.base.virtual_ = vbase.voidptr;
+		page_heap.base.virtual_ = (void*)vbase.u64;
 
 		//	initialize page heap
 		page_heap_init();
-
-		//	prepare structure for static page heap allocations
-		page_heap.static_tables.pdpt = (page_alloc_t){.entries = null, .seg_entry = 0, .table_count = 0};
-
-		//	re-allocate page heap pdpt inside of page heap
-		/*page_alloc(&page_heap.static_tables.pdpt, 1);
-		return;
-		memnull(page_heap.static_tables.pdpt.entries, PAGE_TABLE_SIZE);
-		pdpt = page_heap.static_tables.pdpt.entries;
-		(*pdpt)[0].address = (size_t)pdpt >> PAGE_SHIFT;
-		(*pdpt)[0].present = true;
-		(*pdpt)[0].execute_disable = true;
-		(*pdpt)[0].write = true;
-
-		//	since pdpt is mapped to itself it now counts as pd
-		for (size_t i = 0; i < (page_heap.static_tables.pdpt.table_count); i++) {
-			(*pdpt)[i+1].page_size = true;
-			(*pdpt)[i+1].address = ((size_t)page_heap.base.physical + ((2*MB) * i)) >> PAGE_SHIFT;
-			(*pdpt)[i+1].present = true;
-			(*pdpt)[i+1].execute_disable = true;
-			(*pdpt)[i+1].write = true;
-		}
-		(*pml4)[vbase.virtual_address.pml4].address = (((size_t)page_heap.static_tables.pdpt.entries - (size_t)page_heap.base.virtual_) + (size_t)page_heap.base.physical) >> PAGE_SHIFT;
-		aptr_free(&page_heap.tmp.pdpt);
-
-
-
-		asm volatile("mov cr3, %0" ::"r"(page_find()));*/
-
-	}
+	}*//*
 
 
 	if (vocality >= vocality_report_everything) {
 		report("memory protection initialized successfully\n", report_note);
 	}
-}
+}*/
 
 void va_info(virtual_address address) {
 	union virtual_union vu;

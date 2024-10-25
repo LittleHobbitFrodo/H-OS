@@ -21,7 +21,7 @@ void memory_init() {
 	//	prepare stack structure
 	memset(&stack, sizeof(stack_holder), 0);
 
-	if (req_memmap.response->entries == null) {
+	if ((req_memmap.response == null) || (req_memmap.response->entries == null)) {
 		report("memory map not found", report_critical);
 		panic(panic_code_memmap_not_found);
 	}
@@ -34,18 +34,16 @@ void memory_init() {
 		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
 	}
 
-	//	initialize heap
-	heap_init();
+	//	initialize paging
+	page_init();
+		//	also initializes heaps
 
 	//	parse command line arguments
 	parse_cmd();
-	//	better parse cmd earlier
+		//	better parse cmd earlier
 
 	//	parse memory map
 	memmap_parse();
-
-	//	initialize paging
-	page_init();
 
 	//	initialize task state segment (needed for GDT initialization)
 	tss_init();

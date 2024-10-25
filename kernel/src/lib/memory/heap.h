@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include "../integers.h"
+#include "./paging.h"
+
 #ifndef H_OS_LIB_MEMORY_HEAP_H
 	#define H_OS_LIB_MEMORY_HEAP_H
 
@@ -30,29 +33,25 @@
 
 		heap_segment_t* used_until;
 
+		//[[maybe_unused]] void* start_physical;
 		heap_segment_t* start;
-		void* end_physical;
 		heap_segment_t* end;
 
-		void* base_virtual;
+		struct {
+			void* start;
+			void* end;
+		} physical;
 
-		[[maybe_unused]] bool uses_virtual;
+		void* base_virtual;
 
 	} heap_t;
 
 	static heap_t heap;
 
-	void heap_init();
+	/*static*/ void heap_init();
+	/*static*/ void heap_map();
 
-	//heap_segment_t* heap_start = null;
-	//static void* heap_end_physical = null;
-
-	//static heap_segment_t* heap_used_until = null;
-	//static heap_segment_t* heap_end = null;
-
-	//void* heap_virtual_base = null;
 	void heap_debug();
-
 
 	__attribute__((always_inline, nonnull)) inline void free(void* ptr) {
 		((heap_segment_t*)((size_t)ptr - sizeof(heap_segment_t)))->used = false;

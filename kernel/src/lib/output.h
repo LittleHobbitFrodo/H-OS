@@ -38,7 +38,7 @@ void screen_init();
 
 static void screen_flush();
 
-static void screen_flush_at(size_t column, size_t line);
+static void screen_flush_at(size_t line, size_t column);
 
 
 static struct col {

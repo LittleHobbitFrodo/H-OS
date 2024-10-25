@@ -91,3 +91,6 @@ static inline void iowait() {
 }
 
 static void memnull(void* ptr, size_t size);
+
+#define max(x, max_) ((x > max_)? max_ : x)
+#define min(x, min_) ((x < min_)? min_ : x)

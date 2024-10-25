@@ -58,7 +58,7 @@ void screen_flush() {
 	output.line = 0;
 }
 
-void screen_flush_at(size_t column, size_t line) {
+void screen_flush_at(size_t line, size_t column) {
 	if ((column * font.size >= screen.w) || (line * font.size >= screen.h)) {
 		return;
 	}

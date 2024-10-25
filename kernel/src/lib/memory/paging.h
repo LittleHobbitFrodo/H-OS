@@ -9,10 +9,8 @@
 #define PAGE_SIZE 4096
 
 #include "../integers.h"
-#include "../vector.h"
-//#include <immintrin.h>
 
-static void page_init();
+/*static*/void page_init();
 
 typedef struct page_entry {
 	u64 present: 1;

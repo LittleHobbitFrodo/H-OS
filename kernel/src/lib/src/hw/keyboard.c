@@ -137,8 +137,7 @@ string keyboard_getline(bool draw) {
 			case '\b': {
 				if (output.column > start) {
 					if ((draw) && (output.column > 0)) {
-						output.column--;
-						screen_flush_at(output.column, output.line);
+						screen_flush_at(output.line, --output.column);
 					}
 					str_pop(&input, 1);
 				}

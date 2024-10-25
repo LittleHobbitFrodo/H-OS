@@ -8,7 +8,7 @@
 //	smbios -> system management BIOS | hardware info directly from firmware
 
 #include "../integers.h"
-#include "../vector.h"
+#include "../vector/vector.h"
 
 typedef struct smbios_entry_point_t {
 	//	64bit version

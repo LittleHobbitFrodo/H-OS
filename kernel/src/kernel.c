@@ -11,10 +11,31 @@ char* logo[5] = {".__",
 	"|   \\  |",
 	"|___|__|"};
 
-//TODO: re-implement page heap allocations...
-//TODO: re-allocate the page heap pdpt in page heap
+//TODO: map reserved areas (+ heaps)
+//TODO: initialize page heap
+//TODO: deprecate physical allocations (for regular heap)
+
+
 //TODO: (someday) resolve SIMD and GPRs
 	//	-mavx512f?
+
+void countdown(const char* msg, size_t seconds) {
+	print(msg); print(" in ");
+	seconds = max(seconds, 9);
+	for (seconds++; seconds > 0; seconds--) {
+		printc((char)'0' + (char)seconds);
+		for (size_t i = 0; i < 1000; i++) {
+			asm volatile("hlt");
+		}
+		screen_flush_at(output.line, --output.column);
+	}
+}
+
+void wait(size_t milli) {
+	for (size_t i = 0; i < milli; i++) {
+		asm volatile("hlt");
+	}
+}
 
 void kernel() {
 	//	kernel() -> starts the OS
@@ -28,6 +49,7 @@ void kernel() {
 	vector cmd;
 
 	bool running = true;
+
 
 	do {
 
@@ -147,6 +169,8 @@ void kernel() {
 			output.color = col.blue; printl(logo[4]);
 		} else if (str_cmpb(str, "shutdown")) {
 			shutdown();
+		} else if (str_cmpb(str, "heap")) {
+			page_heap_debug();
 		} else {
 			output.color = col.white;
 			report("unrecognized command \'", report_error);

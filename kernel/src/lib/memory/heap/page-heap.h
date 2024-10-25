@@ -7,28 +7,28 @@
 
 //	heap implementation dedicated for page table management
 //	works with aligned data with fixed sizes
+//	needs regular heap to work
 
 #include "../../integers.h"
 #include "../paging.h"
 #include "../../memory.h"
-#include "../../vector.h"
+#include "../../vector/volatile-vector.h"
+#include "../../memory/aligned_ptr.h"
 
 typedef struct page_heap_segment_t {
 	page_table_t* entries;
 		//	virtual address to each entry
 	volatile u8 used;
-	u16 table_count;	//	entry_count * 512
-	u32 seg_entry;
+	u32 table_count;	//	entry_count * 512
 } page_heap_segment_t;
 
 typedef struct page_alloc_t {
 	page_table_t* entries;
 	u32 table_count;
-	u32 seg_entry;
 } page_alloc_t;
 
 typedef struct page_heap_t {
-	vector segments;
+	volatile_vector segments;
 
 	struct {
 		void* virtual_;
@@ -59,25 +59,30 @@ typedef struct page_heap_t {
 
 static page_heap_t page_heap;
 
-static void page_heap_init();
+/*static */void page_heap_init();
 
-static memmap_entry* page_heap_reserve_memory();
+static bool page_heap_reserve_memory();
 
-void page_alloc(page_alloc_t* ptr, size_t tables);
+void page_heap_map();
 
-__attribute__((always_inline, nonnull(1)))
+page_table_t* page_alloc(page_alloc_t* ptr, u32 tables);
+//	return physical address (virtual one is stored in ptr)
+
+/*__attribute__((always_inline, nonnull(1)))
 static inline void page_free(page_alloc_t* table) {
 	((page_heap_segment_t*)vec_at(&page_heap.segments, table->seg_entry))->used = false;
-}
+}*/
 
 __attribute__((nonnull(1)))
-void page_realloc(page_alloc_t* ptr, size_t tables, bool* reallocated);
+page_table_t* page_realloc(page_alloc_t* ptr, size_t tables, bool* reallocated);
 
 void page_heap_divide_block(size_t segment, size_t tables);
 
-__attribute__((nonnull(1)))
-void page_heap_enlarge(page_alloc_t* ptr, size_t tables);
+__attribute__((nonnull(1), returns_nonnull))
+page_table_t* page_heap_enlarge(page_alloc_t* ptr, size_t tables);
 
-__attribute__((nonnull(1)))
-void page_heap_expand(page_alloc_t* ptr, size_t tables);
+__attribute__((nonnull(1), returns_nonnull))
+page_table_t* page_heap_expand(page_alloc_t* ptr, size_t tables);
 	//	these two functions returns physical addresses
+
+void page_heap_debug();

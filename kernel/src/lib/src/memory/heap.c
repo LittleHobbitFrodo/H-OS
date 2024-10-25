@@ -6,8 +6,10 @@
 #pragma once
 
 #include "../../memory/heap.h"
+#include "../../memory/paging.h"
 
 bool heap_reserve_memory(bool include_reclaimable_entries) {
+	//	sets heap.physical.start and heap.end_physical
 
 	memnull(&heap, sizeof(heap_t));
 
@@ -40,8 +42,8 @@ bool heap_reserve_memory(bool include_reclaimable_entries) {
 			}
 			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
 				//	mlen != 0 => mstart != null
-				heap.start = (heap_segment_t*)mstart->base;
-				heap.end_physical = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
+				heap.physical.start = (heap_segment_t*)mstart->base;
+				heap.physical.end = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
 				return true;
 			}
 		}
@@ -68,8 +70,8 @@ bool heap_reserve_memory(bool include_reclaimable_entries) {
 			}
 			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
 				//	mlen != 0 => mstart != null
-				heap.start = (heap_segment_t*)mstart->base;
-				heap.end_physical = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
+				heap.physical.start = (heap_segment_t*)mstart->base;
+				heap.physical.end = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
 				return true;
 			}
 		}
@@ -101,11 +103,24 @@ void heap_debug() {
 }
 void heap_init() {
 	//	heap_reserve_memory() must be called before this function
+
 	heap.start->next = null;
 	heap.start->used = false;
 	heap.start->size = HEAP_INITIAL_BLOCK_SIZE;
 	heap.base_virtual = heap.start;
 	heap.end = (heap.used_until = heap.start);
 }
+
+void heap_map() {
+	//	heap_reserve_memory and page_heap_map must be called before
+
+	//	find place for page heap
+	//	do static allocation (heap page tables)
+	//	fill the tables
+	//	write into heap structure
+
+
+}
+
 
 #include "./heap/physical.c"

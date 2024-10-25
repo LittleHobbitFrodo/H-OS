@@ -54,7 +54,11 @@
 #include "./lib/uefi.h"
 
 #include "./lib/memory/aligned_ptr.h"
-#include "./lib/vector.h"
+#include "./lib/vector/vector.h"
+#include "./lib/vector/volatile-vector.h"
+//#include "./lib/vector/aligned-vector.h"
+
+
 #include "./lib/hw/smbios.h"
 #include "./lib/segmentation.h"
 #include "./lib/tss.h"
@@ -91,7 +95,9 @@
 #include "./lib/src/cpu.c"
 #include "./lib/src/string.c"
 #include "./lib/src/memory/aligned_ptr.c"
-#include "./lib/src/vector.c"
+#include "./lib/src/vector/vector.c"
+#include "./lib/src/vector/volatile-vector.c"
+//#include "./lib/src/vector/aligned-vector.c"
 
 #include "./lib/src/int-handler.c"
 #include "./lib/src/exceptions.c"
