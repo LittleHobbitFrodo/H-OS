@@ -7,42 +7,47 @@
 
 #include "../../memory/paging.h"
 
+#include "../../k_management.h"
+
 page_table_t* page_find() {
 	page_table_t* ret;
 	asm volatile("mov %0, cr3" : "=r"(ret));
 	return ret;
 }
 
+#define WAIT_INT (MAX_U16 << 10)
+
 void page_init() {
 
-	report("proceeding to initialize paging\n", report_warning);
+	if (req_page_mode.response == null) {
+		report("cannot get paging mode, continuing blind\n", report_warning);
+	} else if (req_page_mode.response->mode != LIMINE_PAGING_MODE_X86_64_4LVL) {
+		report("5 level paging mode is not supported\n", report_critical);
+		panic(panic_code_unsupported_paging_mode);
+		__builtin_unreachable();
+	}
 
-	//	1)	find place for both heaps
-	//	2)	crate virtual address space (VAS) for page heap
-	//	3)	do static allocations into page heap (map/remap both heaps)
-		//	test it
-	//	4)	initialize regular heap
-	//	5)	initialize page heap
+	//	0)	initialize pages structure
+	if ((req_k_address.response == null) || (req_page_hhdm.response == null)) {
+		report("cannot get virtual and physical base addresses\n", report_critical);
+		panic(panic_code_base_addresses_not_available);
+		__builtin_unreachable();
+	}
+
+	memnull(&pages, sizeof(pages_t));
+	pages.hhdm = (void*)req_page_hhdm.response->offset;
+	pages.kernel.physical = (void*)req_k_address.response->physical_base;
+	pages.kernel.virtual = (void*)req_k_address.response->virtual_base;
+
+	req_k_address.response = null;
+	req_page_hhdm.response = null;
+	pages.pml4 = ((size_t)page_find() + pages.hhdm);
 
 	//	1)	find place for both heaps
 	if (!heap_reserve_memory(false) || !page_heap_reserve_memory()) {
 		report("failed to find space for kernel heap", report_critical);
 		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
 	}
-
-	print("reservation for regular heap:\t"); printp(heap.physical.start); endl();
-	print("reservation for page heap:\t"); printp(page_heap.physical.start); endl();
-
-	memmap_display_original();
-
-	//	2)	crate virtual address space for page heap
-	page_heap_map();
-
-	//	3)	do static allocations into page heap (map/remap both heap VAS)
-
-
-
-	hang();
 
 }
 
@@ -145,6 +150,7 @@ void page_init() {
 		report("memory protection initialized successfully\n", report_note);
 	}
 }*/
+
 
 void va_info(virtual_address address) {
 	union virtual_union vu;

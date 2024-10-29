@@ -45,7 +45,7 @@ enum panic_codes {
 	panic_code_unable_to_pick_acpi_memmap_entry,
 	panic_code_failed_to_initialize_acpi,
 	panic_code_acpi_validation_failed,
-	panic_code_efi_systable_not_found
+	panic_code_efi_systable_not_found,
 } panic_codes;
 
 enum report_seriousness {

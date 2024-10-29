@@ -36,7 +36,12 @@ void memory_init() {
 
 	//	initialize paging
 	page_init();
-		//	also initializes heaps
+
+	//	initialize regular heap
+	heap_init();
+
+	//	initialize heap for page table allocations
+	page_heap_init();
 
 	//	parse command line arguments
 	parse_cmd();
@@ -61,7 +66,7 @@ void memmap_parse() {
 		//	join entries of same type ...
 
 	vecs(&memmap, sizeof(memmap_entry));
-	ssize_t msize = req_memmap.response->entry_count, heap_index = 0;
+	ssize_t msize = req_memmap.response->entry_count, heap_index = -1, page_heap_index = -1;
 	struct limine_memmap_entry **ents = req_memmap.response->entries;
 	enum memmap_types tmp = memmap_undefined;
 
@@ -81,13 +86,19 @@ void memmap_parse() {
 	for (; i < msize; i++) {
 		ent = ents[i];
 
-		if (ent->base == (size_t)heap.start) {
+		if (ent->base == (size_t)heap.physical.start) {
 			//	initialize heap entry
-			memmap_entry *h = (memmap_entry *) vec_push(&memmap, 1);
+			memmap_entry *h = vec_push(&memmap, 1);
 			h->base = ent->base;
 			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
 			h->type = memmap_heap;
 			heap_index = memmap.len - 1;
+		} else if (ent->base == (size_t)page_heap.physical.start) {
+			memmap_entry* h = vec_push(&memmap, 1);
+			h->base = ent->base;
+			h->len = page_heap.size * PAGE_SIZE;
+			h->type = memmap_heap;
+			page_heap_index = memmap.len - 1;
 		}
 
 		tmp = memmap_entry_type(ent->type);
@@ -109,6 +120,8 @@ void memmap_parse() {
 	memmap_entry* es = memmap.data;
 	es[heap_index + 1].base += es[heap_index].len;
 	es[heap_index + 1].len -= es[heap_index].len;
+	es[page_heap_index + 1].base += es[page_heap_index].len;
+	es[page_heap_index + 1].len -= es[page_heap_index].len;
 
 
 	//	gather info about memory usage

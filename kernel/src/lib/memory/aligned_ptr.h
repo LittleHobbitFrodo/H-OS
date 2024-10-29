@@ -8,7 +8,7 @@
 #pragma once
 
 #include "../integers.h"
-#include "./heap.h"
+#include "./heap/heap.h"
 
 
 

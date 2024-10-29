@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../integers.h"
-#include "../memory/heap.h"
+#include "../memory/heap/heap.h"
 #include <stdatomic.h>
 
 #define VVEC_REALLOC_ADD 8

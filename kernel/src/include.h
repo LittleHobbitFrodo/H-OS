@@ -47,7 +47,7 @@
 
 //  depends on headers above
 #include "./lib/memory.h"
-#include "./lib/memory/heap.h"
+#include "./lib/memory/heap/heap.h"
 #include "./lib/memory/paging.h"
 #include "./lib/memory/heap/page-heap.h"
 
@@ -80,7 +80,7 @@
 //  sources
 #include "./lib/src/utils.c"
 #include "./lib/src/memory.c"
-#include "./lib/src/memory/heap.c"
+#include "./lib/src/memory/heap/heap.c"
 #include "./lib/src/memory/paging.c"
 #include "./lib/src/output.c"
 

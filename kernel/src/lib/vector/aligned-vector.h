@@ -4,6 +4,9 @@
 //
 
 #pragma once
+#include "../integers.h"
+#include "../memory/heap/heap.h"
+#include "../memory/aligned_ptr.h"
 
 typedef struct aligned_vector {
 	//NOTE:		destruction of each popped/freed element must be done manually

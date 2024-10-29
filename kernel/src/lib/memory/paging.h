@@ -10,7 +10,7 @@
 
 #include "../integers.h"
 
-/*static*/void page_init();
+static void page_init();
 
 typedef struct page_entry {
 	u64 present: 1;
@@ -93,9 +93,28 @@ static inline void page_cpy(page_table_t* src, page_table_t* dest, size_t table_
 	}
 }
 
+typedef struct pages_t {
+	page_table_t* pml4;		//	virtual address of the pml4 table
+		//	in hhdm
+	void* hhdm;
+	struct kernel {
+		void* physical;
+		void* virtual;
+	} kernel;
+	struct {
+		//	virtual base addresses for each heap
+		void* regular;
+		void* page;
+	} heap;
+} pages_t;
+
+static pages_t pages;
+
 page_table_t* page_find();
 
 void* physical(virtual_address address);
 void* virtual_(void* physical);
 
 void va_info(virtual_address address);
+
+

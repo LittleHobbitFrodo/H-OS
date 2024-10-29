@@ -14,28 +14,11 @@ char* logo[5] = {".__",
 //TODO: map reserved areas (+ heaps)
 //TODO: initialize page heap
 //TODO: deprecate physical allocations (for regular heap)
+//TODO: redo parse cmd to not rely on heap | execute it before initializing heap
 
 
 //TODO: (someday) resolve SIMD and GPRs
 	//	-mavx512f?
-
-void countdown(const char* msg, size_t seconds) {
-	print(msg); print(" in ");
-	seconds = max(seconds, 9);
-	for (seconds++; seconds > 0; seconds--) {
-		printc((char)'0' + (char)seconds);
-		for (size_t i = 0; i < 1000; i++) {
-			asm volatile("hlt");
-		}
-		screen_flush_at(output.line, --output.column);
-	}
-}
-
-void wait(size_t milli) {
-	for (size_t i = 0; i < milli; i++) {
-		asm volatile("hlt");
-	}
-}
 
 void kernel() {
 	//	kernel() -> starts the OS
@@ -107,7 +90,7 @@ void kernel() {
 		} else if (str_cmpb(str, "clear")) {
 			screen_flush();
 		} else if (str_cmpb(str, "memmap")) {
-			if ((cmd.len >= 2) && (str_cmpb(&str[1], "original"))) {
+			if ((cmd.len > 1) && (str_cmpb(&str[1], "original"))) {
 				memmap_display_original();
 			} else {
 				memmap_display();
@@ -170,7 +153,11 @@ void kernel() {
 		} else if (str_cmpb(str, "shutdown")) {
 			shutdown();
 		} else if (str_cmpb(str, "heap")) {
-			page_heap_debug();
+			if ((cmd.len > 1) && (str_cmpb(&str[1], "page"))) {
+				page_heap_debug();
+			} else {
+				heap_debug();
+			}
 		} else {
 			output.color = col.white;
 			report("unrecognized command \'", report_error);

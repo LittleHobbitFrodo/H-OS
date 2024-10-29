@@ -60,3 +60,21 @@ void memcpy(void* src, void* dest, size_t size) {
 		((u8 *) dest)[i] = ((u8 *) src)[i];
 	}
 }
+
+void countdown(const char* msg, u8 seconds) {
+	print(msg); print(" in ");
+	seconds = max(seconds, 9);
+	for (seconds++; seconds > 0; seconds--) {
+		printc((char)'0' + (char)seconds);
+		for (size_t i = 0; i < 1000; i++) {
+			asm volatile("hlt");
+		}
+		screen_flush_at(output.line, --output.column);
+	}
+}
+
+void wait(size_t mili) {
+	for (size_t i = 0; i < mili; i++) {
+		asm volatile("hlt");
+	}
+}

@@ -21,13 +21,13 @@ __attribute__((always_inline, nonnull(1))) inline void str(string *this) {
 
 __attribute__((always_inline, nonnull(1, 2))) inline void stre(string *this, const char *eq) {
 	this->size = strlen(eq) - 1;
-	this->data = (char *) palloc(this->size);
-	memcpy((void *) eq, this->data, this->size);
+	this->data = alloc(this->size);
+	memcpy((void *) eq, this->data, this->size+1);
 }
 
 __attribute__((always_inline, nonnull(1, 2))) inline void stres(string *this, const string *other) {
 	this->size = other->size;
-	this->data = palloc(this->size);
+	this->data = alloc(this->size);
 	memcpy(other->data, this->data, this->size);
 }
 

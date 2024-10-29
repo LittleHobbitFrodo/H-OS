@@ -31,7 +31,7 @@ typedef struct page_heap_t {
 	volatile_vector segments;
 
 	struct {
-		void* virtual_;
+		void* virtual;
 		void* physical;
 	} base;
 
@@ -62,8 +62,6 @@ static page_heap_t page_heap;
 /*static */void page_heap_init();
 
 static bool page_heap_reserve_memory();
-
-void page_heap_map();
 
 page_table_t* page_alloc(page_alloc_t* ptr, u32 tables);
 //	return physical address (virtual one is stored in ptr)

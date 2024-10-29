@@ -27,7 +27,7 @@ void str_push(string *this, const char *str) {
 	}
 	size_t osize = this->size;
 	this->size += strlen(str) - 1;
-	this->data = (char *) prealloca(this->data, this->size, string_realloc_add);
+	this->data = realloca(this->data, this->size, string_realloc_add);
 	memcpy((void *) str, (void *) ((size_t) this->data + osize), this->size - osize);
 }
 
@@ -38,7 +38,7 @@ void str_pushs(string *this, const string *other) {
 		memcpy(other->data, this->data, this->size);
 		return;
 	}
-	this->data = (char *) prealloca(this->data, this->size + other->size, string_realloc_add);
+	this->data = realloca(this->data, this->size + other->size, string_realloc_add);
 	memcpy(other->data, (void *) ((size_t) this->data + this->size), this->size + other->size);
 	this->size += other->size;
 }
@@ -50,7 +50,7 @@ void str_pushc(string* this, const char c) {
 		this->data[0] = c;
 		return;
 	}
-	this->data = (char*)prealloca(this->data, ++this->size, string_realloc_add);
+	this->data = realloca(this->data, ++this->size, string_realloc_add);
 	this->data[this->size - 1] = c;
 }
 

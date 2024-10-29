@@ -5,6 +5,7 @@
 
 #pragma once
 #include "../integers.h"
+#include "../memory/heap/heap.h"
 
 #define VECTOR_REALLOC_ADD 4
 

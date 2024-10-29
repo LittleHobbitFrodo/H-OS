@@ -94,3 +94,7 @@ static void memnull(void* ptr, size_t size);
 
 #define max(x, max_) ((x > max_)? max_ : x)
 #define min(x, min_) ((x < min_)? min_ : x)
+
+void countdown(const char* msg, u8 seconds);
+
+void wait(size_t milli);

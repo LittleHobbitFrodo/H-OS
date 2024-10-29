@@ -1,11 +1,123 @@
 //
-//	memory/heap/physical.c
+//	memory/heap.c
 //		part of the CORE kernel belonging to the H-OS project
 //
 
 #pragma once
 
-void *palloc(size_t bytes) {
+#include "../../../memory/heap/heap.h"
+#include "../../../memory/paging.h"
+
+bool heap_reserve_memory(bool include_reclaimable_entries) {
+	//	sets heap.physical.start and heap.end_physical
+
+	memnull(&heap, sizeof(heap_t));
+
+	struct limine_memmap_entry* mstart = null;
+	size_t mlen = 0;
+
+	size_t size = req_memmap.response->entry_count;
+	struct limine_memmap_entry* ent = null;
+
+	if (include_reclaimable_entries) {
+		for (size_t i = 0; i < size; i++) {
+			ent = req_memmap.response->entries[i];
+			if (ent == null) {
+				output.color = col.critical;
+				print("ERROR");
+				output.color = col.white;
+				print(":\tmemory map entry ");
+				printu(i);
+				printl(" is NULL");
+				continue;
+			}
+			if ((ent->type == LIMINE_MEMMAP_USABLE) || (ent->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE)) {
+				if (mstart == null) {
+					mstart = ent;
+				}
+				mlen += ent->length;
+			} else {
+				mstart = null;
+				mlen = 0;
+			}
+			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
+				//	mlen != 0 => mstart != null
+				heap.physical.start = (heap_segment_t*)mstart->base;
+				heap.physical.end = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
+				heap.base_virtual = (void*)((size_t)pages.hhdm + (size_t)heap.physical.start);
+				heap.start = heap.base_virtual;
+				heap.end = heap.start;
+				return true;
+			}
+		}
+	} else {
+		for (size_t i = 0; i < size; i++) {
+			ent = req_memmap.response->entries[i];
+			if (ent == null) {
+				output.color = col.critical;
+				print("ERROR");
+				output.color = col.white;
+				print(":\tmemory map entry ");
+				printu(i);
+				printl(" is NULL");
+				continue;
+			}
+			if (ent->type == LIMINE_MEMMAP_USABLE) {
+				if (mstart == null) {
+					mstart = ent;
+				}
+				mlen += ent->length;
+			} else {
+				mstart = null;
+				mlen = 0;
+			}
+			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
+				//	mlen != 0 => mstart != null
+				heap.physical.start = (heap_segment_t*)mstart->base;
+				heap.physical.end = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
+				heap.base_virtual = (void*)((size_t)pages.hhdm + (size_t)heap.physical.start);
+				heap.start = heap.base_virtual;
+				heap.end = heap.start;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void heap_debug() {
+	u32 c = output.color;
+	heap_segment_t* i = heap.start;
+	output.color = col.cyan;
+	printl("heap scheme: ");
+	size_t ii = 0;
+	for (;; i = i->next) {
+		output.color = col.white;
+		printu(ii); print("\t");
+		output.color = col.cyan;
+		printp(i);
+		print("):\tsize("); printu(i->size); print("):\t");
+		print("\tnext("); printp(i->next); printc('\t');
+		printl((i->used)? "used" : "free");
+		if (i->next == null) {
+			break;
+		}
+		++ii;
+	}
+	endl();
+	output.color = c;
+}
+void heap_init() {
+	//	heap_reserve_memory() must be called before this function
+
+	heap.start->next = null;
+	heap.start->used = false;
+	heap.start->size = HEAP_INITIAL_BLOCK_SIZE;
+	heap.base_virtual = heap.start;
+	heap.end = (heap.used_until = heap.start);
+}
+
+void *alloc(size_t bytes) {
 	struct heap_segment_t *i = heap.used_until;
 	struct heap_segment_t *con = null;
 	size_t c_size = 0;
@@ -43,11 +155,11 @@ void *palloc(size_t bytes) {
 			break;
 		}
 	}
-	return pheap_enlarge(bytes);
+	return heap_enlarge(bytes);
 }
 
 
-void *prealloc(void *ptr, size_t bytes) {
+void *realloc(void *ptr, size_t bytes) {
 	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t));
 	if (seg->size >= bytes) {
 		if (seg->size > bytes + sizeof(heap_segment_t) + 8) {
@@ -59,7 +171,7 @@ void *prealloc(void *ptr, size_t bytes) {
 		seg->size = bytes;
 		return ptr;
 	}
-	u8 *data = palloc(bytes);
+	u8 *data = alloc(bytes);
 	size_t bs = heap_bsize(ptr);
 	size_t size = (bytes < bs) ? bytes : bs;
 	for (size_t i = 0; i < size; i++) {
@@ -69,7 +181,7 @@ void *prealloc(void *ptr, size_t bytes) {
 	return data;
 }
 
-void *prealloca(void *ptr, size_t bytes, size_t add) {
+void *realloca(void *ptr, size_t bytes, size_t add) {
 	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t));
 	if (seg->size >= bytes) {
 		return ptr;
@@ -78,7 +190,7 @@ void *prealloca(void *ptr, size_t bytes, size_t add) {
 		seg->size = bytes;
 		return ptr;
 	}
-	u8 *data = palloc(bytes + add);
+	u8 *data = alloc(bytes + add);
 	size_t bs = heap_bsize(ptr);
 	size_t size = (bytes + add < bs) ? bytes + add : bs;
 	for (size_t i = 0; i < size; i++) {
@@ -89,7 +201,7 @@ void *prealloca(void *ptr, size_t bytes, size_t add) {
 }
 
 
-void *pheap_expand(size_t bytes) {
+void *heap_expand(size_t bytes) {
 	struct heap_segment_t *last = heap.end;
 	heap.end = (struct heap_segment_t *) ((size_t) heap.end + sizeof(heap_segment_t) + last->size);
 	last->next = heap.end;
@@ -120,18 +232,18 @@ heap_segment_t *heap_divide(heap_segment_t *seg, size_t size) {
 	return seg;
 }
 
-void *pheap_enlarge(size_t bytes) {
+void *heap_enlarge(size_t bytes) {
 	if (!heap.end->used) {
 		heap.end->size = bytes;
 		heap.end->next = null;
 		heap.end->used = true;
 		return (void *) ((size_t) heap.end + sizeof(heap_segment_t));
 	}
-	return pheap_expand(bytes);
+	return heap_expand(bytes);
 }
 
 
-void *palign_alloc(size_t bytes, size_t *align_) {
+void *align_alloc(size_t bytes, size_t *align_) {
 	struct heap_segment_t *i = heap.used_until;
 	struct heap_segment_t *con = null;
 	size_t c_size = 0;
@@ -194,10 +306,10 @@ void *palign_alloc(size_t bytes, size_t *align_) {
 			break;
 		}
 	}
-	return pheap_align_enlarge(bytes, align_);
+	return heap_align_enlarge(bytes, align_);
 }
 
-void *palign_realloc(void *ptr, size_t *offset, size_t align, size_t bytes) {
+void *align_realloc(void *ptr, size_t *offset, size_t align, size_t bytes) {
 	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t) - *offset);
 	if (seg->size >= bytes + *offset) {
 		if (seg->size > bytes + sizeof(heap_segment_t) + 8) {
@@ -211,7 +323,7 @@ void *palign_realloc(void *ptr, size_t *offset, size_t align, size_t bytes) {
 	}
 	size_t original_offset = *offset;
 	*offset = align;
-	u8 *data = palign_alloc(bytes, offset);
+	u8 *data = align_alloc(bytes, offset);
 	size_t bs = heap_bsize((void *) ((size_t) ptr - original_offset)) - original_offset;
 	size_t size = (bytes < bs) ? bytes : bs;
 	for (size_t i = 0; i < size; i++) {
@@ -221,7 +333,7 @@ void *palign_realloc(void *ptr, size_t *offset, size_t align, size_t bytes) {
 	return data;
 }
 
-void *palign_reallocf(void *ptr, size_t *offset, size_t align, size_t bytes, void (*on_realloc)(void *)) {
+void *align_reallocf(void *ptr, size_t *offset, size_t align, size_t bytes, void (*on_realloc)(void *)) {
 	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t) - *offset);
 	if (seg->size >= bytes + *offset) {
 		if (seg->size > bytes + sizeof(heap_segment_t) + 8) {
@@ -235,7 +347,7 @@ void *palign_reallocf(void *ptr, size_t *offset, size_t align, size_t bytes, voi
 	}
 	size_t original_offset = *offset;
 	*offset = align;
-	u8 *data = palign_alloc(bytes, offset);
+	u8 *data = align_alloc(bytes, offset);
 	size_t bs = heap_bsize((void *) ((size_t) ptr - original_offset)) - original_offset;
 	size_t size = (bytes < bs) ? bytes : bs;
 	for (size_t i = 0; i < size; i++) {
@@ -249,7 +361,7 @@ void *palign_reallocf(void *ptr, size_t *offset, size_t align, size_t bytes, voi
 }
 
 
-void *palign_realloca(void *ptr, size_t *offset, size_t align, size_t bytes, size_t add) {
+void *align_realloca(void *ptr, size_t *offset, size_t align, size_t bytes, size_t add) {
 	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t) - *offset);
 	if (seg->size >= bytes + *offset) {
 		return ptr;
@@ -261,7 +373,7 @@ void *palign_realloca(void *ptr, size_t *offset, size_t align, size_t bytes, siz
 	}
 	size_t original_offset = *offset;
 	*offset = align;
-	u8 *data = palign_alloc(bytes + add, offset);
+	u8 *data = align_alloc(bytes + add, offset);
 	size_t bs = heap_bsize((void *) ((size_t) ptr - original_offset)) - original_offset;
 	size_t size = (bytes + add < bs) ? bytes + add : bs;
 	for (size_t i = 0; i < size; i++) {
@@ -271,7 +383,7 @@ void *palign_realloca(void *ptr, size_t *offset, size_t align, size_t bytes, siz
 	return data;
 }
 
-void *palign_reallocaf(void *ptr, size_t *offset, size_t align, size_t bytes, size_t add, void (*on_realloc)(void *)) {
+void *align_reallocaf(void *ptr, size_t *offset, size_t align, size_t bytes, size_t add, void (*on_realloc)(void *)) {
 	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t) - *offset);
 	if (seg->size >= bytes + *offset) {
 		return ptr;
@@ -283,7 +395,7 @@ void *palign_reallocaf(void *ptr, size_t *offset, size_t align, size_t bytes, si
 	}
 	size_t original_offset = *offset;
 	*offset = align;
-	u8 *data = palign_alloc(bytes + add, offset);
+	u8 *data = align_alloc(bytes + add, offset);
 	size_t bs = heap_bsize((void *) ((size_t) ptr - original_offset)) - original_offset;
 	size_t size = (bytes + add < bs) ? bytes + add : bs;
 	for (size_t i = 0; i < size; i++) {
@@ -296,7 +408,7 @@ void *palign_reallocaf(void *ptr, size_t *offset, size_t align, size_t bytes, si
 	return data;
 }
 
-void *pheap_align_enlarge(size_t bytes, size_t *align_) {
+void *heap_align_enlarge(size_t bytes, size_t *align_) {
 	if (!heap.end->used) {
 		void *ptr = align((void *) ((size_t) heap.end + sizeof(heap_segment_t)), *align_);
 		size_t offset = (size_t) ptr - ((size_t) heap.end + sizeof(heap_segment_t));
@@ -317,10 +429,10 @@ void *pheap_align_enlarge(size_t bytes, size_t *align_) {
 		*align_ = offset;
 		return ptr;
 	}
-	return pheap_align_expand(bytes, align_);
+	return heap_align_expand(bytes, align_);
 }
 
-void *pheap_align_expand(size_t bytes, size_t *align_) {
+void *heap_align_expand(size_t bytes, size_t *align_) {
 	heap_segment_t *last = heap.end;
 	heap.end = (heap_segment_t *) ((size_t) last + sizeof(heap_segment_t) + last->size);
 	last->next = heap.end;
