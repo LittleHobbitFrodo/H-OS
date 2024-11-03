@@ -7,15 +7,16 @@
 
 #include "../../hw/smbios.h"
 
-#ifndef KERNEL_DEBUG
 __attribute__((always_inline)) inline
-#endif
 void __smbios_report(const char* msg, enum report_seriousness seriousness) {
 	report("System management BIOS:\t", seriousness);
 	print(msg);
 }
 
 void smbios_init() {
+
+	report("proceeding to initialize smbios\n", report_warning);
+
 
 	memnull(&smbios, sizeof(smbios_t));
 	vecs(&smbios.tables, sizeof(smbios_tableptr_t));
@@ -27,7 +28,7 @@ void smbios_init() {
 		return;
 	}
 
-	smbios.entry_point = (smbios_entry_point_t*)req_smbios.response->entry_64;
+	smbios.entry_point = (smbios_entry_point_t*)((size_t)req_smbios.response->entry_64 + (size_t)pages.hhdm);
 
 	if (!strncmpb((const char*)&smbios.entry_point->anchor, "_SM3_", 5)) {
 		__smbios_report("invalid entry point\n", report_error);
