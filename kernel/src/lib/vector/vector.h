@@ -9,13 +9,20 @@
 
 #define VECTOR_REALLOC_ADD 4
 
+typedef u32 vec_bsize_t;
+typedef size_t vec_len_t;
+typedef size_t vec_size_t;
+
 typedef struct vector {
 	//NOTE:		destruction of each popped/freed elements must be done manually
 
 	void* data;
-	size_t len;
-	size_t bsize; //	size of each element
-} vector;
+	vec_len_t len;
+	vec_bsize_t bsize; //	size of each element
+
+
+	//	packed attribute is important (volatile_vector)
+} __attribute__((packed)) vector;
 
 
 __attribute__((always_inline, nonnull(1)))
@@ -27,7 +34,7 @@ inline void vec(vector *this) {
 }
 
 __attribute__((always_inline, nonnull(1)))
-inline void vecs(vector *this, size_t bsize) {
+inline void vecs(vector *this, vec_len_t bsize) {
 	//	initializes empty vector with byte size
 	this->len = 0;
 	this->bsize = bsize;
@@ -35,7 +42,7 @@ inline void vecs(vector *this, size_t bsize) {
 }
 
 __attribute__((always_inline, nonnull(1)))
-static inline void *vecsa(vector *this, size_t len, size_t bsize) {
+static inline void *vecsa(vector *this, vec_len_t len, vec_bsize_t bsize) {
 	//	initializes vector and allocates memory for it
 	this->len = len;
 	this->bsize = bsize;
@@ -47,8 +54,8 @@ static inline void *vecsa(vector *this, size_t len, size_t bsize) {
 	return this->data;
 }
 
-__attribute__((nonnull(1, 4)))
-static inline void vecsac(vector *this, size_t len, size_t bsize, void (*construct)(void *)) {
+__attribute__((always_inline, nonnull(1, 4)))
+static inline void vecsac(vector *this, vec_len_t len, vec_bsize_t bsize, void (*construct)(void *)) {
 	//	initializes vector, allocates memory and constructs each element
 	this->len = len;
 	this->bsize = bsize;
@@ -59,11 +66,11 @@ static inline void vecsac(vector *this, size_t len, size_t bsize, void (*constru
 }
 
 __attribute__((nonnull(1)))
-void vec_resize(vector *this, size_t len);
+void vec_resize(vector *this, vec_len_t len);
 
 //	resize vector
 __attribute__((nonnull(1)))
-void vec_resizecd(vector *this, size_t len, void (*construct)(void *), void (*destruct)(void *));
+void vec_resizecd(vector *this, vec_len_t len, void (*construct)(void *), void (*destruct)(void *));
 	//	resize vector, constructs pushed elements or destructs popped elements
 
 __attribute__((always_inline, nonnull(1)))
@@ -73,26 +80,26 @@ inline void *vec_last(vector *this) {
 }
 
 __attribute__((always_inline))
-inline void *vec_at(vector *this, size_t at) {
+inline void *vec_at(vector *this, vec_len_t at) {
 	//	returns target element
 	return (void *) (((size_t) this->data + (at * this->bsize)));
 }
 
 __attribute__((nonnull(1), returns_nonnull))
-void *vec_push(vector *this, size_t count);
+void *vec_push(vector *this, vec_len_t count);
 
 //	pushes to vector and returns pointer to new elements
 __attribute__((returns_nonnull))
-void *vec_pushc(vector *this, size_t count, void (*construct)(void *));
+void *vec_pushc(vector *this, vec_len_t count, void (*construct)(void *));
 
 //	pushes to vector, constructs new elements and returns pointer to them
 
 __attribute__((nonnull(1)))
-void vec_pop(vector *this, size_t count);
+void vec_pop(vector *this, vec_len_t count);
 
 //	pops vector
 __attribute__((nonnull(1, 3)))
-void vec_popd(vector *this, size_t count, void (*destruct)(void *));
+void vec_popd(vector *this, vec_len_t count, void (*destruct)(void *));
 
 //	pops vector and destructs popped elements
 
@@ -122,7 +129,7 @@ void vec_take_over(vector* this, vector* other);
 	//	will not delete free the "this" vector
 
 __attribute__((nonnull(1)))
-void* vec_insert(vector* this, size_t index, size_t count);
+void* vec_insert(vector* this, vec_len_t index, vec_len_t count);
 
 
 static vector memmap;

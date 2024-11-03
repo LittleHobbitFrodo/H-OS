@@ -78,3 +78,21 @@ void wait(size_t mili) {
 		asm volatile("hlt");
 	}
 }
+
+void strrev(char* str, size_t len) {
+	size_t start = 0;
+	size_t end = len - 1;
+	char tmp;
+	for (; start < end; start++) {
+		tmp = str[start];
+		str[start] = str[end];
+		str[end] = tmp;
+		end--;
+	}
+}
+
+void memcpy_reverse(void* src, void* dest, size_t size) {
+	for (size_t i = size; i > 0; i--) {
+		((u8*)dest)[i-1] = ((u8*)src)[i-1];
+	}
+}

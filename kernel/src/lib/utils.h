@@ -19,7 +19,6 @@ inline size_t strlen(const char *s) {
 	return i;
 }
 
-__attribute__((always_inline))
 static inline bool strcmpb(const char *s1, const char *s2) {
 	size_t l = strlen(s1);
 	bool r = true;
@@ -45,23 +44,14 @@ bool strncmpb(const char* s1, const char* s2, size_t n);
 
 void memcpy(void *src, void *dest, size_t size);
 
-__attribute__((always_inline)) inline void memset(void *ptr, size_t size, u8 val) {
+__attribute__((always_inline))
+inline void memset(void *ptr, size_t size, u8 val) {
 	for (size_t i = 0; i < size; i++) {
 		((u8 *) ptr)[i] = val;
 	}
 }
 
-__attribute__((always_inline)) inline void strrev(char *str, size_t len) {
-	size_t start = 0;
-	size_t end = len - 1;
-	char tmp;
-	for (; start < end; start++) {
-		tmp = str[start];
-		str[start] = str[end];
-		str[end] = tmp;
-		end--;
-	}
-}
+void strrev(char *str, size_t len);
 
 extern void hang();
 
@@ -72,21 +62,25 @@ extern void halt();
 #define enable_interrupts asm volatile("sti");
 #define disable_interrupts asm volatile("cli");
 
-static inline byte inb(u16 port) {
+__attribute__((always_inline))
+inline byte inb(u16 port) {
 	byte ret;
 	asm volatile("inb %0, %1" : "=a"(ret) : "Nd"(port));
 	return ret;
 }
 
-static inline void outb(u16 port, u8 data) {
+__attribute__((always_inline))
+inline void outb(u16 port, u8 data) {
 	asm volatile("outb %1, %0" :: "a"(data), "Nd"(port));
 }
 
-static inline void outw(u16 port, u16 data) {
+__attribute__((always_inline))
+inline void outw(u16 port, u16 data) {
 	asm volatile("outw %1, %0":: "a"(data), "Nd"(port));
 }
 
-static inline void iowait() {
+__attribute__((always_inline))
+inline void iowait() {
 	outb(0x80, 0);
 }
 
@@ -98,3 +92,6 @@ static void memnull(void* ptr, size_t size);
 void countdown(const char* msg, u8 seconds);
 
 void wait(size_t milli);
+
+
+void memcpy_reverse(void* src, void* dest, size_t size);

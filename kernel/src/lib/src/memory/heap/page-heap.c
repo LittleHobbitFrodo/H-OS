@@ -21,6 +21,7 @@ void page_heap_init() {
 	seg->entries = page_heap.base.virtual;
 	seg->table_count = 1;
 	seg->used = false;
+	vvec_unlock((&page_heap.segments));
 }
 
 bool page_heap_reserve_memory() {
@@ -66,59 +67,170 @@ bool page_heap_reserve_memory() {
 }
 
 void page_heap_debug() {
+	vvec_wait_and_lock((&page_heap.segments));
 	u32 c = output.color;
 	output.color = col.blue;
 	printl("page heap scheme:");
 	page_heap_segment_t* seg;
 	for (size_t i = 0; i < page_heap.segments.len; i++) {
-		seg = vvec_at_unlocked(&page_heap.segments, i);
-		printu(i); print(":\t"); printp(seg->entries); print(" : "); printp((void*)(((size_t)seg->entries - (size_t)page_heap.base.virtual) + (size_t)page_heap.base.physical)); endl();
-		printc('\t'); printu(seg->table_count); print("\t"); printl((seg->used)? "used" : "unused");
+		seg = vvec_at(&page_heap.segments, i);
+		printu(i); print(":\t"); printp(seg->entries); print(" : "); printu(seg->table_count); print("\t:\t"); printl((seg->used)? "used" : "unused");
 	}
 	output.color = c;
+	vvec_unlock((&page_heap.segments));
+}
+
+page_table_t* page_alloc(u32 tables) {
+	vvec_wait_and_lock((&page_heap.segments));
+	page_table_t* ret = __page_alloc_locked(tables);
+	vvec_unlock((&page_heap.segments));
+	return ret;
+}
+
+page_table_t* __page_alloc_locked(u32 tables) {
+	page_heap_segment_t* segs = page_heap.segments.data;
+	for (size_t i = page_heap.used_until; i < page_heap.segments.len; i++) {
+		if ((!segs[i].used) && (segs[i].table_count >= tables)) {
+			if ((segs[i].table_count > tables) && (segs[i].table_count > 1)) {
+				__page_heap_divide_block(i, tables);
+			}
+			segs[i].used = true;
+			if (page_heap.used_until < i) {
+				page_heap.used_until = i;
+			}
+			return segs[i].entries;
+		}
+	}
+
+	//	enlarges page heap
+	page_heap_segment_t* last = vvec_last(&page_heap.segments);
+	if (!last->used) {
+		last->used = true;
+		last->table_count = tables;
+		return last->entries;
+	}
+
+	return page_heap_expand(tables, false);
+}
+
+page_table_t* page_realloc(page_table_t* ptr, u32 tables, bool* reallocated) {
+	vvec_wait_and_lock((&page_heap.segments));
+	ssize_t index = page_find_index(ptr);
+	if (index == -1) {
+		page_table_t* ret = __page_alloc_locked(tables);
+		vvec_unlock((&page_heap.segments));
+		return ret;
+	}
+	page_heap_segment_t* seg = vvec_at(&page_heap.segments, index);
+	if (seg->table_count >= tables) {
+		if (reallocated != null) {
+			*reallocated = false;
+		}
+		if ((seg->table_count > tables) && (seg->table_count > 1)) {
+			__page_heap_divide_block(index, tables);
+		}
+		vvec_unlock((&page_heap.segments));
+		return ptr;
+	}
+	page_table_t* new = page_alloc(tables);
+	page_cpy(ptr, new, PAGE_TABLE_SIZE * ((seg->table_count > tables)? tables : seg->table_count));
+	seg->used = false;
+	vvec_unlock((&page_heap.segments));
+	return new;
 }
 
 
-/*void page_heap_map() {
-	//	1)	map one pml4 entry to page_heap.physical.start
-	//	2)	statically allocate pages here (rheap + pheap)
-	//	3)	remap the pml4 entry to point to the allocated pages
-	//	direct map the memory
 
-	//	1.1)	find unused pml4 entry
-	page_entry* pml4 = null;
-	virtual_address* va = (virtual_address*)&pages.heap.page;
-	for (ssize_t i = PAGE_COUNT - 1; (i & (1 << 8)) != 0; i--) {
-		if ((*pages.pml4)[i].address == 0) {
-			pml4 = &(*pages.pml4)[i];
-			va->pml4 = i;
-			print("pml4 i:\t"); printu(i); endl();
-			break;
+
+
+page_table_t* page_heap_expand(size_t tables, bool unlock) {
+	//	takes the vector as if it is already locked
+	//	will unlock the vector
+
+	page_heap_segment_t* last = vvec_last(&page_heap.segments);
+	page_heap_segment_t* new = vec_push((vector*)&page_heap.segments, 1);
+	new->used = true;
+	new->entries = last->entries + last->table_count;
+	new->table_count = tables;
+	if (unlock) {
+		vvec_unlock((&page_heap.segments));
+	}
+	return new->entries;
+}
+
+void __page_heap_divide_block(size_t segment, [[maybe_unused]] size_t tables) {
+	//	divides page heap block -> resize page_heap.segments[segment] to tables
+	//	function assumes:
+		//	vector is already locked and not accessed
+		//	tables < segments[segment].table_count
+
+	vec_push((vector*)&page_heap.segments, 1);
+	page_heap_segment_t* segs = page_heap.segments.data;
+	for (size_t i = page_heap.segments.len - 1; i > segment + 1; i--) {
+		segs[i] = segs[i-1];
+	}
+	page_heap_segment_t* old = &segs[segment];
+	page_heap_segment_t* new = &segs[segment+1];
+	new->entries = old->entries + tables;
+	new->table_count = old->table_count - tables;
+	new->used = false;
+	old->table_count = tables;
+}
+
+
+void page_free(page_table_t* ptr) {
+	vvec_wait_and_lock((&page_heap.segments));
+	page_heap_segment_t* seg = page_find(ptr);
+	if (seg != null) {
+		seg->used = false;
+	}
+	vvec_unlock((&page_heap.segments));
+}
+
+page_heap_segment_t* page_find(page_table_t* ptr) {
+	//	uses the vector as already locked
+	//	binary search implementation
+	page_heap_segment_t *segs = page_heap.segments.data;
+	size_t low = 0, high = page_heap.segments.len - 1, mid;
+
+	do {
+		mid = low + (high - low) / 2;
+
+		if (segs[mid].entries == ptr) {
+			return &segs[mid];
 		}
-	}
-	if (pml4 == null) {
-		report("cannot find enpty pml4 entry for heap mapping\n", report_critical);
-		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
-		__builtin_unreachable();
-	}
-	va->sign = 0xffff;
 
-	//	1.2)	map the entry to selected location
-	*((u64*)pml4) = 0;
-	pml4->address = (size_t)page_heap.physical.start >> PAGE_SHIFT;
-	pml4->present = true;
-	pml4->execute_disable = true;
-	pml4->write = true;
+		if (segs[mid].entries < ptr) {
+			low = mid + 1;
+		} else {
+			high = mid - 1;
+		}
 
-	print("address:\t"); printp(pages.heap.page); endl();
+	} while (low <= high);
 
-	printl("testing pre-map:");
-	for (size_t i = 0; i < WAIT_INT; i++) {
-		iowait();
-	}
+	return null;
+}
 
-	size_t* ptr = (size_t*)pages.heap.page;
-	*ptr = 69;
-	print("ptr:\t"); printu(*ptr);
+ssize_t page_find_index(page_table_t* ptr) {
+	//	uses the vector as already locked
+	//	binary search implementation
+	page_heap_segment_t *segs = page_heap.segments.data;
+	size_t low = 0, high = page_heap.segments.len - 1, mid;
 
-}*/
+	do {
+		mid = low + (high - low) / 2;
+
+		if (segs[mid].entries == ptr) {
+			return mid;
+		}
+
+		if (segs[mid].entries < ptr) {
+			low = mid + 1;
+		} else {
+			high = mid - 1;
+		}
+
+	} while (low <= high);
+
+	return -1;
+}

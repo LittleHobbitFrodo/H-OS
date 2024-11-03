@@ -12,13 +12,15 @@ char* logo[5] = {".__",
 	"|___|__|"};
 
 //TODO: map reserved areas (+ heaps)
-//TODO: initialize page heap
-//TODO: deprecate physical allocations (for regular heap)
-//TODO: redo parse cmd to not rely on heap | execute it before initializing heap
+	//	only those areas needed for runtime
+//TODO: redo parse cmd to not rely on heap
+	//	execute it before initializing heap
 
 
 //TODO: (someday) resolve SIMD and GPRs
 	//	-mavx512f?
+	//	for faster page table copying
+
 
 void kernel() {
 	//	kernel() -> starts the OS

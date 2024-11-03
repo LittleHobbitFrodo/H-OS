@@ -77,7 +77,7 @@ static inline void* page_align(void* address) {
 	return (void*)((size_t)address & ~0xFFF);
 }
 
-__attribute__((always_inline, nonnull(1, 2)))
+__attribute__((nonnull(1, 2)))
 static inline void page_cpy(page_table_t* src, page_table_t* dest, size_t table_count) {
 	/*__m512i* src_ = (__m512i*)src;
 	__m512i* dest_ = (__m512i*)dest;
@@ -95,8 +95,8 @@ static inline void page_cpy(page_table_t* src, page_table_t* dest, size_t table_
 
 typedef struct pages_t {
 	page_table_t* pml4;		//	virtual address of the pml4 table
-		//	in hhdm
-	void* hhdm;
+
+	void* hhdm;		//	virtual base address of hhdm
 	struct kernel {
 		void* physical;
 		void* virtual;
@@ -110,10 +110,7 @@ typedef struct pages_t {
 
 static pages_t pages;
 
-page_table_t* page_find();
-
 void* physical(virtual_address address);
-void* virtual_(void* physical);
 
 void va_info(virtual_address address);
 

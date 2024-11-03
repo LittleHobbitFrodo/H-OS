@@ -6,17 +6,10 @@
 #pragma once
 #include "../../vector/volatile-vector.h"
 
-void* vvec_last_locked(volatile_vector* this) {
-	vvec_wait_lock(this);
-	return (void*)((size_t)this->data + ((this->len - 1) * this->bsize));
-}
+#include "../../utils.h"
 
-void* vvec_at_locked(volatile_vector* this, size_t at) {
-	vvec_wait_lock(this);
-	return (void*)((size_t)this->data + (at * this->bsize));
-}
-
-void vvec_resize(volatile_vector* this, size_t len) {
+void vvec_resize(volatile_vector* this, vec_len_t len) {
+	//	will not unlock the vector
 	vvec_wait_and_lock(this);
 	if (this->data == null) {
 		this->len = len;
@@ -28,10 +21,10 @@ void vvec_resize(volatile_vector* this, size_t len) {
 	}
 	this->data = realloc((void*)this->data, len * this->bsize);
 	this->len = len;
-	vvec_unlock(this);
 }
 
-void vvec_resizecd(volatile_vector* this, size_t len, void (*construct)(void*), void (*destruct)(void*)) {
+void vvec_resizecd(volatile_vector* this, vec_len_t len, void (*construct)(void*), void (*destruct)(void*)) {
+	//	will not unlock the vector
 	vvec_wait_and_lock(this);
 	if (this->data == null) {
 		this->len = len;
@@ -66,10 +59,9 @@ void vvec_resizecd(volatile_vector* this, size_t len, void (*construct)(void*), 
 		}
 	}
 	this->len = len;
-	vvec_unlock(this);
 }
 
-void* vvec_push(volatile_vector* this, size_t count) {
+void* vvec_push(volatile_vector* this, vec_len_t count) {
 	//	will not lock the vector
 	vvec_wait_and_lock(this);
 	if (this->data == null) {
@@ -83,7 +75,20 @@ void* vvec_push(volatile_vector* this, size_t count) {
 	return (void*)((size_t)this->data + (olen * this->bsize));
 }
 
-void* vvec_pushc(volatile_vector* this, size_t count, void (*construct)(void*)) {
+void* __vvec_push_locked(volatile_vector* this, vec_len_t count) {
+	//	will not lock the vector
+	if (this->data == null) {
+		this->len = count;
+		this->data = alloc((this->len * this->bsize) + VVEC_ALLOC_ADD);
+		return this->data;
+	}
+	size_t olen = this->len;
+	this->len += count;
+	this->data = realloca(this->data, this->len * this->bsize, VVEC_REALLOC_ADD);
+	return (void*)((size_t)this->data + (olen * this->bsize));
+}
+
+void* vvec_pushc(volatile_vector* this, vec_len_t count, void (*construct)(void*)) {
 	vvec_wait_and_lock(this);
 	if (this->data == null) {
 		this->len = count;
@@ -102,7 +107,7 @@ void* vvec_pushc(volatile_vector* this, size_t count, void (*construct)(void*)) 
 	return (void*)((size_t)this->data + (olen * this->bsize));
 }
 
-void vvec_pop(volatile_vector* this, size_t count) {
+void vvec_pop(volatile_vector* this, vec_len_t count) {
 	vvec_wait_and_lock(this);
 	if (this->data != null) {
 		if (this->len <= count) {
@@ -117,7 +122,7 @@ void vvec_pop(volatile_vector* this, size_t count) {
 	vvec_unlock(this);
 }
 
-void vvec_popd(volatile_vector* this, size_t count, void (*destruct)(void*)) {
+void vvec_popd(volatile_vector* this, vec_len_t count, void (*destruct)(void*)) {
 	vvec_wait_and_lock(this);
 	if (this->data != null) {
 		if (this->len <= count) {
@@ -152,16 +157,34 @@ void vvec_take_over(volatile_vector* this, volatile_vector* other) {
 	vvec_unlock(other);
 }
 
-void* vvec_insert(volatile_vector* this, size_t index, size_t count) {
+void* vvec_insert(volatile_vector* this, vec_len_t index, vec_len_t count) {
+	//	will not unlock the vector
 	vvec_wait_and_lock(this);
 	if (this->data != 0) {
 		vvec_push(this, count);
-		for (ssize_t i = this->len - 1; (i+1 > (ssize_t)index) && (i > 0); i--) {
-			memcpy(vvec_at_unlocked(this, i-1), vvec_at_unlocked(this, i), this->bsize);
-		}
-		return vvec_at_unlocked(this, index);
+		/*for (ssize_t i = this->len - 1; (i+1 > (ssize_t)index) && (i > 0); i--) {
+			memcpy(vvec_at(this, i-1), vvec_at(this, i), this->bsize);
+		}*/
+		page_heap_segment_t* segs = &((page_heap_segment_t*)this->data)[index];
+		memcpy_reverse(segs, (void*)((size_t)segs + (count * this->bsize)), (this->len - index) * this->bsize);
+		return vvec_at_unlock(this, index);
 	}
 	return null;
 }
 
+void* __vvec_insert_locked(volatile_vector* this, vec_len_t index, vec_len_t count) {
+	//	will not unlock the vector
+	if (this->data != 0) {
+		vec_push((vector*)this, count);
+		void* source = (void*)((size_t)this->data + (index * this->bsize));
+		for (size_t i = this->len - 1; i > index+1; i--) {
+			print("\ttransferring seg["); printu(i-1); print("] to seg["); printu(i); printl("]");
+			memcpy(source + ((i-1) * this->bsize),  (void*)((size_t)source + (i * this->bsize)), this->bsize);
+		}
+		//page_heap_segment_t* segs = &((page_heap_segment_t*)this->data)[index];
+		//memcpy_reverse(segs, (void*)((size_t)segs + (count * this->bsize)), (this->len - index) * this->bsize);
+		return vvec_at(this, index+1);
+	}
+	return null;
+}
 

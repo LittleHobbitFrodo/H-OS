@@ -34,28 +34,28 @@
 #include <limine.h>
 #include "./lib/bootutils.h"
 
-//  other headers depends on          //  provides
+//  other headers depends on				//  provides
 #include "./lib/integers.h"                 //  types (like <stdint.h>)
 #include "./lib/utils.h"                    //  basic functions and structures (strlen(), ...)
-#include "./lib/convert.h"
-#include "./lib/cpu.h"
-#include "./lib/k_management.h"
-#include "./lib/pic.h"
-#include "./lib/time.h"
-#include "./lib/timer.h"
+#include "./lib/convert.h"					//	to-string conversions
+#include "./lib/cpu.h"						//	information about the CPU
+#include "./lib/k_management.h"				//	important functions (init, panic, ...)
+#include "./lib/pic.h"						//	programmable interrupt controller
+#include "./lib/time.h"						//	information about time
+#include "./lib/timer.h"					//	hardware timer configuration
 
 
 //  depends on headers above
-#include "./lib/memory.h"
-#include "./lib/memory/heap/heap.h"
-#include "./lib/memory/paging.h"
-#include "./lib/memory/heap/page-heap.h"
+#include "./lib/memory.h"					//	basic memory management
+#include "./lib/memory/heap/heap.h"			//	kernel heap
+#include "./lib/memory/paging.h"			//	memory protection
+#include "./lib/memory/heap/page-heap.h"	//	kernel heap for page table allocations
 
-#include "./lib/uefi.h"
+#include "./lib/uefi.h"						//	includes uefi runtime services
 
-#include "./lib/memory/aligned_ptr.h"
+#include "./lib/memory/aligned_ptr.h"		//	structure for aligned allocations
 #include "./lib/vector/vector.h"
-#include "./lib/vector/volatile-vector.h"
+#include "./lib/vector/volatile-vector.h"	//	multithreaded vector (untested)
 //#include "./lib/vector/aligned-vector.h"
 
 

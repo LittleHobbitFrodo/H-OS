@@ -9,12 +9,6 @@
 
 #include "../../k_management.h"
 
-page_table_t* page_find() {
-	page_table_t* ret;
-	asm volatile("mov %0, cr3" : "=r"(ret));
-	return ret;
-}
-
 #define WAIT_INT (MAX_U16 << 10)
 
 void page_init() {
@@ -41,7 +35,9 @@ void page_init() {
 
 	req_k_address.response = null;
 	req_page_hhdm.response = null;
-	pages.pml4 = ((size_t)page_find() + pages.hhdm);
+	size_t pml4_addr;
+	asm volatile("mov %0, cr3" : "=r"(pml4_addr));
+	pages.pml4 = (void*)(pml4_addr + (size_t)pages.hhdm);
 
 	//	1)	find place for both heaps
 	if (!heap_reserve_memory(false) || !page_heap_reserve_memory()) {
@@ -50,6 +46,8 @@ void page_init() {
 	}
 
 }
+
+
 
 /*void page_init() {
 	//	allocate virtual addresses for heap, stack and reserved areas
@@ -169,28 +167,27 @@ void va_info(virtual_address address) {
 }
 
 void* physical(virtual_address address) {
-	page_table_t* pages = page_find();
-	page_entry ent = (*pages)[address.pml4];
+	page_entry ent = (*pages.pml4)[address.pml4];
 	if ((!ent.present) || (ent.address == 0)) {
 		#ifndef KERNEL_DEBUG
 		printl("\t\tphysical():\tpage not present: 3");
 		#endif
 		return null;
 	}
-	pages = (page_table_t*)(page_address(ent));
-	ent = (*pages)[address.pdpt];
+	pages.pml4 = (page_table_t*)(page_address(ent));
+	ent = (*pages.pml4)[address.pdpt];
 	if ((!ent.present) || (ent.address == 0)) {
 		printl("\t\tphysical():\tpage not present: 2");
 		return null;
 	}
-	pages = (page_table_t*)((size_t)ent.address << VA_SHIFT);
-	ent = (*pages)[address.pd];
+	pages.pml4 = (page_table_t*)((size_t)ent.address << VA_SHIFT);
+	ent = (*pages.pml4)[address.pd];
 	if ((!ent.present) || (ent.address == 0)) {
 		printl("\t\tphysical():\tpage not present: 1");
 		return null;
 	}
-	pages = (page_table_t*)((size_t)ent.address << VA_SHIFT);
-	ent = (*pages)[address.pt];
+	pages.pml4 = (page_table_t*)((size_t)ent.address << VA_SHIFT);
+	ent = (*pages.pml4)[address.pt];
 	if ((!ent.present) || (ent.address == 0)) {
 		printl("\t\tphysical:\tpage not present: 0");
 		return null;

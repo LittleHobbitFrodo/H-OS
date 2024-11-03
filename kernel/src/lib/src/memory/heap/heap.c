@@ -118,8 +118,8 @@ void heap_init() {
 }
 
 void *alloc(size_t bytes) {
-	struct heap_segment_t *i = heap.used_until;
-	struct heap_segment_t *con = null;
+	heap_segment_t *i = heap.used_until;
+	heap_segment_t *con = null;
 	size_t c_size = 0;
 
 	for (;; i = i->next) {
@@ -202,7 +202,7 @@ void *realloca(void *ptr, size_t bytes, size_t add) {
 
 
 void *heap_expand(size_t bytes) {
-	struct heap_segment_t *last = heap.end;
+	heap_segment_t *last = heap.end;
 	heap.end = (struct heap_segment_t *) ((size_t) heap.end + sizeof(heap_segment_t) + last->size);
 	last->next = heap.end;
 	heap.end->used = true;
@@ -244,8 +244,8 @@ void *heap_enlarge(size_t bytes) {
 
 
 void *align_alloc(size_t bytes, size_t *align_) {
-	struct heap_segment_t *i = heap.used_until;
-	struct heap_segment_t *con = null;
+	heap_segment_t *i = heap.used_until;
+	heap_segment_t *con = null;
 	size_t c_size = 0;
 	void *ptr;
 	size_t offset = 0, c_offset = 0;

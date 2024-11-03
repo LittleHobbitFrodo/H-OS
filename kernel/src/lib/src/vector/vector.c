@@ -7,7 +7,7 @@
 
 #include "../../vector/vector.h"
 
-void vec_resize(vector *this, size_t len) {
+void vec_resize(vector *this, vec_len_t len) {
 	//	destruction of each popped element must be done manually
 	if (this->data == null) {
 		this->len = len;
@@ -20,7 +20,7 @@ void vec_resize(vector *this, size_t len) {
 	this->len = len;
 }
 
-void vec_resizecd(vector *this, size_t len, void (*construct)(void *), void (*destruct)(void *)) {
+void vec_resizecd(vector *this, vec_len_t len, void (*construct)(void *), void (*destruct)(void *)) {
 	if (this->data == null) {
 		this->len = len;
 		this->data = alloc(this->len * this->bsize);
@@ -56,7 +56,7 @@ void vec_resizecd(vector *this, size_t len, void (*construct)(void *), void (*de
 	this->len = len;
 }
 
-void *vec_push(vector *this, size_t count) {
+void *vec_push(vector *this, vec_len_t count) {
 	if (this->data == null) {
 		this->len = count;
 		this->data = alloc(this->len * this->bsize);
@@ -68,7 +68,7 @@ void *vec_push(vector *this, size_t count) {
 	return (void *) ((size_t) this->data + (this->bsize * olen));
 }
 
-void *vec_pushc(vector *this, size_t count, void (*construct)(void *)) {
+void *vec_pushc(vector *this, vec_len_t count, void (*construct)(void *)) {
 	if (this->data == null) {
 		this->len = count;
 		this->data = alloc(this->len * this->bsize);
@@ -86,7 +86,7 @@ void *vec_pushc(vector *this, size_t count, void (*construct)(void *)) {
 	return (void *) ((size_t) this->data + (this->bsize * olen));
 }
 
-void vec_pop(vector *this, size_t count) {
+void vec_pop(vector *this, vec_len_t count) {
 	if (this->data != null) {
 		if (this->len <= count) {
 			free(this->data);
@@ -99,7 +99,7 @@ void vec_pop(vector *this, size_t count) {
 	}
 }
 
-void vec_popd(vector *this, size_t count, void (*destruct)(void *)) {
+void vec_popd(vector *this, vec_len_t count, void (*destruct)(void *)) {
 	if (this->data != null) {
 		if (this->len <= count) {
 			for (size_t i = 0; i < this->len; i++) {
@@ -129,13 +129,14 @@ void vec_take_over(vector* this, vector* other) {
 }
 
 
-void* vec_insert(vector* this, size_t index, size_t count) {
+void* vec_insert(vector* this, vec_len_t index, vec_len_t count) {
+	//	returns pointer to the inserted entry
 	if (this->data != null) {
 		vec_push(this, count);
 		for (ssize_t i = this->len - 1; (i+1 > (ssize_t)index) && (i > 0); i--) {
 			memcpy(vec_at(this, i-1), vec_at(this, i), this->bsize);
 		}
-		return vec_at(this, index);
+		return vec_at(this, ++index);
 	}
 	return null;
 }
