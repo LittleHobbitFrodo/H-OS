@@ -58,8 +58,9 @@
 #include "./lib/vector/volatile-vector.h"	//	multithreaded vector (untested)
 //#include "./lib/vector/aligned-vector.h"
 
+#include "./lib/hw/pci.h"
 
-#include "./lib/hw/smbios.h"
+
 #include "./lib/segmentation.h"
 #include "./lib/tss.h"
 #include "./lib/gdt.h"				//	needs vector.h
@@ -109,5 +110,6 @@
 #include "./lib/src/hw/kb-keys.c"
 #include "./lib/src/acpi/acpi.c"
 #include "./lib/src/uefi.c"
-#include "./lib/src/hw/smbios.c"
 #include "./lib/src/memory/heap/page-heap.c"
+
+#include "./lib/src/hw/pci.c"
