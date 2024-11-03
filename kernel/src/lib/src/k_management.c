@@ -6,7 +6,7 @@
 #pragma once
 #include "../k_management.h"
 
-const void* init() {
+void init() {
 	//	gather information about framebuffer
 	screen_init();
 	//	flush screen
@@ -22,6 +22,10 @@ const void* init() {
 		report("starting in DEBUG mode\n", report_debug);
 	#endif
 
+	//	parse command line arguments
+	parse_cmd();
+	//	better parse cmd earlier
+
 	//	initialize memory
 	memory_init();
 
@@ -33,10 +37,6 @@ const void* init() {
 
 	//	reclaim memory
 	//memmap_reclaim();
-
-	//	paging is not setup yet, so custom allocated memory will be used for kernel and interrupt stacks
-
-	return stack.kernel;
 }
 
 
@@ -194,32 +194,124 @@ void __parse_cmd_out_of_bounds(const string *token) {
 __attribute__((always_inline)) inline
 #endif
 void __parse_cmd_report(const char* msg, enum report_seriousness seriousness) {
-	report("command line argument error:\t", seriousness);
+	report("command line argument:\t", seriousness);
 	print(msg);
 }
 
+size_t __parse_cmd_next_switch(const char* cmd, size_t len, char token[CMD_MAX_TOKEN_LEN], size_t start) {
+	memnull(token, CMD_MAX_TOKEN_LEN);
+
+	size_t i = start;
+
+	//	find start of token
+	for (; (cmd[i] != '-') && (i < len); i++);
+	++i;
+
+	//	write token into token variable
+	for (size_t ii = 0; (((cmd[i] >= 'A') && (cmd[i] <= 'z')) || (cmd[i] == '-')) && (i < len) && (ii < CMD_MAX_TOKEN_LEN-1); ii++, i++) {
+		token[ii] = cmd[i];
+	}
+
+	return i - start;
+}
+
+size_t __parse_cmd_next_token(const char* cmd, size_t len, char token[CMD_MAX_TOKEN_LEN], size_t start) {
+	memnull(token, CMD_MAX_TOKEN_LEN);
+
+	size_t i = start;
+
+	for (; ((cmd[i] < 'A') || (cmd[i] > 'z')) && (i < len); i++);
+
+	for (size_t ii = 0; (((cmd[i] >= 'A') && (cmd[i] <= 'z')) || (cmd[i] == '-')) && (i < len) && (ii < CMD_MAX_TOKEN_LEN-1); ii++, i++) {
+		token[ii] = cmd[i];
+	}
+
+	return i - start;
+}
+
 void parse_cmd() {
+	//	current work: make it not depend on heap
+
+	char token[CMD_MAX_TOKEN_LEN];
+
+	if ((req_kernel_file.response == null) || (req_kernel_file.response->kernel_file == null)) {
+		report("unable to find kernel command line arguments -> using default values\n", report_warning);
+		return;
+	}
+	const char* cmd = req_kernel_file.response->kernel_file->cmdline;
+	const size_t len = strlen(cmd);
+	if (len <= 1) {
+		//	no parameters given
+		return;
+	}
+
+	for (size_t i = 0; i < len; i++) {
+		i += __parse_cmd_next_switch(cmd, len, token, i);
+		//	parse token
+		if (strcmpb(token, "vocality")) {
+
+			i += __parse_cmd_next_token(cmd, len ,token, i);
+			if (strcmpb(token, "stfu")) {
+				vocality = vocality_stfu;
+			} else if (strcmpb(token, "quiet-please")) {
+				vocality = vocality_quiet_please;
+			} else if (strcmpb(token, "normal")) {
+				vocality = vocality_normal;
+			} else if (strcmpb(token, "vocal")) {
+				vocality = vocality_vocal;
+			} else if (strcmpb(token, "report-everything")) {
+				vocality = vocality_report_everything;
+				report("setting kernel vocality to report everything\n", report_note);
+			} else {
+				__parse_cmd_report("unknown word \"", report_problem);
+				print(token); printl("\" for switch \"-vocality\"");
+			}
+		} else if (strcmpb(token, "kaslr")) {
+
+			i += __parse_cmd_next_token(cmd, len, token, i);
+
+			if (strcmpb(token, "enable")) {
+				kaslr = true;
+				if (vocality >= vocality_report_everything) {
+					report("enabling kernel address space randomization\n", report_note);
+				}
+			} else if (strcmpb(token, "disable")) {
+				if (vocality >= vocality_report_everything) {
+					report("disabling kernel address space randomization\n", report_note);
+				}
+			} else {
+				__parse_cmd_report("unknown workd \"", report_problem);
+				print(token); printl("\" for switch \"-kaslr\"");
+			}
+
+		}
+
+	}
+
+
+	return;
+
 	struct limine_file *file = req_kernel_file.response->kernel_file;
 	if (file == null) {
 		report("kernel file (provided by bootloader) is NULL => no parameters taken\n", report_problem);
 		return;
 	}
-	const char *cmd = file->cmdline;
+	const char *cmd_ = file->cmdline;
 	if (file->cmdline == null) {
 		report("no command line arguments given\n", report_note);
 		return;
 	}
 
 	//	tokenize cmd
-	vector tokens; //	strings
-	vecs(&tokens, sizeof(string));
-	str_tokenize(cmd, &tokens);
+	vector tokens_; //	strings
+	vecs(&tokens_, sizeof(string));
+	str_tokenize(cmd_, &tokens_);
 
-	string *s = tokens.data;
+	string *s = tokens_.data;
 
-	for (size_t i = 0; i < tokens.len; i++) {
+	for (size_t i = 0; i < tokens_.len; i++) {
 		if (str_cmpb(&s[i], "-vocality")) {
-			if (++i < tokens.len) {
+			if (++i < tokens_.len) {
 				if (unlikely(str_cmpb(&s[0], "stfu"))) {
 					vocality = vocality_stfu;
 				} else if (unlikely(str_cmpb(&s[i], "quiet-please"))) {
@@ -240,7 +332,7 @@ void parse_cmd() {
 				__parse_cmd_out_of_bounds(&s[i - 1]);
 			}
 		} else if (str_cmpb(&s[i], "-kaslr")) {
-			if (++i < tokens.len) {
+			if (++i < tokens_.len) {
 				if (likely(str_cmpb(&s[i], "enable"))) {
 					if (vocality >= vocality_vocal) {
 						report("enabling KASLR\n", report_note);
@@ -268,9 +360,9 @@ void parse_cmd() {
 
 
 	//	clear strings
-	for (size_t i = 0; i < tokens.len; i++) {
+	for (size_t i = 0; i < tokens_.len; i++) {
 		str_clear(&s[i]);
 	}
 	//	free vector memory
-	vec_free(&tokens);
+	vec_free(&tokens_);
 }

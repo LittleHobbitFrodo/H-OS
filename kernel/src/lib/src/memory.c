@@ -43,10 +43,6 @@ void memory_init() {
 	//	initialize heap for page table allocations
 	page_heap_init();
 
-	//	parse command line arguments
-	parse_cmd();
-		//	better parse cmd earlier
-
 	//	parse memory map
 	memmap_parse();
 
@@ -60,6 +56,8 @@ void memory_init() {
 		report("memory initialization completed\n", report_note);
 	}
 }
+
+
 
 void memmap_parse() {
 	//	parse limine memory map and simplify it

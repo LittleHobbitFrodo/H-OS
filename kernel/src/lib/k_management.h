@@ -7,10 +7,12 @@
 
 extern void kernel();
 
-extern const void* init();
+extern void init();
 	//	returns pointer to kernel stack
 
 extern void shutdown();
+
+#define CMD_MAX_TOKEN_LEN 255
 
 void parse_cmd();
 

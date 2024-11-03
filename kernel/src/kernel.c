@@ -13,8 +13,6 @@ char* logo[5] = {".__",
 
 //TODO: map reserved areas (+ heaps)
 	//	only those areas needed for runtime
-//TODO: redo parse cmd to not rely on heap
-	//	execute it before initializing heap
 
 
 //TODO: (someday) resolve SIMD and GPRs
@@ -34,7 +32,6 @@ void kernel() {
 	vector cmd;
 
 	bool running = true;
-
 
 	do {
 

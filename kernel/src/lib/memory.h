@@ -17,9 +17,13 @@ static struct base {
 } base;
 
 
+extern void* kernel_stack_ptr;
+
 static u8 KERNEL_STACK[32*KB];
 
 static u8 INTERRUPT_STACK[(8*7)*KB];
+
+void* kernel_stack_ptr = KERNEL_STACK;
 
 
 static bool kaslr = false;

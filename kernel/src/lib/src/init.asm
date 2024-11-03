@@ -7,6 +7,7 @@ section .text
 	extern init
 	extern kernel
 	extern shutdown
+	extern kernel_stack_ptr
 
 	global halt
 	global hang
@@ -16,11 +17,11 @@ section .text
 _start:
 	cli
 
+	;   initialize kernel stack
+	mov rsp, [rel kernel_stack_ptr]
+
 	;   initialize machine
 	call init   ;   returns pointer to kernel stack
-
-	;   move kernel stack
-	mov rsp, rax
 
 	call kernel
 
