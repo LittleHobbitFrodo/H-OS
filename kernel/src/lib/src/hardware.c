@@ -9,8 +9,6 @@ void hardware_init() {
 
 	kernel_status = k_state_init_hardware;
 
-	smbios_init();
-
 	//	initialize cpu (cpuid)
 	cpu_init();
 
@@ -20,6 +18,8 @@ void hardware_init() {
 
 	uefi_init();
 		//	uefi runtime services
+
+	smbios_init();
 
 	//acpi_init();
 

@@ -70,3 +70,5 @@ static smbios_t smbios;
 
 
 size_t smbios_table_length(smbios_header_t* header);
+
+smbios_header_t* smbios_next_header(smbios_header_t* header);

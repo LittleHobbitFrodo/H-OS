@@ -157,6 +157,52 @@ void kernel() {
 			} else {
 				heap_debug();
 			}
+		} else if (str_cmpb(str, "smbios")) {
+			if (!smbios.supported) {
+				report("smbios is not supported\n", report_error);
+				continue;
+			}
+			if ((cmd.len > 1) && (str_cmpb(&str[1], "tables"))) {
+				smbios_tableptr_t* tables = smbios.tables.data;
+				print("detected "); printu(smbios.tables.len); printl(" tables");
+				if (smbios.structure_table != null) {
+					print("\tstructure table:\t"); printp(smbios.structure_table); endl();
+				} else {
+					report("structure table not found\n", report_error);
+				}
+
+				for (size_t i = 0; i < smbios.tables.len; i++) {
+					printu(i); print(":\t");
+					switch (tables[i].type) {
+						case smbios_header_bios: {
+							printl("bios");
+							break;
+						}
+						case smbios_header_system: {
+							printl("system");
+							break;
+						}
+						case smbios_header_mainboard: {
+							printl("mainboard");
+							break;
+						}
+						case smbios_header_cpu: {
+							printl("cpu");
+							break;
+						}
+						case smbios_header_slots: {
+							print("slots");
+							break;
+						}
+						default: {
+							printl("other");
+							break;
+						}
+					}
+				}
+			} else {
+
+			}
 		} else {
 			output.color = col.white;
 			report("unrecognized command \'", report_error);

@@ -28,9 +28,11 @@ void smbios_init() {
 		return;
 	}
 
-	smbios.entry_point = (smbios_entry_point_t*)((size_t)req_smbios.response->entry_64 + (size_t)pages.hhdm);
+	//smbios.entry_point = (smbios_entry_point_t*)((size_t)req_smbios.response->entry_64 + (size_t)pages.hhdm);
+	smbios.entry_point = req_smbios.response->entry_64;
+	req_smbios.response = null;
 
-	if (!strncmpb((const char*)&smbios.entry_point->anchor, "_SM3_", 5)) {
+	if (!strncmpb(smbios.entry_point->anchor, "_SM3_", 5)) {
 		__smbios_report("invalid entry point\n", report_error);
 		smbios.supported = false;
 		return;
@@ -42,48 +44,39 @@ void smbios_init() {
 		return;
 	}
 
+	smbios.structure_table = (smbios_header_t*)(smbios.entry_point->table_base + (size_t)pages.hhdm);
 
-	/*memmap_display();
-	print("hhdm:\t"); printp((void*)req_page_hhdm.response->offset); endl();
+	print("smbios entry point:\t"); printp(smbios.entry_point); endl();
+	print("smbios entry point size:\t"); printu(smbios.entry_point->length); endl();
+	print("smbios structure table:\t"); printp(smbios.structure_table); endl();
+	wait(500);
+	print("smbios table type:\t"); printu(smbios.structure_table->type); endl();
 
-	print("tabe_base:\t"); printp((void*)smbios.entry_point->table_base); endl();
-	smbios.structure_table = (smbios_header_t*) smbios.entry_point->table_base;
-	printl("structure_table:");
-	print("type:\t"); printu(smbios.structure_table->type); endl();
-	print("len:\t"); printu(smbios.structure_table->len); endl();
-	print("handle:\t"); printu(smbios.structure_table->handle); endl();*/
+	smbios_header_t* h = smbios.structure_table;
+	size_t i = 0;
+	for (; (h->type != smbios_header_end) && ((size_t)h < (size_t)smbios.entry_point + smbios.entry_point->length); i++) {
+		//print("header["); printu(i); print("]:\t"); printp(h); print(":\t"); printu(h->type); endl();
+		h = smbios_next_header(h);
+		if ((h->type != 0) || (h->handle != 0) || (h->len != 0)) {
 
-	//	enumerate tables
-	/*smbios_header_t* i = smbios.structure_table;
-	size_t len;
-	for (;;) {
-		len = smbios_table_length(i);
-
-		if (len < sizeof(smbios_header_t)) {
-			print("table len:\t"); printu(i->len); print(" : "); printu(sizeof(smbios_header_t)); endl();
-			print("len:\t"); printu(len); endl();
-			printl("Error: Invalid table length. Exiting.");
-			break;
 		}
 
-		smbios_tableptr_t* new = vec_push(&smbios.tables, 1);
-		new->type = i->type;
-		new->header = i;
-		i = (smbios_header_t*)((size_t)i + len);
-
-		if (i->type == smbios_header_end) {
-			printl("end");
-			break;
-		}
-
-	}*/
+	}
+	print("there are "); printu(i+1); printl(" smbios tables");
 
 
 }
 
 size_t smbios_table_length(smbios_header_t* header) {
+	size_t i = 0;
+	const char* str = (const char*)header + header->len;
+	for (; !(str[i] == '\0' && str[i+1] == '\0'); i++);
+	return header->len + i + 2;
+}
+
+smbios_header_t* smbios_next_header(smbios_header_t* header) {
 	size_t i = 1;
 	const char* str = (const char*)header + header->len;
-	for (; (str[i-1] != '\0') && (str[i] != '\0'); i++);
-	return header->len + i + 1;
+	for (; !(str[i-1] == '\0' && str[i] == '\0'); i++);
+	return (smbios_header_t*)((size_t)header + header->len + i + 1);
 }
