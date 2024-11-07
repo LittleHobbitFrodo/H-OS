@@ -96,7 +96,7 @@ __attribute__((always_inline)) static inline char keyboard_char() {
 	return '\0';
 }
 
-static string keyboard_getline(bool draw);
+string keyboard_getline(bool draw);
 
 __attribute__((always_inline)) static inline bool keyboard_hit() {
 	return keyboard.hit;

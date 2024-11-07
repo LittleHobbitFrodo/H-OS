@@ -76,8 +76,43 @@ inline void outb(u16 port, u8 data) {
 
 __attribute__((always_inline))
 inline void outw(u16 port, u16 data) {
-	asm volatile("outw %1, %0":: "a"(data), "Nd"(port));
+	asm volatile("outw %1, %0" :: "a"(data), "Nd"(port));
 }
+
+__attribute__((always_inline))
+inline u16 inw(u16 port) {
+	u16 ret;
+	asm volatile("inw %0, %1" : "=a"(ret) : "Nd"(port));
+	return ret;
+}
+
+__attribute__((always_inline))
+inline void outd(u16 port, u32 data) {
+	asm volatile("outd %1, %0" :: "a"(data), "Nd"(port));
+}
+
+__attribute__((always_inline))
+inline u32 ind(u16 port) {
+	u32 ret;
+	asm volatile("ind %0, %1" : "=a"(ret) : "Nd"(port));
+	return ret;
+}
+
+__attribute__((always_inline))
+inline void outq(u16 port, u64 data) {
+	asm volatile("outq %1, %0" :: "a"(data), "Nd"(port));
+}
+
+__attribute__((always_inline))
+inline u64 inq(u16 port) {
+	u64 ret;
+	asm volatile("inq %0, %1" : "=a"(ret) : "Nd"(port));
+	return ret;
+}
+
+
+
+
 
 __attribute__((always_inline))
 inline void iowait() {
