@@ -58,7 +58,7 @@
 #include "./lib/vector/volatile-vector.h"	//	multithreaded vector (untested)
 //#include "./lib/vector/aligned-vector.h"
 
-#include "./lib/hw/pci.h"
+#include "./lib/hw/pci/pci.h"
 
 
 #include "./lib/segmentation.h"
@@ -112,4 +112,4 @@
 #include "./lib/src/uefi.c"
 #include "./lib/src/memory/heap/page-heap.c"
 
-#include "./lib/src/hw/pci.c"
+#include "./lib/src/hw/pci/pci.c"

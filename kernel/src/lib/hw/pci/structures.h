@@ -1,26 +1,27 @@
 //
-//	hw/pci.h
+//	hw/pci/structures.h
 //		part of the CORE kernel belonging to the H-OS project
 //
 
 #pragma once
 
+enum pci_device_header_types {
+	pci_header_general_device = 0x0,
+	pci_header_pci_to_pci = 0x1,
+	pci_header_pci_to_cardbus = 0x2
+};
 
-#define PCI_CONFIG_ADDRESS 0xCF8
-	//	32bit register
-#define PCI_CONFIG_DATA 0xCFC
-
-typedef struct pci_address_t {
+typedef struct pci_address {
 	u32 offset:		8;
 	u32 function:	3;
 	u32 slot:		5;
 	u32 bus:		8;
 	u32 reserved:	7;
 	u32 enable:		1;
-} __attribute__((packed)) pci_address_t;
+} __attribute__((packed)) pci_address;
 
 union pci_address_u32 {
-	pci_address_t address;
+	pci_address address;
 	u32 u32;
 } pci_address_u32;
 
@@ -42,7 +43,7 @@ typedef struct pci_status {
 
 } __attribute__((packed)) pci_status;
 
-typedef struct pci_command {
+typedef struct pci_command_t {
 
 	u16 respond_io:		1;		//	1 = can respond to io space accesses
 	u16 respond_mem:	1;		//	1 = can respond to memory space access
@@ -57,9 +58,22 @@ typedef struct pci_command {
 	u16 enable_fbtb:	1;		//	1 = enable fast back to back transactions
 	u16 interrupt_disable:	1;	//	1 = interrupt signal is disabled
 
-} __attribute__((packed)) pci_command;
+} __attribute__((packed)) pci_command_t;
 
-typedef struct pci_device_header_t {
+typedef struct pci_bist_t {
+	//	built-in self test
+	u8 code:		4;		//	0 = success
+	u8 reserved:	2;
+	u8 start:		1;		//	if set self test is invoekd
+	u8 capable:		1;
+} __attribute__((packed)) pci_bist_t;
+
+typedef struct pci_header_type {
+	u8 header_type:	7;
+	u8 multiple_functions:	1;
+} __attribute__((packed)) pci_header_type;
+
+typedef struct pci_device_header {
 	u16 vendor;
 	u16 device;		//	IDs are allocated by vendor
 	u16 command;
@@ -72,27 +86,34 @@ typedef struct pci_device_header_t {
 
 	u8 cache_line_size;	//	32bit units
 	u8 latency_timer;	//	units: pci bus locks
-	u8 header_type;		//	bit 7: multi function
-	u8 bist;	//	built-in self test
+	pci_header_type header_type;		//	bit 7: multi function
+	pci_bist_t bist;	//	built-in self test
 
-} __attribute__((packed)) pci_device_header_t;
+} __attribute__((packed)) pci_device_header;
 
-static void pci_init();
+typedef struct pci_memory_base {
 
-u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset);
+	u32 always_zero:	1;
+	u32 type:			2;
+	u32 prefetchable:	1;
+	u32 base:			28;
 
+} __attribute__((packed)) pci_memory_base;
 
-enum pci_device_header_types {
-	pci_header_general_device = 0x0,
-	pci_header_pci_to_pci = 0x1,
-	pci_header_pci_to_cardbus = 0x2
-};
+typedef struct pci_io_base {
+
+	u32 always_one:		1;
+	u32 reserved:		1;
+	u32 base:			30;
+
+} __attribute__((packed)) pci_io_base;
 
 
 typedef struct pci_header_general_device_t {
+	//	code: 0x0
 
-	pci_device_header_t header;
-	u32 base_address[6];
+	pci_device_header header;
+	pci_memory_base base_address[6];
 
 	u32 cardbus_CIS_pointer;
 
@@ -110,3 +131,82 @@ typedef struct pci_header_general_device_t {
 	u8 max_latency;		//	how often the device needs to access the bus (1/4 microseconds)
 
 } __attribute__((packed)) pci_header_general_device_t;
+
+typedef struct pci_header_pci_to_pci_t {
+	//	code: 0x1
+
+	pci_device_header header;
+	pci_memory_base base_address[2];
+
+	u8 primary_bus_number;
+	u8 secondary_bus_number;
+	u8 subordinate_bus_number;
+	u8 secondary_latency_timer;
+
+	u8 io_base;
+	u8 io_limit;
+	u16 secondary_status;
+
+	u16 memory_base;
+	u16 memory_limit;
+
+	u16 prefetchable_memory_base;
+	u16 prefetchable_memory_limit;
+
+	u32 prefetchable_base1;
+	u32 prefetchable_limit1;
+
+	u16 io_base1;
+	u16 io_limit1;
+
+	u8 capability_ptr;
+	u8 reserved[3];
+
+	u32 ROM_base;
+
+	u8 interrupt_line;
+	u8 interrupt_pin;
+	u16 bridge_control;
+
+} __attribute__((packed)) pci_header_pci_to_pci_t;
+
+typedef struct pci_header_pci_to_cardbus_t {
+	//	code:	0x2
+
+	pci_device_header header;
+
+	u32 cardbus_socket;
+
+	u8 capabilities_offset;
+	u8 reserved;
+	u16 secondary_status;
+
+	u8 pci_bus_number;
+	u8 cardbus_bus_number;
+	u8 subordinate_bus_number;
+	u8 cardbus_latency_timer;
+
+	u32 memory_base;
+	u32 memory_limit;
+	u32 memory_base1;
+	u32 memory_limit1;
+
+	u32 io_base1;
+	u32 io_limit1;
+
+	u8 interrupt_line;
+	u8 interrupt_pin;
+	u16 bridge_control;
+
+	u16 subsystem_device_ID;
+	u16 subsystem_vendor_ID;
+
+	u32 legacy_mode_base;
+
+} __attribute__((packed)) pci_header_pci_to_cardbus_t;
+
+
+
+
+
+

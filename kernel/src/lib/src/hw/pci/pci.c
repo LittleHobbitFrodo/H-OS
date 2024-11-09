@@ -1,15 +1,20 @@
 //
-//	hw/pci.c
+//	hw/pci/pci.c
 //		part of the CORE kernel belonging to the H-OS project
 //
 
 #pragma once
 
-#include "../../hw/pci.h"
+#include "../../../hw/pci/pci.h"
 
 void pci_init() {
 	report("proceeding to initialize PCI\n", report_warning);
 	wait(500);
+
+	memnull(&pci, sizeof(pci_t));
+	vecs(&pci.devices, sizeof(pci_device_t));
+
+	pci_enumerate();
 
 }
 
@@ -27,3 +32,15 @@ u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset) {
 
 	return ind(PCI_CONFIG_DATA);
 }
+
+bool pci_enumerate() {
+	if (pci.devices.data != null) {
+		vec_free(&pci.devices);
+	}
+
+
+
+}
+
+
+

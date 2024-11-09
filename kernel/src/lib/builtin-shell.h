@@ -239,6 +239,7 @@ void shell() {
 				memmap_display();
 			}
 		} else if (str_cmpb(str, "microfetch")) {		//	microfetch
+			output.color = col.blue;
 			printl(__shell_os_logo[0]);
 			print(__shell_os_logo[1]); output.color = col.white; print("\t\t\tOS:\t\t"); printl(KERNEL_NAME);
 			time_update();
