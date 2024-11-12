@@ -8,7 +8,9 @@
 #include "../integers.h"
 #include "./structures.h"
 
-typedef struct acpi_rsdp_t {
+//	acpi is being deprecated (version 0.1.3.6 | this goofy implementation is no use anyway)
+
+/*typedef struct acpi_rsdp_t {
 
 	//	ACPI version 1.0
 	char signature[8];
@@ -62,5 +64,5 @@ static acpi_t acpi;
 [[maybe_unused]] static void acpi_init();
 static void acpi_query();
 static void acpi_check();
-static void acpi_hypervisor_detect();
+static void acpi_hypervisor_detect();*/
 

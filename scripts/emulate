@@ -16,5 +16,5 @@ for i in $argv
 end
 
 #	root dir
-qemu-system-x86_64 -m 8192 -drive format=raw,file=./H-OS.hdd -no-reboot -d int -D qemu.log &
+qemu-system-x86_64 -m 8192 -drive format=raw,file=./H-OS.hdd,id=ssd -no-reboot -d int -D qemu.log &
 # -d int

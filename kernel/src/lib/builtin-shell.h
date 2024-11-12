@@ -13,7 +13,7 @@ static char* __shell_os_logo[5] = {".__",
 	"|   \\  |",
 	"|___|__|"};
 
-typedef struct shell_cmd_t {
+/*typedef struct shell_cmd_t {
 	char** cmd;
 	size_t size;
 } shell_cmd_t;
@@ -26,7 +26,8 @@ static shell_cmd_t cmds[] = {{.cmd = (char*[]){"help"}, .size = 1},
 	{.cmd = (char*[]){"memmap", "original", "new"}, .size = 3},
 	{.cmd = (char*[]){"microfetch"}, .size = 1},
 	{.cmd = (char*[]){"shutdown"}, .size = 1},
-	{.cmd = (char*[]){"heap", "regular", "page"}, .size = 3}};
+	{.cmd = (char*[]){"heap", "regular", "page"}, .size = 3}};*/
+static char* cmds[] = {"help", "time", "echo", "exit", "clear", "memmap", "microfetch", "shutdown", "heap"};
 static size_t cmdc = 9;
 	//	act as source
 
@@ -54,10 +55,10 @@ void shell() {
 	//	some serious piece of shit code :D
 
 	string input;
-	vector tokens;
+	strvec_t tokens;
 
 	str(&input);
-	vecs(&tokens, sizeof(string));
+	strvec_construct(&tokens, 0);
 
 	output.color = col.green;
 
@@ -74,7 +75,7 @@ void shell() {
 			char c;
 			size_t start = output.column;
 			bool loop = true, updated = false;
-			shell_cmd_t* completion_base = null;
+			char* completion_base = null;
 			char* completion = null;
 			size_t wrd = 0;
 
@@ -134,10 +135,10 @@ void shell() {
 					}
 					char* word = null;
 					{
-						ssize_t i = (ssize_t)input.size - 1;
-						for (; i > 0; i--) {
-							if (input.data[i] == ' ') {
-								word = &input.data[i+1];
+						ssize_t ii = (ssize_t)input.size - 1;
+						for (; ii > 0; ii--) {
+							if (input.data[ii] == ' ') {
+								word = &input.data[ii+1];
 								wrd = 1;
 								break;
 							}
@@ -148,9 +149,9 @@ void shell() {
 					}
 					size_t wlen = 0;
 					{
-						for (size_t i = 0; i < (size_t)word - (size_t)input.data; i++) {
-							if ((word[i] < 'A') || (word[i] > 'z')) {
-								wlen = i;
+						for (size_t ii = 0; ii < (size_t)word - (size_t)input.data; ii++) {
+							if ((word[ii] < 'A') || (word[ii] > 'z')) {
+								wlen = ii;
 							}
 						}
 						if (wlen == 0) {
@@ -161,10 +162,10 @@ void shell() {
 						continue;
 					}
 
-					for (size_t i = 0; i < cmdc; i++) {
-						if (strncmpb(word, cmds[i].cmd[0], wlen)) {
-							completion_base = &cmds[i];
-							word = &completion_base->cmd[0][wlen];
+					for (size_t ii = 0; ii < cmdc; ii++) {
+						if (strncmpb(word, cmds[ii], wlen)) {
+							completion_base = cmds[ii];
+							word = &completion_base[wlen];
 							completion = word;
 							break;
 						}
@@ -193,7 +194,7 @@ void shell() {
 		str_tokenize(input.data, &tokens);
 		str_clear(&input);
 
-		string* str = vec_at(&tokens, 0);
+		string* str = strvec_at(&tokens, 0);
 
 		if (str_cmpb(str, "help")) {		//	help
 			printl("welcome to TBHSH (Temporary Built-in H-OS SHell)");
@@ -208,6 +209,8 @@ void shell() {
 			printl("\t\'original\' subcommand prints memory map given by bootloader (if available)\n");
 			output.color = col.white; print("microfetch"); output.color = col.blue; printl(":\t\tdisplays device info with style");
 			output.color = col.white; print("shutdown"); output.color = col.blue; printl(":\t\tturns the computer down");
+			output.color = col.white; print("pci"); output.color = col.blue; printl("displays information about PCI");
+			printl("\t\'devices\' subcommand will list all PCI devices");
 		} else if (str_cmpb(str, "time")) {		//	time
 			time_update();
 			char* out = format_time((timespec_t*)&timespec, time_format_str);
@@ -215,20 +218,20 @@ void shell() {
 			free(out);
 		} else if (str_cmpb(str, "echo")) {		//	echo
 			if (tokens.len < 2) {
-				vec_clear(&tokens, (void (*)(void*))str_clear);
+				strvec_destruct(&tokens);
 				continue;
 			}
-			if (str_cmpb(((string*)vec_at(&tokens, 1)), "-no-linebreak")) {
-				for (size_t i = 2; i < tokens.len; i++) {
-					prints(((string*)vec_at(&tokens, i))); printc(' ');
+			if (str_cmpb((strvec_at(&tokens, 1)), "-no-linebreak")) {
+				for (size_t ii = 2; ii < tokens.len; ii++) {
+					prints((strvec_at(&tokens, ii))); printc(' ');
 				}
 			} else {
-				for (size_t i = 1; i < tokens.len; i++) {
-					printsl(((string*)vec_at(&tokens, i)));
+				for (size_t ii = 1; ii < tokens.len; ii++) {
+					printsl((strvec_at(&tokens, ii)));
 				}
 			}
 		} else if (str_cmpb(str, "exit")) {		//	exit
-			vec_clear(&tokens, (void (*)(void*))str_clear);
+			strvec_destruct(&tokens);
 			return;
 		} else if (str_cmpb(str, "clear")) {		//	clear
 			screen_flush();
@@ -303,14 +306,41 @@ void shell() {
 			} else {
 				heap_debug();
 			}
+		} else if (str_cmpb(str, "pci")) {
+			if ((tokens.len > 1) && (str_cmpb(&str[1], "devices"))) {
+				if (pci.slots.data == null) {
+					report("no PCI devices detected\n", report_error);
+					continue;
+				}
+				for (size_t ii = 0; ii < pci.slots.len; ii++) {
+					pci_slot_t* slot = pci_slots_at(&pci.slots, ii);
+					if (slot->functions.data != null) {
+						print("functions on slot "); printu(ii+1); endl();
+						pci_func_t* func;
+						for (size_t iii = 0; iii < slot->functions.len; iii++) {
+							func = pci_funcs_at(&slot->functions, iii);
+							if (func->info.class != 1) {
+								continue;
+							}
+							print("\t"); printu(iii+1); print(":\t");
+							print("type: "); printu(func->type); endl();
+							print("\tclass:\t"); printu(func->info.class); endl();
+							print("\tsubclass:\t"); printu(func->info.subclass); endl();
+							print("\tprogramming:\t"); printu(func->info.programming); endl();
+						}
+						endl();
+					}
+				}
+			} else {
+
+			}
 		} else {
 			report("unknown command \"", report_error);
 			print(str->data);
 			printl("\"");
 		}
 
-
-		vec_clear(&tokens, (void (*)(void*))str_clear);
+		strvec_destruct(&tokens);
 		output.color = col.green;
 		print("used <=> H-OS: ");
 	}

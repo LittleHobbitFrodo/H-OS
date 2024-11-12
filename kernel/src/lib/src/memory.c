@@ -6,6 +6,8 @@
 #pragma once
 #include "../memory.h"
 
+#include "../vector/vector.h"
+
 void memory_init() {
 
 	kernel_status = k_state_init_memory;
@@ -63,7 +65,80 @@ void memmap_parse() {
 	//	parse limine memory map and simplify it
 		//	join entries of same type ...
 
-	vecs(&memmap, sizeof(memmap_entry));
+
+	memmap_construct(1);
+	ssize_t msize = req_memmap.response->entry_count, heap_index = -1, page_heap_index = -1;
+	struct limine_memmap_entry **ents = req_memmap.response->entries;
+	enum memmap_types tmp = memmap_undefined;
+
+	struct limine_memmap_entry *ent;
+	ssize_t i = 0;
+	{
+		//	prepare first entry
+		memmap_entry *first = memmap.data;
+		first->base = ents[0]->base;
+		first->type = memmap_entry_type(ents[i]->type);
+		for (++i; memmap_entry_type(ents[i]->type) == tmp; i++);
+		--i;
+		first->len = ents[i]->base + ents[i]->length - first->base;
+		++i;
+	}
+
+	for (; i < msize; i++) {
+		ent = ents[i];
+
+		if (ent->base == (size_t)heap.physical.start) {
+			//	initialize heap entry
+			memmap_entry *h = memmap_push(1);
+			h->base = ent->base;
+			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
+			h->type = memmap_heap;
+			heap_index = memmap.len - 1;
+		} else if (ent->base == (size_t)page_heap.physical.start) {
+			memmap_entry* h = memmap_push(1);
+			h->base = ent->base;
+			h->len = page_heap.size * PAGE_SIZE;
+			h->type = memmap_heap;
+			page_heap_index = memmap.len - 1;
+		}
+
+		tmp = memmap_entry_type(ent->type);
+		//	skip entries of same type
+		for (++i; (i < msize) && (memmap_entry_type(ents[i]->type) == tmp); i++);
+		--i;
+
+		memmap_entry *new = memmap_push(1);
+		new->base = ent->base;
+		new->type = tmp;
+		if (i + 1 < msize) {
+			new->len = ents[i + 1]->base - new->base;
+		} else {
+			new->len = ents[i]->base + ents[i]->length - new->base;
+		}
+	}
+
+	//	make heap entry not overlap other entries
+	memmap_entry* es = memmap.data;
+	es[heap_index + 1].base += es[heap_index].len;
+	es[heap_index + 1].len -= es[heap_index].len;
+	es[page_heap_index + 1].base += es[page_heap_index].len;
+	es[page_heap_index + 1].len -= es[page_heap_index].len;
+
+
+	//	gather info about memory usage
+	memmap_analyze();
+
+	//	apply stacks (stck != null)
+		//	paging is not initialized yet -> special allocated memory will be used for stacks (memory.h)
+	//stack.kernel = (void*)(stck->base + stck->len - 1);
+	stack.kernel = (void*)((size_t)&KERNEL_STACK + (32*KB) - 1);
+	for (i = 0; i < 7; i++) {
+		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
+		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
+	}
+
+
+	/*vecs(&memmap, sizeof(memmap_entry));
 	ssize_t msize = req_memmap.response->entry_count, heap_index = -1, page_heap_index = -1;
 	struct limine_memmap_entry **ents = req_memmap.response->entries;
 	enum memmap_types tmp = memmap_undefined;
@@ -132,7 +207,7 @@ void memmap_parse() {
 	for (i = 0; i < 7; i++) {
 		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
 		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
-	}
+	}*/
 
 
 	if (vocality >= vocality_report_everything) {
@@ -379,7 +454,7 @@ void memmap_analyze() {
 	meminfo.total = es[memmap.len - 1].base + es[memmap.len - 1].len;
 }
 
-void memmap_reclaim() {
+/*void memmap_reclaim() {
 	//	reclaims reclaimable entries
 
 	if (memmap.data == null) {
@@ -396,7 +471,7 @@ void memmap_reclaim() {
 		}
 	}
 
-	vector old;
+	memmap_vector_t old;
 	vec_take_over(&old, &memmap);
 	vecs(&memmap, sizeof(memmap_entry));
 
@@ -442,12 +517,12 @@ void memmap_reclaim() {
 	if (vocality >= vocality_report_everything) {
 		report("memory reclaimed\n", report_note);
 	}
-}
+}*/
 
 memmap_entry* memmap_find(enum memmap_types type) {
 	memmap_entry* ret;
 	for (size_t i = 0; i < memmap.len; i++) {
-		ret = vec_at(&memmap, i);
+		ret = memmap_at(i);
 		if (ret->type == type) {
 			return ret;
 		}

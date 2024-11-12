@@ -78,7 +78,7 @@ typedef struct memmap_entry {
 
 static void memmap_parse();
 
-[[maybe_unused]] static void memmap_reclaim();
+//static void memmap_reclaim();
 
 static void memmap_analyze();
 

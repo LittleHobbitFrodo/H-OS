@@ -31,7 +31,7 @@ enum vocal {
 } vocal;
 
 enum panic_codes {
-	panic_code_ok,
+	ok = 0,
 	panic_code_memmap_not_found,
 	panic_code_unsupported_paging_mode,
 	panic_code_cannot_allocate_memory_for_kernel_heap,

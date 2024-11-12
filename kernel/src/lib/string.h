@@ -5,11 +5,13 @@
 
 #pragma once
 #include "./integers.h"
+#include "./vector/vector.h"
 
 typedef struct string {
 	char *data;
 	size_t size;
 } string;
+
 
 static size_t string_realloc_add = 4;
 
@@ -67,6 +69,7 @@ void str_clear(string *this) {
 	this->size = 0;
 }
 
-struct vector;
+//	vector_type_cd is defined in vector/vector.h
+vector_type_cd(strvec, string, strvec_t, str, str_clear);
 
-static void str_tokenize(const char* input, vector *output);
+static void str_tokenize(const char* input, strvec_t* output);

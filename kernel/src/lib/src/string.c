@@ -169,10 +169,10 @@ bool str_cmpbs(const string *s1, const string *s2) {
 }
 
 
-void str_tokenize(const char* input, vector* output) {
+void str_tokenize(const char* input, strvec_t* output) {
 	string token;
 	str(&token);
-	vecs(output, sizeof(string));
+	strvec_construct(output, 0);
 
 	size_t cmdlen = strlen(input);
 	char* tstart = null;
@@ -186,7 +186,7 @@ void str_tokenize(const char* input, vector* output) {
 				//	push
 				if (likely(tlen > 0)) {
 					str_setss(&token, tstart, tlen); //	copy data from cmdline
-					string *nstr = vec_push(output, 1); //	push to strings
+					string *nstr = strvec_push(output, 1); //	push to strings
 					str(nstr); //	initialize string
 					str_take_over(nstr, &token); //	take over token string
 				}
@@ -210,7 +210,7 @@ void str_tokenize(const char* input, vector* output) {
 	//	push if last word is not pushed
 	if (likely(tlen > 0)) {
 		str_setss(&token, tstart, tlen); //	copy data from cmdline
-		string *nstr = vec_push(output, 1); //	push to strings
+		string *nstr = strvec_push(output, 1); //	push to strings
 		str(nstr); //	initialize string
 		str_take_over(nstr, &token); //	take over token string
 		nstr->size = tlen;

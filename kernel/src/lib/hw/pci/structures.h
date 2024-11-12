@@ -5,10 +5,10 @@
 
 #pragma once
 
-enum pci_device_header_types {
-	pci_header_general_device = 0x0,
-	pci_header_pci_to_pci = 0x1,
-	pci_header_pci_to_cardbus = 0x2
+enum pci_device_types {
+	pci_general_device = 0x0,
+	pci_pci_to_pci = 0x1,
+	pci_pci_to_cardbus = 0x2
 };
 
 typedef struct pci_address {
@@ -25,7 +25,7 @@ union pci_address_u32 {
 	u32 u32;
 } pci_address_u32;
 
-typedef struct pci_status {
+typedef struct pci_status_t {
 
 	u16 reserved:			2;
 	u16 interrupt_status:	1;			//	1 and interrupts enabled = signal will be sent
@@ -41,7 +41,7 @@ typedef struct pci_status {
 	u16 signaled_system_error:	1;
 	u16 parity_error_detected:	1;
 
-} __attribute__((packed)) pci_status;
+} __attribute__((packed)) pci_status_t;
 
 typedef struct pci_command_t {
 
@@ -70,14 +70,14 @@ typedef struct pci_bist_t {
 
 typedef struct pci_header_type {
 	u8 header_type:	7;
-	u8 multiple_functions:	1;
+	u8 multifunc:	1;
 } __attribute__((packed)) pci_header_type;
 
 typedef struct pci_device_header {
 	u16 vendor;
 	u16 device;		//	IDs are allocated by vendor
-	u16 command;
-	u16 status;
+	pci_command_t command;	//	16 bits
+	pci_status_t status;	//	16 bits
 
 	u8 revision;		//	allocated by vendor
 	u8 prog_interface;	//	specifies register-level programming (read-only)

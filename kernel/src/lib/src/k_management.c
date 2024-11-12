@@ -303,8 +303,8 @@ void parse_cmd() {
 	}
 
 	//	tokenize cmd
-	vector tokens_; //	strings
-	vecs(&tokens_, sizeof(string));
+	strvec_t tokens_;	//	strings
+	strvec_construct(&tokens_, 0);
 	str_tokenize(cmd_, &tokens_);
 
 	string *s = tokens_.data;
@@ -358,11 +358,6 @@ void parse_cmd() {
 		}
 	}
 
-
-	//	clear strings
-	for (size_t i = 0; i < tokens_.len; i++) {
-		str_clear(&s[i]);
-	}
 	//	free vector memory
-	vec_free(&tokens_);
+	strvec_destruct(&tokens_);
 }

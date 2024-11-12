@@ -175,7 +175,7 @@ void* vvec_insert(volatile_vector* this, vec_len_t index, vec_len_t count) {
 void* __vvec_insert_locked(volatile_vector* this, vec_len_t index, vec_len_t count) {
 	//	will not unlock the vector
 	if (this->data != 0) {
-		vec_push((vector*)this, count);
+		vec_push((multipurpose_vector*)this, count);
 		void* source = (void*)((size_t)this->data + (index * this->bsize));
 		for (size_t i = this->len - 1; i > index+1; i--) {
 			print("\ttransferring seg["); printu(i-1); print("] to seg["); printu(i); printl("]");

@@ -5,7 +5,9 @@
 
 #pragma once
 
-typedef struct acpi_sdt_header {
+//	acpi is being deprecated (version 0.1.3.6 | this goofy implementation is no use anyway)
+
+/*typedef struct acpi_sdt_header {
 	//	standard header, used in other acpi structures
 	char signature[4];
 	u32 length;
@@ -173,7 +175,7 @@ enum acpi_bgrt_status {
 	bgrt_status_bits_displayed = 0b1,
 	bgrt_status_bits_orientation = 0b110,	//	orientation is multiplied by 90 (0 = no offset, 1 = 90 degrees, ...)
 	bgrt_status_bits_reserved = 0b11111,
-} acpi_bgrt_status;
+} acpi_bgrt_status;*/
 
 
 

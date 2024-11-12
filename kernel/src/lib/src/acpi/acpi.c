@@ -9,7 +9,9 @@
 #include "../../acpi/acpi.h"
 #include "../../utils.h"
 
-void __acpi_report(const char* msg, enum report_seriousness seriousness) {
+//	acpi is being deprecated (version 0.1.3.6 | this goofy implementation is no use anyway)
+
+/*void __acpi_report(const char* msg, enum report_seriousness seriousness) {
 	report("ACPI:\t", seriousness);
 	print(msg);
 }
@@ -205,4 +207,4 @@ void acpi_hypervisor_detect() {
 		cpu.hypervisor = hypervisor_none;
 	}
 
-}
+}*/

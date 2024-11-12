@@ -148,7 +148,7 @@ page_table_t* page_heap_expand(size_t tables, bool unlock) {
 	//	will unlock the vector
 
 	page_heap_segment_t* last = vvec_last(&page_heap.segments);
-	page_heap_segment_t* new = vec_push((vector*)&page_heap.segments, 1);
+	page_heap_segment_t* new = vec_push((multipurpose_vector*)&page_heap.segments, 1);
 	new->used = true;
 	new->entries = last->entries + last->table_count;
 	new->table_count = tables;
@@ -164,7 +164,7 @@ void __page_heap_divide_block(size_t segment, [[maybe_unused]] size_t tables) {
 		//	vector is already locked and not accessed
 		//	tables < segments[segment].table_count
 
-	vec_push((vector*)&page_heap.segments, 1);
+	vec_push((multipurpose_vector*)&page_heap.segments, 1);
 	page_heap_segment_t* segs = page_heap.segments.data;
 	for (size_t i = page_heap.segments.len - 1; i > segment + 1; i--) {
 		segs[i] = segs[i-1];
