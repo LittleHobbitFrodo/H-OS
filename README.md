@@ -88,6 +88,9 @@ This contains just few steps:
 - Start build ```./scripts/build mkimage```
 - If no error was reported **disk image** (H-OS.hdd file) should be created in project root directory
 
+### Building with docker
+To build the OS in docker run this command:
+```docker pull archlinux; ```
 
 You can upload it to a flash drive, **the upload will completely erase the drive so please check if there is any data you could miss on the drive**
 - Insert the drive, open file manager and copy the disk image (H-OS.hdd) into the disk
@@ -118,13 +121,9 @@ You can upload it to a flash drive, **the upload will completely erase the drive
   - [ ] **UEFI runtime services**
     - [ ] Create simple library for UEFI runtime services
   - [ ] **Power Management**
-    - [x] ACPI basic initialization
-    - [x] Shutdown (QEMU only)
-  - [ ] **Hardware Discovery**
-    - [ ] Implement libACPI
-    - [ ] Use libACPI to discover devices
-  - [ ] **Disk**
-    - [ ] Write driver for reading from disk
-    - [ ] Create a driver for desired filesystem
+    - [x] Shutdown (Emulator specific only)
+  - [ ] Hardware discovery
+    - [ ] PCI
+    - [ ] ACPI
 
 ...
