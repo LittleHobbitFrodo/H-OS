@@ -15,4 +15,4 @@ os-version
 .gitignore
 qemu.log
 docs
-gnu-efi/
+gnu-efi-build/
