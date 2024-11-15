@@ -16,16 +16,16 @@ void screen_init() {
 	screen.w = 0;
 
 	//	initialize colors
-	col.white = /*0xffffff*/0xb1dfd5;
-	col.green = /*0x88ff88*/0x68be8d;
-	col.red = /*0xff8888*/0xfe9174;
-	col.blue = /*0x8888ff*/0x399393;
-	col.critical = /*0xff0000*/0xf3734c;
+	col.white = 0xffffff;
+	col.green = 0x88ff88;
+	col.red = 0xff8888;
+	col.blue = 0x8888ff;
+	col.critical = 0xff0000;
 
-	col.yellow = /*0xffff00*/0xf2e98c;
+	col.yellow = 0xffff00;
 	col.orange = 0xffa500;
-	col.cyan = /*0x00ffff*/0x72d4c5;
-	col.grey = /*0xaaaaaa*/0x23364f;
+	col.cyan = 0x00ffff;
+	col.grey = 0xaaaaaa;
 
 	if (req_fb.response == null) {
 		return;

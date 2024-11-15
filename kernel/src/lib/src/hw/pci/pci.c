@@ -8,9 +8,6 @@
 #include "../../../hw/pci/pci.h"
 
 void pci_init() {
-	report("proceeding to initialize PCI\n", report_warning);
-	wait(500);
-
 	memnull(&pci, sizeof(pci_t));
 
 	u8 tmp;

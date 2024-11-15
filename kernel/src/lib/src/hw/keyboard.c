@@ -90,7 +90,7 @@ u8 keyboard_get_scan_code() {
 	u8 status;
 	for (u8 i = 0; i < 8; i++) {
 		keyboard_send_byte(KEYBOARD_CMD_SCAN_CODE_SET);
-		status = keyboard_send(0);
+		(void)keyboard_send(0);
 		status = keyboard_receive_byte();
 		if (status != KEYBOARD_CMD_RESPONSE_RESEND) {
 			switch (status) {
