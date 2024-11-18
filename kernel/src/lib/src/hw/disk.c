@@ -1,10 +1,8 @@
 //
-//	hardware.h
+//	hw/disk.c
 //		part of the CORE kernel belonging to the H-OS project
 //
 
-//	basic hardware initialization
-
 #pragma once
 
-static void hardware_init();
+#include "./device.c"

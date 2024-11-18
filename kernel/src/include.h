@@ -34,6 +34,8 @@
 #include <limine.h>
 #include "./lib/bootutils.h"
 
+#include "./lib/k_management.h"
+
 //  other headers depends on				//  provides
 #include "./lib/integers.h"                 //  types (like <stdint.h>)
 #include "./lib/utils.h"                    //  basic functions and structures (strlen(), ...)
@@ -113,3 +115,4 @@
 #include "./lib/src/memory/heap/page-heap.c"
 
 #include "./lib/src/hw/pci/pci.c"
+#include "./lib/src/hw/disk.c"

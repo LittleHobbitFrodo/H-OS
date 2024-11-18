@@ -166,6 +166,7 @@
 		return name.data == null;\
 	}\
 
+
 #define vector_type_cd(name, type, type_name, construct, destruct)\
 	typedef struct type_name {\
 		type* data;\
@@ -271,6 +272,113 @@
 	}\
 	__attribute__((always_inline, nonnull(1))) static inline bool name##_empty(type_name* this) {\
 		return this->data == null;\
+	}\
+
+
+#define vector_instance_cd(name, type, type_name, construct, destruct)\
+	typedef struct type_name {\
+		type* data;\
+		size_t len;\
+		size_t capacity;\
+	} __attribute__((packed)) type_name;\
+	static type_name name;\
+	__attribute__((always_inline)) static inline void name##_construct(size_t len) {\
+		if (len == 0) {\
+			name.data = null;\
+			name.len = 0;\
+			return;\
+		}\
+		name.len = len;\
+		name.data = alloc(len * sizeof(type));\
+		name.capacity = heap_bsize(name.data) / sizeof(type);\
+		for (size_t i = 0; i < name.len; i++) {\
+			construct(&name.data[i]);\
+		}\
+	}\
+	__attribute__((always_inline)) static inline void name##_destruct() {\
+		if (name.data != 0) {\
+			for (size_t i = 0; i < name.len; i++) {\
+				destruct(&name.data[i]);\
+			}\
+			free(name.data);\
+		}\
+		name.data = null;\
+		name.len = 0;\
+		name.capacity = 0;\
+	}\
+	void name##_resize(size_t len) {\
+		if (name.data == null) {\
+			name.data = alloc(len * sizeof(type));\
+			name.len = len;\
+			for (size_t i = 0; i < len; i++) {\
+				construct(&name.data[i]);\
+			}\
+			name.capacity = heap_bsize(name.data) / sizeof(type);\
+		} else if (name.len == len) {\
+			return;\
+		}\
+		if (name.len < len) {\
+			for (size_t i = name.len-1; i >= len; i--) {\
+				destruct(&name.data[i]);\
+			}\
+			name.data = realloc(name.data, len * sizeof(type));\
+			name.capacity = heap_bsize(name.data) / sizeof(type);\
+		} else {\
+			name.data = realloc(name.data, len * sizeof(type));\
+			for (size_t i = name.len; i < len; i++) {\
+				construct(&name.data[i]);\
+			}\
+		}\
+		name.len = len;\
+	}\
+	__attribute__((returns_nonnull)) type* name##_push(size_t count) {\
+		if (name.data == null) {\
+			name.data = alloc(count * sizeof(type));\
+			name.len = count;\
+			name.capacity = heap_bsize(name.data) / sizeof(type);\
+			return name.data;\
+		}\
+		size_t olen = name.len;\
+		name.len += count;\
+		if (name.len <= name.capacity) {\
+			return &name.data[name.len - count];\
+		}\
+		name.data = realloca(name.data, name.len * sizeof(type), VECTOR_REALLOC_ADD);\
+		for (size_t i = olen; i < name.len; i++) {\
+			construct(&name.data[i]);\
+		}\
+		name.capacity = heap_bsize(name.data) / sizeof(type);\
+		return &name.data[name.len - count];\
+	}\
+	void name##_pop(size_t count) {\
+		if (name.data != null) {\
+			if (name.len <= count) {\
+				for (size_t i = 0; i < name.len; i++) {\
+					destruct(&name.data[i]);\
+				}\
+				free(name.data);\
+				name.data = null;\
+				name.len = 0;\
+				name.capacity = 0;\
+			} else {\
+				size_t olen = name.len;\
+				name.len -= count;\
+				for (size_t i = olen - 1; i >= name.len; i--) {\
+					destruct(&name.data[i]);\
+				}\
+				name.data = realloc(name.data, name.len * sizeof(type));\
+				name.capacity = heap_bsize(name.data) / sizeof(type);\
+			}\
+		}\
+	}\
+	__attribute__((always_inline, returns_nonnull)) static inline type* name##_at(size_t at) {\
+		return &name.data[at];\
+	}\
+	__attribute__((always_inline, returns_nonnull)) static inline type* name##_last() {\
+		return &name.data[name.len-1];\
+	}\
+	__attribute__((always_inline)) static inline bool name##_empty() {\
+		return name.data == null;\
 	}\
 
 

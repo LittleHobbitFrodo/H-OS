@@ -8,8 +8,6 @@
 #include "../../../hw/pci/pci.h"
 
 void pci_init() {
-	memnull(&pci, sizeof(pci_t));
-
 	u8 tmp;
 	if ((tmp = pci_enumerate()) != ok) {
 		report("pci device enumeration failed (code: ", report_error);
@@ -17,8 +15,6 @@ void pci_init() {
 		hang();
 		__builtin_unreachable();
 	}
-
-
 }
 
 u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset) {
@@ -37,90 +33,8 @@ u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset) {
 	return ind(PCI_CONFIG_DATA);
 }
 
-/*void pci_scan_bus(u8 bus) {
-
-	pci_slot_t* slot = null;
-	pci_func_t* func = null;
-	for (u8 i = 0; i < 8; i++) {
-		for (u8 ii = 0; ii < 8; ii++) {
-			if (!pci_exists(bus, i, ii)) {
-				continue;
-			}
-			if (slot == null) {
-				slot = pci_slots_push(&pci.slots, 1);
-				slot->bus = bus;
-			}
-			func = pci_funcs_push(&slot->functions, 1);
-
-			pci_device_header header __attribute__((uninitialized));
-			u32* ptr = (u32*)&header;
-			for (size_t iii = 0; iii < sizeof(pci_device_header) / sizeof(u32); iii++) {
-				*ptr = pci_read(bus, i, ii, iii);
-				ptr++;
-			}
-			func->type = header.header_type.header_type;
-			func->multifunc = header.header_type.multifunc;
-			func->device.id = header.device;
-			func->device.vendor = header.vendor;
-			func->info.class = header.class;
-			func->info.subclass = header.subclass;
-			func->info.latency = header.latency;
-			func->info.programming = header.programming;
-			func->info.selftest = header.bist;
-			printc('\t'); printu(i); print(" : "); printu(ii); printc('\t');
-			switch (func->info.class) {
-				case pci_device_class_mass_storage_controller: {
-					switch (func->info.subclass) {
-						case pci_mass_storage_nvm_controller: {
-							printl("non-volatile memory controller");
-							break;
-						}
-						case pci_mass_storage_serial_ata: {
-							printl("serial ATA");
-							break;
-						}
-						default: {
-							printl("unknown (mass storage)");
-							break;
-						}
-					}
-					break;
-				}
-				case pci_device_class_base_system_peripheral: {
-					switch (func->info.subclass) {
-						case pci_base_peripheral_timer: {
-							printl("timer");
-							break;
-						}
-						case pci_base_peripheral_pic: {
-							printl("PIC");
-							break;
-						}
-						case pci_base_peripheral_rtc_controller: {
-							printl("RTC controller");
-							break;
-						}
-						default: {
-							printl("unknown (base peripheral)");
-							break;
-						}
-					}
-					break;
-				}
-				case pci_device_class_unclassified: {
-					print("unclassified ("); printh(func->info.subclass); printl(")");
-					break;
-				}
-				default: {
-					printl("unknown");
-					break;
-				}
-			}
-
-		}
-		slot = null;
-	}
-}*/
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 
 void pci_scan_bus(u8 bus) {
 
@@ -136,27 +50,56 @@ void pci_scan_bus(u8 bus) {
 			u8 programming = pci_read_programming(bus, i, ii);
 			output.color = col.blue;
 			output.color = col.white;
+
+			device_t* device = devices_push(1);
+
 			switch (class) {
 				case pci_device_class_mass_storage_controller: {
 					print("\tmass storage controller:\t");
+					device_init(device, device_type_disk);
+					disk_t* disk = device->type.data;
+					pci_connection_data* connect = alloc(sizeof(pci_connection_data));
+					connect->address = pci_address_construct(bus, i, ii, 0, true);
+
+					pci_device_header header;
+					u32* ptr = (u32*)&header;
+					for (size_t iii = 0; iii < sizeof(pci_device_header)/sizeof(u32); iii++) {
+						*ptr = pci_read(bus, i ,ii, iii);
+					}
+
+					connect->vendor = header.vendor;
+					connect->device_id = header.device;
+					connect->class = header.class;
+					connect->subclass = header.subclass;
+					connect->programming = header.programming;
+					connect->cache = header.cache_size;
+					connect->latency = header.latency;
+					connect->header_type = header.header_type;
+					connect->test = header.bist;
+
+					disk->connect.data = connect;
 					switch (subclass) {
 						case pci_mass_storage_serial_ata: {
 							print("SATA:\t");
 							switch (programming) {
 								case pci_serial_ata_vendor_specific: {
 									printl("\tvendor specific");
+									disk->connect.type = disk_connect_unsupported | disk_connect_pci;
 									break;
 								}
 								case pci_serial_ata_ahci_1_0: {
 									printl("AHCI");
+									disk->connect.type = disk_connect_ahci | disk_connect_pci;
 									break;
 								}
 								case pci_serial_ata_serial_storage_bus: {
 									printl("\tserial storage");
+									disk->connect.type = disk_connect_unsupported | disk_connect_pci;
 									break;
 								}
 								default: {
 									print("unknown (0x"); printh(programming); printl(")");
+									disk->connect.type = disk_connect_undefined | disk_connect_pci;
 									break;
 								}
 							}
@@ -164,7 +107,7 @@ void pci_scan_bus(u8 bus) {
 						}
 						case pci_mass_storage_nvm_controller: {
 							printl("NVM");
-							break;
+							2break;
 						}
 						default: {
 							print("unknown (0x"); printh(subclass); printl(")");
@@ -190,26 +133,12 @@ void pci_scan_bus(u8 bus) {
 	}
 }
 
-u8 pci_enumerate() {
+#pragma GCC diagnostic pop
 
+u8 pci_enumerate() {
 	for (u16 i = 0; i < 256; i++) {
 		pci_scan_bus((u8)i);
 	}
 
 	return ok;
-}
-
-void pci_general_dev_construct(pci_general_device_t* device) {
-	u32* ptr = (u32*)&device->address;
-	*ptr = 0;
-	device->type = (pci_header_type){.header_type = 0, .multifunc = false};
-	device->class.class = 0;
-	device->class.subclass = 0;
-	device->class.programming = 0;
-	device->selftest = (pci_bist_t){.capable = false, .code = 0, .reserved = 0, .start = 0};
-	device->device.device = 0;
-	device->device.vendor = 0;
-	device->revision = 0;
-	device->cache_size = 0;
-	device->latency = 0;
 }

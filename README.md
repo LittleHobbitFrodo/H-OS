@@ -105,25 +105,27 @@ You can upload it to a flash drive, **the upload will completely erase the drive
   - [x] **Hello world!** - Create bootable disk that displays simple ```hello world``` message.
   - [x] **Set up environment** - Add basic functionalities like printing numbers.
   - [x] **CPUID** - Gather some information about processor.
-  - [ ] **Heap implementation**
+  - [x] **Heap implementation**
     - [x] Find place for kernel heap.
     - [x] Create simple allocator.
     - [x] Add other functionalities.
-    - [ ] Port the allocator for virtual addresses.
-  - [ ] **Memory initialization**
+    - [x] Port the allocator for virtual addresses (HHDM).
+  - [x] **Memory initialization**
     - [x] Parse and simplify memory map.
     - [x] Initialize GDT with TSS.
-    - [ ] Reinitialize paging.
+    - [x] Reinitialize paging.
   - [x] **Interrupts**
     - [x] Get exception handling to work.
     - [x] Initialize other interrupts.
     - [x] Time and timer interrupt
-  - [ ] **UEFI runtime services**
-    - [ ] Create simple library for UEFI runtime services
+  - [x] **UEFI runtime services**
   - [ ] **Power Management**
-    - [x] Shutdown (Emulator specific only)
+    - [x] Shutdown (Emulator specific + UEFI runtime services)
   - [ ] Hardware discovery
     - [ ] PCI
     - [ ] ACPI
-
+  - [ ] Disks
+    - [ ] AHCI
+    - [ ] Enumerate disks
+    - [ ] Write driver for SSD/NVME
 ...

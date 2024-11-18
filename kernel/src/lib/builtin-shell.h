@@ -310,34 +310,48 @@ void shell() {
 			} else {
 				heap_debug();
 			}
-		} else if (str_cmpb(str, "pci")) {
-			/*if ((tokens.len > 1) && (str_cmpb(&str[1], "devices"))) {
-				if (pci.slots.data == null) {
-					report("no PCI devices detected\n", report_error);
-					continue;
-				}
-				for (size_t ii = 0; ii < pci.slots.len; ii++) {
-					pci_slot_t* slot = pci_slots_at(&pci.slots, ii);
-					if (slot->functions.data != null) {
-						print("functions on slot "); printu(ii+1); endl();
-						pci_func_t* func;
-						for (size_t iii = 0; iii < slot->functions.len; iii++) {
-							func = pci_funcs_at(&slot->functions, iii);
-							if (func->info.class != 1) {
-								continue;
+		} else if (str_cmpb(str, "devices")) {
+			if (devices.len == 0) {
+				report("no devices found\n", report_error);
+				continue;
+			}
+			for (size_t ii = 0; ii < devices.len; ii++) {
+				device_t* device = devices_at(ii);
+				printu(ii); print(":\t");
+				switch (device->type.type) {
+					case device_type_disk: {
+						print("disk:\t");
+						disk_t* disk = device->type.data;
+						switch (disk->type) {
+							case disk_type_ssd: {
+								printl("SSD");
+								break;
 							}
-							print("\t"); printu(iii+1); print(":\t");
-							print("type: "); printu(func->type); endl();
-							print("\tclass:\t"); printu(func->info.class); endl();
-							print("\tsubclass:\t"); printu(func->info.subclass); endl();
-							print("\tprogramming:\t"); printu(func->info.programming); endl();
+							case disk_type_hdd: {
+								printl("HDD");
+								break;
+							}
+							case disk_type_nvme: {
+								printl("NVME");
+								break;
+							}
+							case disk_type_unknown: {
+								printl("unknown");
+								break;;
+							}
 						}
-						endl();
+						break;
+					}
+					case device_type_undefined: {
+						printl("undefined");
+						break;
+					}
+					default: {
+						printl("unknown");
+						break;
 					}
 				}
-			} else {
-
-			}*/
+			}
 		} else {
 			report("unknown command \"", report_error);
 			print(str->data);
