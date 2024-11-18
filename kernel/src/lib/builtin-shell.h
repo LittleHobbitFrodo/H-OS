@@ -324,22 +324,48 @@ void shell() {
 						disk_t* disk = device->type.data;
 						switch (disk->type) {
 							case disk_type_ssd: {
-								printl("SSD");
+								print("SSD:\t");
 								break;
 							}
 							case disk_type_hdd: {
-								printl("HDD");
+								print("HDD");
 								break;
 							}
 							case disk_type_nvme: {
-								printl("NVME");
+								print("NVME");
 								break;
 							}
 							case disk_type_unknown: {
-								printl("unknown");
+								print("unknown");
 								break;;
 							}
 						}
+						if (device->type.type != (device_types)disk_type_unknown) {
+							printc('\t');
+							switch (disk->connect.type) {
+								case disk_connect_ahci: {
+									print("SATA (AHCI)");
+									break;
+								}
+								case disk_connect_pci: {
+									print("PCI");
+									break;
+								}
+								case disk_connect_vendor_specific: {
+									print("vendor specific");
+									break;
+								}
+								case disk_connect_undefined: {
+									print("(undefined)");
+									break;
+								}
+								default: {
+									print("(UNKNOWN)");
+									break;
+								}
+							}
+						}
+						endl();
 						break;
 					}
 					case device_type_undefined: {

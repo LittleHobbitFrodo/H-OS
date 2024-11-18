@@ -12,9 +12,10 @@
 
 typedef enum {
 	disk_connect_undefined = 0,
-	disk_connect_pci = 0x80,
-	disk_connect_ahci = 1,
-	disk_connect_unsupported = 2,
+	disk_connect_unsupported = 1,
+	disk_connect_vendor_specific = 2,
+	disk_connect_pci = 3,
+	disk_connect_ahci = 4,
 } disk_connection_types;
 
 typedef enum {

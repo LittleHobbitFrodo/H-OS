@@ -44,18 +44,14 @@ void pci_scan_bus(u8 bus) {
 				continue;
 			}
 
-			printu(i); printc('\t'); printu(ii); printc('\t');
 			u8 class = pci_read_class(bus, i, ii);
 			u8 subclass = pci_read_subclass(bus, i, ii);
 			u8 programming = pci_read_programming(bus, i, ii);
-			output.color = col.blue;
-			output.color = col.white;
 
 			device_t* device = devices_push(1);
 
 			switch (class) {
 				case pci_device_class_mass_storage_controller: {
-					print("\tmass storage controller:\t");
 					device_init(device, device_type_disk);
 					disk_t* disk = device->type.data;
 					pci_connection_data* connect = alloc(sizeof(pci_connection_data));
@@ -80,54 +76,40 @@ void pci_scan_bus(u8 bus) {
 					disk->connect.data = connect;
 					switch (subclass) {
 						case pci_mass_storage_serial_ata: {
-							print("SATA:\t");
 							switch (programming) {
 								case pci_serial_ata_vendor_specific: {
-									printl("\tvendor specific");
-									disk->connect.type = disk_connect_unsupported | disk_connect_pci;
+									disk->connect.type = disk_connect_vendor_specific;
 									break;
 								}
 								case pci_serial_ata_ahci_1_0: {
-									printl("AHCI");
-									disk->connect.type = disk_connect_ahci | disk_connect_pci;
+									disk->connect.type = disk_connect_ahci;
 									break;
 								}
 								case pci_serial_ata_serial_storage_bus: {
-									printl("\tserial storage");
-									disk->connect.type = disk_connect_unsupported | disk_connect_pci;
+									disk->connect.type = disk_connect_unsupported;
 									break;
 								}
 								default: {
-									print("unknown (0x"); printh(programming); printl(")");
-									disk->connect.type = disk_connect_undefined | disk_connect_pci;
+									disk->connect.type = disk_connect_undefined;
 									break;
 								}
 							}
 							break;
 						}
 						case pci_mass_storage_nvm_controller: {
-							printl("NVM");
-							2break;
-						}
-						default: {
-							print("unknown (0x"); printh(subclass); printl(")");
 							break;
 						}
+						default: break;
 					}
 					break;
 				}
 				case pci_device_class_processor: {
-					printl("processor");
 					break;
 				}
 				case pci_device_class_bridge: {
-					printl("bridge");
 					break;
 				}
-				default: {
-					print("\tunknown:\t"); printh(subclass); endl();
-					break;
-				}
+				default: break;
 			}
 		}
 	}
