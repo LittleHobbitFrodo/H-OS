@@ -56,6 +56,7 @@ void panic(enum panic_codes code) {
 		}
 		case panic_code_cannot_allocate_memory_for_kernel_heap: {
 			printl("cannot allocate memory for kernel heap");
+			memmap_display_original();
 			break;
 		}
 		case panic_code_cannot_locate_kernel_entry: {

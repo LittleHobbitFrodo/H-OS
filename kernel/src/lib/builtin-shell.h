@@ -45,7 +45,7 @@ void __shell_flush_line_from(size_t line, size_t column) {
 void __shell_hint(const char* str) {
 	size_t column = output.column;
 	u32 bcol = output.color;
-	output.color = col.grey;
+	output.color = col.hint;
 	print(str);
 	output.column = column;
 	output.color = bcol;
@@ -174,7 +174,7 @@ void shell() {
 					if (completion_base != null) {
 						size_t column = output.column;
 						u32 bcol = output.color;
-						output.color = col.grey;
+						output.color = col.hint;
 						print(word);
 						output.column = column;
 						output.color = bcol;
@@ -225,6 +225,7 @@ void shell() {
 				for (size_t ii = 2; ii < tokens.len; ii++) {
 					prints((strvec_at(&tokens, ii))); printc(' ');
 				}
+				endl();
 			} else {
 				for (size_t ii = 1; ii < tokens.len; ii++) {
 					printsl((strvec_at(&tokens, ii)));
@@ -250,28 +251,8 @@ void shell() {
 			output.color = col.blue; print(__shell_os_logo[2]); output.color = col.white; print("\t\ttime:\t"); printl(tm);
 			free(tm);
 			output.color = col.blue; print(__shell_os_logo[3]); output.color = col.white; print("\t\tmemory:\t");
-			size_t mem = meminfo.usable, mul = KB;
-			for (;mem / mul >= 1024; mul *= 1024);
-			printu(mem / mul);
-			switch (mul) {
-				case KB: {
-					print("KB ");
-					break;
-				}
-				case MB: {
-					print("MB ");
-					break;
-				}
-				case GB: {
-					print("GB ");
-					break;
-				}
-				case ((size_t)1024 * 1024 * 1024 * 1024): {
-					print("TB ");
-				}
-				default: break;
-			}
-			print(" / ");
+			size_t mul, mem;
+
 			mul = KB;
 			mem = meminfo.used;
 			for (;mem / mul >= 1024; mul *= 1024);
@@ -294,6 +275,29 @@ void shell() {
 				}
 				default: break;
 			}
+			print(" / ");
+			mem = meminfo.usable;
+			mul = KB;
+			for (;mem / mul >= 1024; mul *= 1024);
+			printu(mem / mul);
+			switch (mul) {
+				case KB: {
+					print("KB ");
+					break;
+				}
+				case MB: {
+					print("MB ");
+					break;
+				}
+				case GB: {
+					print("GB ");
+					break;
+				}
+				case ((size_t)1024 * 1024 * 1024 * 1024): {
+					print("TB ");
+				}
+				default: break;
+			}
 			endl();
 
 			output.color = col.blue; printl(__shell_os_logo[4]);
@@ -307,7 +311,7 @@ void shell() {
 				heap_debug();
 			}
 		} else if (str_cmpb(str, "pci")) {
-			if ((tokens.len > 1) && (str_cmpb(&str[1], "devices"))) {
+			/*if ((tokens.len > 1) && (str_cmpb(&str[1], "devices"))) {
 				if (pci.slots.data == null) {
 					report("no PCI devices detected\n", report_error);
 					continue;
@@ -333,7 +337,7 @@ void shell() {
 				}
 			} else {
 
-			}
+			}*/
 		} else {
 			report("unknown command \"", report_error);
 			print(str->data);

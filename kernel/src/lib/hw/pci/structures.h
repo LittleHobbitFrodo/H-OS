@@ -12,7 +12,8 @@ enum pci_device_types {
 };
 
 typedef struct pci_address {
-	u32 offset:		8;
+	u32 zero:		2;
+	u32 offset:		6;
 	u32 function:	3;
 	u32 slot:		5;
 	u32 bus:		8;
@@ -75,19 +76,19 @@ typedef struct pci_header_type {
 
 typedef struct pci_device_header {
 	u16 vendor;
-	u16 device;		//	IDs are allocated by vendor
-	pci_command_t command;	//	16 bits
-	pci_status_t status;	//	16 bits
+	u16 device;
+	pci_command_t command;
+	pci_status_t status;
 
-	u8 revision;		//	allocated by vendor
-	u8 prog_interface;	//	specifies register-level programming (read-only)
-	u8 subclass;	//	specific function (read-only)
-	u8 class;		//	function (read-only)
+	u8 revision;
+	u8 programming;
+	u8 subclass;
+	u8 class;
 
-	u8 cache_line_size;	//	32bit units
-	u8 latency_timer;	//	units: pci bus locks
-	pci_header_type header_type;		//	bit 7: multi function
-	pci_bist_t bist;	//	built-in self test
+	u8 cache_size;
+	u8 latency;
+	pci_header_type header_type;
+	pci_bist_t bist;
 
 } __attribute__((packed)) pci_device_header;
 
@@ -206,7 +207,45 @@ typedef struct pci_header_pci_to_cardbus_t {
 } __attribute__((packed)) pci_header_pci_to_cardbus_t;
 
 
+enum pci_device_classes {
+	pci_device_class_unclassified = 0x0,
+	pci_device_class_mass_storage_controller = 0x1,
+	pci_device_class_network_controller = 0x2,
+	pci_device_class_display_controller = 0x3,
+	pci_device_class_multimedia_controller = 0x4,
+	pci_device_class_memory_controller = 0x5,
+	pci_device_class_bridge = 0x6,
+	pci_device_class_simple_communication_controller = 0x7,
+	pci_device_class_base_system_peripheral = 0x8,
+	pci_device_class_input_device_controller = 0x9,
+	pci_device_class_processor = 0xB,
+	pci_device_class_serial_bus_controller = 0xC,
+	pci_device_class_wireless_controller = 0xD,
+} pci_device_classes;
 
+enum pci_controller_mass_storage {
+	pci_mass_storage_scsi_bus = 0x0,
+	pci_mass_storage_ide = 0x1,
+	pci_mass_storage_floppy = 0x2,
+	pci_mass_storage_ipi = 0x3,
+	pci_mass_storage_raid = 0x4,
+	pci_mass_storage_ata = 0x5,
+	pci_mass_storage_serial_ata = 0x6,
+	pci_mass_storage_sasc = 0x7,
+	pci_mass_storage_nvm_controller = 0x8,
+	pci_mass_storage_other = 0x80,
+} pci_controller_mass_storage;
 
+enum pci_serial_ata_programming {
+	pci_serial_ata_vendor_specific = 0x0,
+	pci_serial_ata_ahci_1_0 = 0x1,
+	pci_serial_ata_serial_storage_bus = 0x2
+};
 
-
+enum pci_controller_base_peripheral {
+	pci_base_peripheral_pic = 0x0,
+	pci_base_peripheral_dma_controller = 0x1,
+	pci_base_peripheral_timer = 0x2,
+	pci_base_peripheral_rtc_controller = 0x3,
+	pci_base_peripheral_other = 0x80,
+} pci_controller_base_peripheral;

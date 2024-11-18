@@ -53,6 +53,8 @@ static struct col {
 	u32 cyan;
 
 	u32 grey;
+
+	u32 hint;
 } col;
 
 static struct output {
@@ -96,6 +98,7 @@ void printi(const i64 i);
 void printu(const u64 u);
 
 void printp(void *p);
+void printh(size_t h);
 
 void printb(size_t bin);
 

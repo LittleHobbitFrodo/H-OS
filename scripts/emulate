@@ -5,7 +5,9 @@ if test ! (basename (pwd)) = "H-OS"
 	exit
 end
 
-rm ./qemu.log
+if test -e ./qemu.log
+  rm ./qemu.log
+end
 
 set _log 0
 for i in $argv
@@ -15,6 +17,5 @@ for i in $argv
   end
 end
 
-#	root dir
-qemu-system-x86_64 -m 8192 -drive format=raw,file=./H-OS.hdd,id=ssd -no-reboot -d int -D qemu.log &
-# -d int
+qemu-system-x86_64 -m 4G -drive file=H-OS.hdd,if=virtio,media=disk,discard=unmap,id=ahci_disk \
+-device ahci,id=ahci -device qemu-xhci -device usb-mouse -netdev user,id=net

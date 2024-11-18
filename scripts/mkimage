@@ -51,7 +51,9 @@ set PATH_LIMINE "$(pwd)/stuff/limine"		#	for better usability -> if wanted to ch
 
 set MEMP -i H-OS.hdd@@1M			#	memory management command arguments (repeats a lot)
 
-dd if=/dev/zero bs=10M count=0 seek=64 of=H-OS.hdd
+#dd if=/dev/zero bs=10M count=0 seek=64 of=H-OS.hdd
+#dd if=/dev/zero of=H-OS.hdd bs=1 "count=$(math (wc -c ./bin/kernel/H-OS.bin | cut -d' ' -f1) "*" 2)"
+dd if=/dev/zero of=H-OS.hdd bs=1M count=0 seek=128 of=H-OS.hdd
 	#	empty disk creation
 echo
 

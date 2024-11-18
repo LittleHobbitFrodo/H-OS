@@ -7,15 +7,14 @@
 
 #include "./lib/builtin-shell.h"
 
-
-
-//TODO: map reserved areas (+ heaps)
-	//	only those areas needed for runtime
+//TODO: check PCI structures (maybe banan?)
+	//	check the enumeration algo too
 
 
 //TODO: (someday) resolve SIMD and GPRs
 	//	-mavx512f?
 	//	for faster page table copying
+
 
 
 void kernel() {
@@ -25,6 +24,7 @@ void kernel() {
 	print("starting ");
 	printl(KERNEL_NAME);
 	output.color = col.white;
+
 
 	shell();
 

@@ -14,49 +14,40 @@
 	//	32bit register
 #define PCI_CONFIG_DATA 0xCFC
 
-typedef struct pci_func_t {
+typedef struct pci_general_device_t {
 	//	data structure to store non-volatile device information
 
 	pci_address address;
-	u8 type;
-	bool multifunc;
-
-	struct {
-		u16 vendor;
-		u16 id;		//	device ID
-	} device;
+	pci_header_type type;
 	struct {
 		u8 class;
 		u8 subclass;
 		u8 programming;
-		u8 latency;
-		pci_bist_t selftest;
-		u8 cache_size;
-	} info;
+	} class;
+	pci_bist_t selftest;
+
+	struct {
+		u16 vendor;
+		u16 device;
+	} device;
+
+	u8 revision;
+	u8 cache_size;
+	u8 latency;
 
 	void* specific;
-		//	specific for each device type
 
-} pci_func_t;
-void pci_function_construct(pci_func_t* func);
+
+} pci_general_device_t;
+void pci_general_dev_construct(pci_general_device_t* func);
 __attribute__((always_inline))
-inline void pci_function_destruct([[maybe_unused]] pci_func_t* func) {}
-vector_type_cd(pci_funcs, pci_func_t, pci_function_vector, pci_function_construct, pci_function_destruct);
-
-
-
-typedef struct pci_slot_t {
-	pci_function_vector functions;
-	u8 bus;
-} pci_slot_t;
-void pci_slot_construct(pci_slot_t* slot);
-void pci_slot_destruct(pci_slot_t* slot);
-vector_type_cd(pci_slots, pci_slot_t, pci_slot_vector_t, pci_slot_construct, pci_slot_destruct);
+inline void pci_general_dev_destruct([[maybe_unused]] pci_general_device_t* func) {}
+vector_type_cd(pci_devices, pci_general_device_t, pci_device_vector, pci_general_dev_construct, pci_general_dev_destruct);
 
 
 
 typedef struct pci_t {
-	pci_slot_vector_t slots;
+	pci_device_vector devices;
 	bool supported;
 } pci_t;
 
@@ -76,6 +67,19 @@ inline bool pci_exists(u8 bus, u8 slot, u8 function) {
 	return (pci_read(bus, slot, function, 0) & 0xffff) != 0xffff;
 }
 
+
+__attribute__((always_inline))
+inline u8 pci_read_class(u8 bus, u8 slot, u8 function) {
+	return (pci_read(bus, slot, function, 2) >> 24) & 0xff;
+}
+__attribute__((always_inline))
+inline u8 pci_read_subclass(u8 bus, u8 slot, u8 function) {
+	return (pci_read(bus, slot, function, 2) >> 16) & 0xff;
+}
+__attribute__((always_inline))
+inline u8 pci_read_programming(u8 bus, u8 slot, u8 function) {
+	return (pci_read(bus, slot, function, 2) >> 8) & 0xff;
+}
 
 
 

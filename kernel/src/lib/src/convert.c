@@ -19,6 +19,25 @@ void to_hex(char *str, void *ptr) {
 	}
 }
 
+void to_hexs(char* str, size_t h) {
+	if (h == 0) {
+		str[0] = '0';
+		str[1] = '\0';
+		return;
+	}
+	for (ssize_t i = HEXLEN-2; i >= 0; i--) {
+		str[i] = hex[(h >> (i*4)) & 0xf];
+	}
+	for (ssize_t i = HEXLEN - 2; i >= 0; i--) {
+		if (str[i] != '0') {
+			str[i+1] = '\0';
+			break;
+		}
+	}
+}
+
+
+
 void to_string(char *str, size_t val) {
 	if (val == 0) {
 		str[0] = '0';

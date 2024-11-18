@@ -26,6 +26,7 @@ void screen_init() {
 	col.orange = 0xffa500;
 	col.cyan = 0x00ffff;
 	col.grey = 0xaaaaaa;
+	col.hint = col.grey;
 
 	if (req_fb.response == null) {
 		return;
@@ -124,6 +125,12 @@ void printp(void *p) {
 	char num[HEXLEN_PTR];
 	to_hex((char *) num, p);
 	print((const char *) &num);
+}
+
+void printh(size_t h) {
+	char num[HEXLEN];
+	to_hexs((char*)&num, h);
+	print((const char*)&num);
 }
 
 void printb(size_t bin) {
