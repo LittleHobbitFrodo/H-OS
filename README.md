@@ -43,13 +43,11 @@ The whole project with all of its parts is under the GPL v3.0 licence
 **[Mtools](https://www.gnu.org/software/mtools/)** - tools used for disk image creation (together with parted)
   - Mtools is widely used, your distribution should provide a package for it
 
-**[Limine](https://limine-bootloader.org/)** - bootloader used to start the system
-- Arch Linux has an official package for limine
-- H-OS also provide **script for limine installation** (detailed below)
-
 **[NASM](https://www.nasm.us/)** - assembler (assembly compiler)
 - Nasm is widely used assembler, most distributions should provide a package for it.
 
+
+- NOTE: Limine bootloader is not required for building the OS
 
 ### **C compiler**
 - If you are on x86_64 system (run ```uname -m``` in terminal to check it), install ```gcc``` package.

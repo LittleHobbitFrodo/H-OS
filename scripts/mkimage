@@ -84,8 +84,6 @@ echo
 # delete symlink
 rm $PATH_LIMINE/limine.conf
 
-echo limine path $PATH_LIMINE
-
 # create symlink
 if test $DEBUG = "0"
   ln -s $PATH_LIMINE/configs/limine.conf $PATH_LIMINE/limine.conf

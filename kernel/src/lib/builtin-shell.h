@@ -5,8 +5,6 @@
 
 #pragma once
 
-	//	act as header
-
 static char* __shell_os_logo[5] = {".__",
 	"|  |___",
 	"|  |   |",

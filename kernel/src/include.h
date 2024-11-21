@@ -31,7 +31,8 @@
 //	please don't ask me how are headers separated...
 
 //  bootloader library
-#include <limine.h>
+//#include <limine.h>
+#include "./limine.h"
 #include "./lib/bootutils.h"
 
 #include "./lib/k_management.h"
@@ -58,7 +59,6 @@
 #include "./lib/memory/aligned_ptr.h"		//	structure for aligned allocations
 #include "./lib/vector/vector.h"
 #include "./lib/vector/volatile-vector.h"	//	multithreaded vector (untested)
-//#include "./lib/vector/aligned-vector.h"
 
 #include "./lib/hw/pci/pci.h"
 
@@ -100,7 +100,6 @@
 #include "./lib/src/memory/aligned_ptr.c"
 #include "./lib/src/vector/vector.c"
 #include "./lib/src/vector/volatile-vector.c"
-//#include "./lib/src/vector/aligned-vector.c"
 
 #include "./lib/src/int-handler.c"
 #include "./lib/src/exceptions.c"
