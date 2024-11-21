@@ -13,22 +13,8 @@ static char* __shell_os_logo[5] = {".__",
 	"|   \\  |",
 	"|___|__|"};
 
-/*typedef struct shell_cmd_t {
-	char** cmd;
-	size_t size;
-} shell_cmd_t;
-
-static shell_cmd_t cmds[] = {{.cmd = (char*[]){"help"}, .size = 1},
-	{.cmd = (char*[]){"time"}, .size = 1},
-	{.cmd = (char*[]){"echo", "-no-linebreak"}, .size = 2},
-	{.cmd = (char*[]){"exit"}, .size = 1},
-	{.cmd = (char*[]){"clear"}, .size = 1},
-	{.cmd = (char*[]){"memmap", "original", "new"}, .size = 3},
-	{.cmd = (char*[]){"microfetch"}, .size = 1},
-	{.cmd = (char*[]){"shutdown"}, .size = 1},
-	{.cmd = (char*[]){"heap", "regular", "page"}, .size = 3}};*/
-static char* cmds[] = {"help", "time", "echo", "exit", "clear", "memmap", "microfetch", "shutdown", "heap"};
-static size_t cmdc = 9;
+static char* cmds[] = {"help", "time", "echo", "exit", "clear", "memmap", "microfetch", "shutdown", "heap", "devices"};
+static size_t cmdc = 10;
 	//	act as source
 
 void __shell_flush_line_from(size_t line, size_t column) {
@@ -299,7 +285,6 @@ void shell() {
 				default: break;
 			}
 			endl();
-
 			output.color = col.blue; printl(__shell_os_logo[4]);
 		} else if (str_cmpb(str, "shutdown")) {		//	shutdown
 			shutdown();
@@ -315,69 +300,88 @@ void shell() {
 				report("no devices found\n", report_error);
 				continue;
 			}
+
+			device_t* device;
 			for (size_t ii = 0; ii < devices.len; ii++) {
-				device_t* device = devices_at(ii);
-				printu(ii); print(":\t");
-				switch (device->type.type) {
-					case device_type_disk: {
-						print("disk:\t");
-						disk_t* disk = device->type.data;
-						switch (disk->type) {
-							case disk_type_ssd: {
-								print("SSD:\t");
-								break;
-							}
-							case disk_type_hdd: {
-								print("HDD");
-								break;
-							}
-							case disk_type_nvme: {
-								print("NVME");
-								break;
-							}
-							case disk_type_unknown: {
-								print("unknown");
-								break;;
-							}
-						}
-						if (device->type.type != (device_types)disk_type_unknown) {
-							printc('\t');
-							switch (disk->connect.type) {
-								case disk_connect_ahci: {
-									print("SATA (AHCI)");
-									break;
-								}
-								case disk_connect_pci: {
-									print("PCI");
-									break;
-								}
-								case disk_connect_vendor_specific: {
-									print("vendor specific");
-									break;
-								}
-								case disk_connect_undefined: {
-									print("(undefined)");
-									break;
-								}
-								default: {
-									print("(UNKNOWN)");
-									break;
-								}
-							}
-						}
-						endl();
-						break;
-					}
+				device = devices_at(ii);
+				output.color = col.blue;
+				printu(ii); printc('\t');
+				switch (device->type) {
 					case device_type_undefined: {
 						printl("undefined");
 						break;
 					}
-					default: {
-						printl("unknown");
+					case device_type_unsupported: {
+						printl("unsupported");
 						break;
+					}
+					case device_type_disk: {
+						printl("disk");
+						output.color = col.white;
+						if (device->ptr == null) {
+							printl("NULL");
+							break;
+						}
+						disk_t* disk = (disk_t*)device->ptr;
+						print("type:\t");
+						switch (disk->type) {
+							case disk_type_undefined: {
+								printl("undefined"); break;
+							}
+							case disk_type_ssd: {
+								printl("ssd"); break;
+							}
+							case disk_type_nvm: {
+								printl("NVM"); break;
+							}
+							case disk_type_hdd: {
+								printl("HDD"); break;
+							}
+							case disk_type_unsupported: {
+								printl("unsupported"); break;
+							}
+							default: {
+								printl("unknown"); break;
+							}
+						}
+						print("connection:\t");
+						switch (disk->connect.type & 0xfff) {
+							case device_connect_ahci: {
+								printl("AHCI"); break;
+							}
+							case device_connect_ata_bus: {
+								printl("ATA bus"); break;
+							}
+							case device_connect_nvm: {
+								printl("Non-volatile memory controller"); break;
+							}
+							case device_connect_vendor_specific: {
+								printl("vendor specific"); break;
+							}
+							case device_connect_unknown: {
+								printl("unknown"); break;
+							}
+							default: {
+								printl("unknown (default case)"); break;
+							}
+						}
+						break;
+					}
+					case device_type_base_peripheral: {
+						printl("base peripheral"); break;
+					}
+					case device_type_processor: {
+						printl("processor"); break;
+					}
+					case device_type_display_controller: {
+						printl("display controller"); break;
+					}
+					default: {
+						printl("unknown device"); break;
 					}
 				}
 			}
+
 		} else {
 			report("unknown command \"", report_error);
 			print(str->data);

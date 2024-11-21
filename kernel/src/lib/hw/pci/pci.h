@@ -8,15 +8,18 @@
 #include "../../integers.h"
 #include "./structures.h"
 #include "../../vector/vector.h"
-#include "../disk.h"
-#include "../device.h"
+#include "../devices/disk.h"
+#include "../devices/device.h"
 
 #define PCI_CONFIG_ADDRESS 0xCF8
 	//	32bit register
 #define PCI_CONFIG_DATA 0xCFC
 
 
+//	initializes PCI
 static void pci_init();
+
+static bool pci_initialized = false;
 
 u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset);
 
@@ -61,3 +64,10 @@ typedef struct pci_connection_data {
 	pci_bist_t test;
 } pci_connection_data;
 
+typedef struct pci_discovery_data {
+	pci_address address;
+	u8 class;
+	u8 subclass;
+	u8 programming;
+	pci_bist_t test;
+} pci_discovery_data;

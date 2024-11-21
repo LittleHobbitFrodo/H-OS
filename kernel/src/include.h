@@ -115,4 +115,5 @@
 #include "./lib/src/memory/heap/page-heap.c"
 
 #include "./lib/src/hw/pci/pci.c"
-#include "./lib/src/hw/disk.c"
+#include "./lib/src/hw/ahci.c"
+#include "./lib/src/hw/devices/device.c"

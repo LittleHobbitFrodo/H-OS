@@ -10,10 +10,6 @@
 void keyboard_init() {
 	//	US (QWERTY) layout is used by default
 
-	//	initialize structures
-	memnull(&keyboard.keycodes, sizeof(keycode) * KEYCODE_COUNT);
-	memnull(&keyboard.scancodes, sizeof(void*) * SCANCODE_COUNT);
-
 	if (!keyboard_send_cmd_data(KEYBOARD_CMD_SET_LEDS, 0)) {
 		if (vocality >= vocality_vocal) {
 			report("failed to set leds\n", report_error);

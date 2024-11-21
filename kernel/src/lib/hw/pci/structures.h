@@ -77,6 +77,7 @@ typedef struct pci_header_type {
 typedef struct pci_device_header {
 	u16 vendor;
 	u16 device;
+
 	pci_command_t command;
 	pci_status_t status;
 
@@ -238,7 +239,7 @@ enum pci_controller_mass_storage {
 
 enum pci_serial_ata_programming {
 	pci_serial_ata_vendor_specific = 0x0,
-	pci_serial_ata_ahci_1_0 = 0x1,
+	pci_serial_ata_ahci = 0x1,
 	pci_serial_ata_serial_storage_bus = 0x2
 };
 

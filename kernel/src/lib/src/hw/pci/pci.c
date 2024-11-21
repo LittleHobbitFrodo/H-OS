@@ -6,15 +6,26 @@
 #pragma once
 
 #include "../../../hw/pci/pci.h"
+#include "../../../hw/ahci/ahci.h"
 
 void pci_init() {
-	u8 tmp;
-	if ((tmp = pci_enumerate()) != ok) {
-		report("pci device enumeration failed (code: ", report_error);
-		printu(tmp); printl(")");
-		hang();
-		__builtin_unreachable();
+
+	if (vocality >= vocality_report_everything) {
+		report("proceeding with PCI initialization\n", report_note);
 	}
+
+	pci_enumerate();
+
+	if (ahci.used) {
+		ahci_init();
+	}
+
+	pci_initialized = true;
+
+	if (vocality >= vocality_report_everything) {
+		report("PCI initialization completed\n", report_note);
+	}
+
 }
 
 u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset) {
@@ -48,65 +59,77 @@ void pci_scan_bus(u8 bus) {
 			u8 subclass = pci_read_subclass(bus, i, ii);
 			u8 programming = pci_read_programming(bus, i, ii);
 
-			device_t* device = devices_push(1);
-
 			switch (class) {
 				case pci_device_class_mass_storage_controller: {
-					device_init(device, device_type_disk);
-					disk_t* disk = device->type.data;
-					pci_connection_data* connect = alloc(sizeof(pci_connection_data));
-					connect->address = pci_address_construct(bus, i, ii, 0, true);
-
-					pci_device_header header;
-					u32* ptr = (u32*)&header;
-					for (size_t iii = 0; iii < sizeof(pci_device_header)/sizeof(u32); iii++) {
-						*ptr = pci_read(bus, i ,ii, iii);
-					}
-
-					connect->vendor = header.vendor;
-					connect->device_id = header.device;
-					connect->class = header.class;
-					connect->subclass = header.subclass;
-					connect->programming = header.programming;
-					connect->cache = header.cache_size;
-					connect->latency = header.latency;
-					connect->header_type = header.header_type;
-					connect->test = header.bist;
-
-					disk->connect.data = connect;
+					device_t* device = devices_push(1);
+					device->type = device_type_disk;
 					switch (subclass) {
 						case pci_mass_storage_serial_ata: {
 							switch (programming) {
-								case pci_serial_ata_vendor_specific: {
-									disk->connect.type = disk_connect_vendor_specific;
+								case pci_serial_ata_ahci: {
+									devices.len--;  //  pop
+									ahci.pci_address = pci_address_construct(bus, i, ii, 0, 1);
+									ahci.used = true;
 									break;
 								}
-								case pci_serial_ata_ahci_1_0: {
-									disk->connect.type = disk_connect_ahci;
+								case pci_serial_ata_vendor_specific: {
+									disk_t* disk = disks_push(1);
+									device->ptr = (device_header*)disk;
+									disk->connect.type = device_connect_vendor_specific;
+									disk->discovery.type = device_discovery_pci;
+									disk->discovery.ptr = alloc(sizeof(pci_discovery_data));
+									pci_discovery_data* ddata = disk->discovery.ptr;
+									ddata->address = pci_address_construct(bus, i, ii, 0, 1);
+									ddata->class = class;
+									ddata->subclass = subclass;
+									ddata->programming = programming;
+									u8* bist = (u8*)&ddata->test;
+									*bist = (pci_read(bus, i, ii, 3) >> 24) & 0xff;
 									break;
 								}
 								case pci_serial_ata_serial_storage_bus: {
-									disk->connect.type = disk_connect_unsupported;
+									disk_t* disk = disks_push(1);
+									device->ptr = (device_header*)disk;
+									disk->connect.type = device_connect_ata_bus;
 									break;
 								}
 								default: {
-									disk->connect.type = disk_connect_undefined;
+									disk_t* disk = disks_push(1);
+									device->ptr = (device_header*)disk;
+									disk->connect.type = device_connect_unknown;
 									break;
 								}
 							}
 							break;
 						}
 						case pci_mass_storage_nvm_controller: {
+							disk_t* disk = disks_push(1);
+							disk->connect.type = device_connect_nvm;
+							device->ptr = (device_header*)disk;
 							break;
 						}
-						default: break;
+						default: {
+							disk_t* disk = disks_push(1);
+							disk->connect.type = device_connect_unknown;
+							device->ptr = (device_header*)disk;
+							break;
+						}
 					}
 					break;
 				}
-				case pci_device_class_processor: {
+				case pci_device_class_display_controller: {
+					device_t* device = devices_push(1);
+					device->type = device_type_display_controller;
 					break;
 				}
-				case pci_device_class_bridge: {
+				case pci_device_class_processor: {
+					device_t* device = devices_push(1);
+					device->type = device_type_processor;
+					break;
+				}
+				case pci_device_class_base_system_peripheral: {
+					device_t* device = devices_push(1);
+					device->type = device_type_base_peripheral;
 					break;
 				}
 				default: break;

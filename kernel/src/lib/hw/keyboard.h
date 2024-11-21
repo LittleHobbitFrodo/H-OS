@@ -72,7 +72,7 @@ typedef struct keyboard_t {
 	volatile bool hit;
 } keyboard_t;
 
-static keyboard_t keyboard;
+static keyboard_t keyboard = {0};
 
 __attribute__((always_inline)) static inline bool keyboard_shift() {
 	return keyboard.keycodes[keycode_lshift].state || keyboard.keycodes[keycode_rshift].state;

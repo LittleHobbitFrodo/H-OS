@@ -6,13 +6,13 @@
 #include "./include.h"
 #include "./lib/builtin-shell.h"
 
-//TODO: check PCI structures (maybe banan?)
-	//	check the enumeration algo too
-
 
 //TODO: (someday) resolve SIMD and GPRs
 	//	-mavx512f?
 	//	for faster page table copying
+
+//TODO: redo PCI enumerator (choose better structures?)
+	//  make it more simple and reliable
 
 
 
