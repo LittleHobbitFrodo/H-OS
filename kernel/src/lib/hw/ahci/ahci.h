@@ -6,17 +6,20 @@
 #pragma once
 #include "../../integers.h"
 #include "../devices/device.h"
+#include "./sata-frames.h"
 #include "./structures.h"
 
-typedef struct ahci_t {
+typedef volatile struct ahci_t {
 
 	u8 used:        1;
 	u8 initialized: 1;
+	u8 res:			6;
 
-	device_vector drives;
-
-	void* config_base;
+	ahci_generic_host_control* base;
 	pci_address pci_address;
+
+	u32 ports;
+	u32 port_count;
 
 } ahci_t;
 
@@ -24,7 +27,4 @@ static ahci_t ahci = {0};
 
 static void ahci_init();
 
-
-/*typedef struct ahci_connection_data {
-
-} ahci_connection_data;*/
+static void ahci_find();

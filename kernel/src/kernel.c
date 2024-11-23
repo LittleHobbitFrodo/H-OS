@@ -6,13 +6,21 @@
 #include "./include.h"
 #include "./lib/builtin-shell.h"
 
+//TODO: create TODO text file
+
+
+//TODO: push to main
+
+//TODO: prioritize NVME controller inplementation (better real hw testing (for me at least))
+//	write driver for NCME
+
+//TODO: heap redo: atomic, non-linear address space
+
+//TODO: AHCI: enumerate AHCI
 
 //TODO: (someday) resolve SIMD and GPRs
-	//	-mavx512f?
-	//	for faster page table copying
-
-//TODO: redo PCI enumerator (choose better structures?)
-	//  make it more simple and reliable
+//	-mavx512f?
+//	for faster page table copying
 
 
 

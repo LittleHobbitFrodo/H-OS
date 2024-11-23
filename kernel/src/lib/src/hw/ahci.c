@@ -5,8 +5,6 @@
 
 #pragma once
 #include "../../hw/ahci/ahci.h"
-#include "../../k_management.h"
-#include "../../hw/pci/pci.h"
 
 void ahci_init() {
 
@@ -17,9 +15,6 @@ void ahci_init() {
 		return;
 	}
 
-	report("proceeding with AHCI initialization\n", report_note);
-	wait(500);
-
 	if (ahci.pci_address.enable == 0) {
 		report("ahci init: cannot find ahci config space\n", report_error);
 		ahci.initialized = false;
@@ -28,60 +23,58 @@ void ahci_init() {
 	}
 
 	//	gather base address from pci config space (offset 0x24)
-	pci_memory_base base;
-	{
-		u32* ptr = (u32*)&base;
-		*ptr = pci_read(ahci.pci_address.bus, ahci.pci_address.slot, ahci.pci_address.function, 0x24);
-	}
-	if (base.always_zero != 0) {
-		report("base.always_zero != 0\n", report_error);
+	ahci_find();
+
+	if (ahci.base == null) {
+		report("AHCI: could not find ahci base address\n", report_error);
 		return;
 	}
-	print("AHCI config base: "); printp((void*)((size_t)base.base)); endl();
 
-
-
-
-	/*if (device == null) {
-		for (size_t i = 0; i < devices.len; i++) {
-			device_t* device_ = devices_at(i);
-			if ((device_->ptr != null) && (device_->ptr->connect.type == device_connect_ahci)) {
-				device = device_;
-				break;
-			}
+	ahci.ports = ahci.base->ports_implemented;
+	for (size_t i = 0; i < sizeof(u32)*8; i++) {
+		if ((ahci.ports & (1 << i)) != 0) {
+			ahci.port_count++;
 		}
 	}
 
-	if (device == null) {
-		report("couldn`t find AHCI-connected device\n", report_problem);
-		return;
-	}
-
-	pci_address address;
-	disk_t* disk = null;
-
-	if (device->type.type == device_type_disk) {
-		disk = device->type.data;
-	} else {
-		//#ifdef KERNEL_DEBUG
-		report("ahci init: invalid device structure initialization: device->type.data is NULL\n", report_error);
-		//#endif
-		return;
-	}
-
-	//  gather PCI configuration base address
-	if ((disk->connect.type & (disk_connect_ahci | disk_connect_pci)) == 0b11) {
-		address = ((pci_connection_data*)disk->connect.data)->address;
-	} else {
-		report("ahci init: couldn`t find address of ahci config space\n", report_error);
-		return;
-	}
-
-	//  gather memory-mapped configuration base address (offset 0x24)
-	u32 data = pci_read(address.bus, address.slot, address.function, 0x24);
-	print("address read from PCI: "); printp((void*)((size_t)data)); endl();
-
 	ahci.initialized = true;
-	ahci.used = true;*/
-
+	if (vocality >= vocality_report_everything) {
+		report("AHCI initialization success\n", report_note);
+	}
 }
+
+void ahci_find() {
+	pci_memory_base base;
+	u8 offset = (sizeof(pci_device_header) / sizeof(u32)) + 5;
+	{
+		u32 *ptr = (u32 *) &base;
+		*ptr = pci_read(ahci.pci_address.bus, ahci.pci_address.slot, ahci.pci_address.function, offset);
+	}
+	if (base.always_zero != 0) {
+		//	check if the base address is memory base address
+		report("base.always_zero != 0\n", report_error);
+		return;
+	}
+
+	switch (base.type) {
+		case 0: {
+			//	memory layout is 32-bit
+			ahci.base = (void *) ((((size_t) base.base << 4) + pages.hhdm));
+			break;
+		}
+		case 1: {
+			//	reserved for PCI 3.0
+			report("AHCI base address is PCI 3.0\n", report_warning);
+			break;
+		}
+		case 2: {
+			//	64-bit address
+			size_t a = base.base << 4;
+			a |= pci_read(ahci.pci_address.bus, ahci.pci_address.slot, ahci.pci_address.function, ++offset);
+			ahci.base = (void *) (a + pages.hhdm);
+			break;
+		}
+		default: break;
+	}
+}
+

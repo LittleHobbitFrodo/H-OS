@@ -42,14 +42,6 @@ void time_init() {
 	}
 	timespec.date.months++;
 
-	#ifdef KERNEL_DEBUG
-	u32 c = output.color;
-	output.color = col.cyan;
-	report("system time:\t", report_debug);
-	printl(format_time((timespec_t*)&timespec, time_format_str));
-	output.color = c;
-	#endif
-
 }
 
 void time_update() {

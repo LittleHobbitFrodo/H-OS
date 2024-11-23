@@ -44,8 +44,6 @@ u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset) {
 	return ind(PCI_CONFIG_DATA);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 
 void pci_scan_bus(u8 bus) {
 
@@ -54,13 +52,13 @@ void pci_scan_bus(u8 bus) {
 			if (!pci_exists(bus, i , ii)) {
 				continue;
 			}
-
 			u8 class = pci_read_class(bus, i, ii);
 			u8 subclass = pci_read_subclass(bus, i, ii);
 			u8 programming = pci_read_programming(bus, i, ii);
 
 			switch (class) {
 				case pci_device_class_mass_storage_controller: {
+
 					device_t* device = devices_push(1);
 					device->type = device_type_disk;
 					switch (subclass) {
@@ -138,7 +136,6 @@ void pci_scan_bus(u8 bus) {
 	}
 }
 
-#pragma GCC diagnostic pop
 
 u8 pci_enumerate() {
 	for (u16 i = 0; i < 256; i++) {

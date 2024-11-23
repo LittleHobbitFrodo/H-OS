@@ -59,9 +59,7 @@ bool str_cmpb(const string *s1, const char *s2);
 
 bool str_cmpbs(const string *s1, const string *s2);
 
-#ifndef KERNEL_DEBUG
 __attribute__((always_inline)) inline
-#endif
 void str_clear(string *this) {
 	if (this->data != null) {
 		free(this->data);

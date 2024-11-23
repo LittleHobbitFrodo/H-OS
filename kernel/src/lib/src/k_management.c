@@ -191,9 +191,7 @@ void __parse_cmd_out_of_bounds(const string *token) {
 	printl("\', got nothing");
 }
 
-#ifndef KERNEL_DEBUG
 __attribute__((always_inline)) inline
-#endif
 void __parse_cmd_report(const char* msg, enum report_seriousness seriousness) {
 	report("command line argument:\t", seriousness);
 	print(msg);

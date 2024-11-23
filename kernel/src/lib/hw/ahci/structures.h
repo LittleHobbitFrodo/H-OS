@@ -5,74 +5,94 @@
 
 #pragma once
 #include "../../integers.h"
+#include "./sata-frames.h"
 
-enum sata_frame_types {
-	//	information about sata frame information structure
-	sft_register_host_to_device,
-	sft_register_device_to_host,
-	sft_dma_activate,
-	sft_dma_setup,
-	sft_data,
-	sft_bist,
-	sft_pio_setup,
-	sft_device_bits
+typedef volatile struct ahci_port {
+	u64 command_list_base;
+	u64 frame_type_base;
+	u32 interrupt_status;
+	u32 interrupt_enable;
+	u32 cmd_and_status;
+	u32 reserved;
+	u32 task_file_data;
+	u32 signature;
+	u32 sata_status;
+	u32 sata_control;
+	u32 sata_error;
+	u32 sata_active;
+	u32 command_issue;
+	u32 sata_notification;
+	u32 fis_switch_control;
+} __attribute__((packed)) ahci_port;
 
-} sata_frame_types;
+typedef volatile struct ahci_generic_host_control {
 
-typedef struct sata_host_to_device_frame {
+	u32 capabilities;		//	host
+	u32 global_host_control;
+	u32 interrupt_status;
+	u32 ports_implemented;		//	each bit is one port
+	u32 version;
+	u32 ccc_control;	//	command completion coalescing control
+	u32 ccc_ports;
+	u32 enclosure_location;
+	u32 enclosure_control;
+	u32 capabilities_ext;
+	u32 handoff;		//	BIOS/OS handoff
 
-    u8 frame_type;          //  sata_frame_types
-	u8 port_multiplier:     4;
-	u8 port_reserved:       3;
-	u8 port_command:        1;  //  1 = command, 0 = control
-    u8 command;             //  command register
-    u8 feature;
+	u32 reserved[(0xA0 - 0x2C) / sizeof(u32)];
+	u32 vendor_specific[(0x100 - 0xA0) / sizeof(u32)];
 
-    u8 lba[3];
-    u8 device;      //  device register
-
-    u8 lba_high[3];
-    u8 feature_high;
-
-    u16 count;
-    i8 iic;         //  isochronous command completion
-    u8 control;     //  control register
-
-    u32 reserved;
-
-} __attribute__((packed)) sata_host_to_device_frame;
-
-typedef struct sata_device_to_host_frame {
-
-	u8 frame_type;
-	u8 port_multiplier:     4;
-	u8 reserved0:           2;
-	u8 interrupt:           1;
-	u8 reserved1:           1;
-	u8 status;
-	u8 error;
-
-	u8 lba[3];
-	u8 device;
-
-	u8 lba_high[3];
-	u8 reserved2;
-
-	u16 count;
-	u16 reserved3;
-
-	u32 reserved4;
+	ahci_port ports[];
 
 
-} __attribute__((packed)) sata_device_to_host_frame;
+} __attribute__((packed)) ahci_generic_host_control;
 
-typedef struct sata_bidirectional_frame {
-	u8 frame_type;
-	u8 port_multiplier:     4;
-	u8 reserved:            4;
+/*typedef volatile struct ahci_port_t {
+	u64 cmd_base;		//	1kb aligned
+	u64 frame_base;		//	256 aligned
+	u32 interrupt_status;
+	u32 interrupt_enable;
+	u32 cmd;			//	command and status
+	u32 reserved;
+	u32 task_file;
+	u32 signature;
+	u32 sata_status;
+	u32 sata_control;
+	u32 sata_error;
+	u32 sata_active;
+	u32 command_issue;
+	u32 sata_notification;
+	u32 frame_switch_control;
+	u32 reservec1[11];
+	u32 vendor_specific[4];
+} __attribute__((packed)) ahci_port_t;
 
-	u16 reserved1;
+typedef struct ahci_generic_host_control_t {
+	u32 capabilities_host;
+	u32 global_host_control;
+	u32 interrupt_status;
+	u32 port_implemented;
+	u32 version;
+	u32 ccc_control;		//	command completion coalescing control
+	u32 ccc_port;			//	command completion coalescing port
+	u32 em_location;		//	enclosure management location
+	u32 em_control;			//	enclosure management control
+	u32 capabilities_ext;	//	capabilities extended
+	u32 bohc;				//	BIOS/OS handoff control and status
 
-	u32 data[];     //  size can vary
+	//	0x2C - 0x9F is reserved
+	u8 reserved[0xA0 - 0x2C];
 
-} __attribute__((packed)) sata_bidirectional_frame;
+	//	0xA0 - 0xFF is vendor specific
+	u8 vendor_specific[0xFF - 0xA0];
+
+	ahci_port_t ports[];
+
+
+} __attribute__((packed)) ahci_generic_host_control_t;
+
+typedef struct ahci_base_register {
+
+} __attribute__((packed)) ahci_base_register;*/
+
+
