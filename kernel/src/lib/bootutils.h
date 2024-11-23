@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <limine.h>
+#include "../limine.h"
 #include "./integers.h"
 
 #ifndef KERNEL_STACK_SIZE
