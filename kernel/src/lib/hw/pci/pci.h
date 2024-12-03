@@ -19,9 +19,20 @@
 //	initializes PCI
 static void pci_init();
 
+void* pci_read_bar(pci_address address, u8 bar);
+
 static bool pci_initialized = false;
 
 u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset);
+__attribute__((always_inline))
+inline u32 pci_reada(union pci_address_u32 address) {
+	outd(PCI_CONFIG_ADDRESS, address.u32);
+	return ind(PCI_CONFIG_DATA);
+}
+inline void pci_writea(union pci_address_u32 address, u32 data) {
+	outd(PCI_CONFIG_ADDRESS, address.u32);
+	outd(PCI_CONFIG_DATA, data);
+}
 
 u8 pci_enumerate();
 

@@ -17,5 +17,4 @@ for i in $argv
   end
 end
 
-qemu-system-x86_64 -m 4G -drive file=H-OS.hdd,if=virtio,media=disk,discard=unmap,id=ahci_disk \
--device ahci,id=ahci -device qemu-xhci -device usb-mouse -netdev user,id=net
+qemu-system-x86_64 -m 4G -drive file=H-OS.hdd,if=virtio,media=disk,discard=unmap,id=ahci_disk -device qemu-xhci -device usb-mouse -device nvme,serial=0

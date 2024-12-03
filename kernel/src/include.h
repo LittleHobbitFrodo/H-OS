@@ -78,6 +78,7 @@
 #include "./lib/hardware.h"
 #include "./lib/hw/keyboard.h"
 #include "./lib/acpi/acpi.h"
+#include "./lib/hw/nvm/nvm.h"
 
 
 //  sources
@@ -116,3 +117,4 @@
 #include "./lib/src/hw/pci/pci.c"
 #include "./lib/src/hw/ahci.c"
 #include "./lib/src/hw/devices/device.c"
+#include "./lib/src/hw/nvm/nvm.c"

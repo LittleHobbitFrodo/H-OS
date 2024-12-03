@@ -22,8 +22,8 @@ void ahci_init() {
 		return;
 	}
 
-	//	gather base address from pci config space (offset 0x24)
-	ahci_find();
+	//	gather address from PCI base address register 5
+	ahci.base = pci_read_bar(ahci.pci_address, 5);
 
 	if (ahci.base == null) {
 		report("AHCI: could not find ahci base address\n", report_error);
@@ -43,7 +43,7 @@ void ahci_init() {
 	}
 }
 
-void ahci_find() {
+/*void ahci_find() {
 	pci_memory_base base;
 	u8 offset = (sizeof(pci_device_header) / sizeof(u32)) + 5;
 	{
@@ -52,7 +52,7 @@ void ahci_find() {
 	}
 	if (base.always_zero != 0) {
 		//	check if the base address is memory base address
-		report("base.always_zero != 0\n", report_error);
+		report("AHCI find: invalid base address\n", report_error);
 		return;
 	}
 
@@ -76,5 +76,5 @@ void ahci_find() {
 		}
 		default: break;
 	}
-}
+}*/
 

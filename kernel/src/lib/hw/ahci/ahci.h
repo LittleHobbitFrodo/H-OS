@@ -26,5 +26,3 @@ typedef volatile struct ahci_t {
 static ahci_t ahci = {0};
 
 static void ahci_init();
-
-static void ahci_find();

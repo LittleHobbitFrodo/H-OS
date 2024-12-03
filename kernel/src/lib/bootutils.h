@@ -50,7 +50,8 @@ static volatile struct limine_paging_mode_request req_page_mode = {
 
 static volatile struct limine_hhdm_request req_page_hhdm = {
 	.id = LIMINE_HHDM_REQUEST,
-	.revision = 2,
+	.revision = 0,
+	//	revision 0 maps memory <= 4Gig
 };
 
 static volatile struct limine_kernel_file_request req_kernel_file = {

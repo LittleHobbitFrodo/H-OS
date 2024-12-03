@@ -8,20 +8,22 @@
 
 //TODO: create TODO text file
 
+//TODO:	write driver for NVME
 
-//TODO: push to main
-
-//TODO: prioritize NVME controller inplementation (better real hw testing (for me at least))
-//	write driver for NCME
+//TODO: fix paging (again)
 
 //TODO: heap redo: atomic, non-linear address space
 
-//TODO: AHCI: enumerate AHCI
+//TODO:	redo PCI init
+//	static vector disks should be diskptr_vector
+
+//TODO: implement hashmap (you lazy idiot :D)
+
+//TODO: implement limine device tree blob feature
 
 //TODO: (someday) resolve SIMD and GPRs
 //	-mavx512f?
 //	for faster page table copying
-
 
 
 void kernel() {
@@ -31,6 +33,8 @@ void kernel() {
 	print("starting ");
 	printl(KERNEL_NAME);
 	output.color = col.white;
+
+	print("nvm_capabilities_t size:\t"); printu(sizeof(nvm_capabilities_t)); endl();
 
 
 	shell();

@@ -17,7 +17,12 @@ void pci_init() {
 	pci_enumerate();
 
 	if (ahci.used) {
+		//	initialize drives connected through SATA
 		ahci_init();
+	}
+	if (nvm.used) {
+		//	initialize non-volatile memory drives
+		nvm_init();
 	}
 
 	pci_initialized = true;
@@ -44,7 +49,6 @@ u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset) {
 	return ind(PCI_CONFIG_DATA);
 }
 
-
 void pci_scan_bus(u8 bus) {
 
 	for (size_t i = 0; i < 8; i++) {
@@ -65,7 +69,7 @@ void pci_scan_bus(u8 bus) {
 						case pci_mass_storage_serial_ata: {
 							switch (programming) {
 								case pci_serial_ata_ahci: {
-									devices.len--;  //  pop
+									devices_pop(1);
 									ahci.pci_address = pci_address_construct(bus, i, ii, 0, 1);
 									ahci.used = true;
 									break;
@@ -101,9 +105,9 @@ void pci_scan_bus(u8 bus) {
 							break;
 						}
 						case pci_mass_storage_nvm_controller: {
-							disk_t* disk = disks_push(1);
-							disk->connect.type = device_connect_nvm;
-							device->ptr = (device_header*)disk;
+							devices_pop(1);
+							nvm.used = true;
+							nvm.pci_address = pci_address_construct(bus, i, ii, 0, true);
 							break;
 						}
 						default: {
@@ -143,4 +147,42 @@ u8 pci_enumerate() {
 	}
 
 	return ok;
+}
+
+void* pci_read_bar(pci_address address, u8 bar) {
+	if (bar >= 6) {
+		return null;
+	}
+	address.offset = 1;
+	u32 tmp = pci_reada((union pci_address_u32)address);
+	tmp |= 0b11;
+	pci_writea((union pci_address_u32)address, tmp);
+	pci_memory_base base;
+	{
+		u32* ptr = (u32*)&base;
+		address.offset = (sizeof(pci_device_header)/sizeof(u32)) + bar;
+		*ptr = pci_reada((union pci_address_u32)address);
+	}
+	if (base.always_zero != 0) {
+		return null;
+	}
+	switch (base.type) {
+		case 0: {
+			//	32-bit BAR
+			printl("read BAR: 1");
+			return (void*)(((size_t)base.base + pages.hhdm));
+		}
+		case 1: {
+			//	reserved for PCI 3.0
+			return null;
+		}
+		case 2: {
+			size_t a = base.base;
+			address.offset++;
+			size_t higher = (size_t)pci_reada((union pci_address_u32)address);
+			a |= ((higher & ~0xf) << 32);
+			return (void *) (a + pages.hhdm);
+		}
+		default: return null;
+	}
 }

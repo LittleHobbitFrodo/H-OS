@@ -93,10 +93,13 @@ static inline void page_cpy(page_table_t* src, page_table_t* dest, size_t table_
 	}
 }
 
+__attribute__((aligned(4096))) static page_table_t random_pages = {0};
+
 typedef struct pages_t {
 	page_table_t* pml4;		//	virtual address of the pml4 table
 
-	void* hhdm;		//	virtual base address of hhdm
+	size_t hhdm;		//	virtual base address of hhdm
+
 	struct kernel {
 		void* physical;
 		void* virtual;
@@ -108,7 +111,7 @@ typedef struct pages_t {
 	} heap;
 } pages_t;
 
-static pages_t pages;
+static pages_t pages = {0};
 
 void* physical(virtual_address address);
 

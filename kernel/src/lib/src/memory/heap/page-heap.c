@@ -81,6 +81,7 @@ void page_heap_debug() {
 }
 
 page_table_t* page_alloc(u32 tables) {
+	//	returns virtual address
 	vvec_wait_and_lock((&page_heap.segments));
 	page_table_t* ret = __page_alloc_locked(tables);
 	vvec_unlock((&page_heap.segments));
