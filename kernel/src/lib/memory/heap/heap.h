@@ -9,7 +9,6 @@
 #pragma once
 
 #include "../../integers.h"
-#include "../paging.h"
 
 
 #ifndef HEAP_INITIAL_BLOCK_SIZE
@@ -25,6 +24,8 @@ typedef struct heap_segment_t{
 	bool used;
 } heap_segment_t;
 
+struct page_table_t;
+
 bool heap_reserve_memory(bool include_reclaimable_entries);
 
 typedef struct heap_t {
@@ -32,15 +33,18 @@ typedef struct heap_t {
 	heap_segment_t* used_until;
 
 	//[[maybe_unused]] void* start_physical;
-	heap_segment_t* start;
-	heap_segment_t* end;
+	heap_segment_t* start;		//	first block
+	heap_segment_t* end;		//	last block
 
 	struct {
-		void* start;
-		void* end;
+		size_t start;
+		size_t end;
 	} physical;
 
-	void* base_virtual;
+	void* virtual_start;
+	void* virtual_end;
+
+	void* table;		//	page_table_t
 
 } heap_t;
 
@@ -49,6 +53,8 @@ heap_t heap;
 static void heap_init();
 
 void heap_debug();
+
+bool heap_map(size_t physical, void** virt, size_t size, bool* table_created);
 
 __attribute__((always_inline, nonnull))
 inline void free(void* ptr) {

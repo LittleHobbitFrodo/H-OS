@@ -42,11 +42,21 @@ bool heap_reserve_memory(bool include_reclaimable_entries) {
 			}
 			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
 				//	mlen != 0 => mstart != null
-				heap.physical.start = (heap_segment_t*)mstart->base;
-				heap.physical.end = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
-				heap.base_virtual = (void*)((size_t)pages.hhdm + (size_t)heap.physical.start);
-				heap.start = heap.base_virtual;
+				//	prepare heap for initialization
+				heap.physical.start = mstart->base;
+				heap.physical.end = heap.physical.start + (HEAP_MINIMAL_ENTRY_SIZE * KB);
+				bool table_created = false;
+				if (!heap_map(heap.physical.start, &heap.virtual_start, heap.physical.end - heap.physical.start, &table_created)) {
+					return false;
+				}
+				heap.start = (void *)heap.virtual_start;
 				heap.end = heap.start;
+				heap.virtual_end = (void*)((size_t)heap.virtual_start + (heap.physical.end + heap.physical.start - (PAGE_SIZE * table_created)));
+
+				//	prepare table
+				union virtual_union vu = {.voidptr = heap.virtual_start};
+				vu.virtual_address.pt = 0;
+				heap.table = vu.voidptr;
 				return true;
 			}
 		}
@@ -73,11 +83,20 @@ bool heap_reserve_memory(bool include_reclaimable_entries) {
 			}
 			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
 				//	mlen != 0 => mstart != null
-				heap.physical.start = (heap_segment_t*)mstart->base;
-				heap.physical.end = (void*)((mstart->base + (HEAP_MINIMAL_ENTRY_SIZE * KB)));
-				heap.base_virtual = (void*)((size_t)pages.hhdm + (size_t)heap.physical.start);
-				heap.start = heap.base_virtual;
+				heap.physical.start = mstart->base;
+				heap.physical.end = heap.physical.start + (HEAP_MINIMAL_ENTRY_SIZE * KB);
+				bool table_created = false;
+				if (!heap_map(heap.physical.start, &heap.virtual_start, heap.physical.end - heap.physical.start, &table_created)) {
+					return false;
+				}
+				heap.start = (void *)heap.virtual_start;
 				heap.end = heap.start;
+				heap.virtual_end = (void*)((size_t)heap.virtual_start + (heap.physical.end + heap.physical.start - (PAGE_SIZE * table_created)));
+
+				//	prepare table
+				union virtual_union vu = {.voidptr = heap.virtual_start};
+				vu.virtual_address.pt = 0;
+				heap.table = vu.voidptr;
 				return true;
 			}
 		}
@@ -107,13 +126,20 @@ void heap_debug() {
 	endl();
 	output.color = c;
 }
+
+
 void heap_init() {
 	//	heap_reserve_memory() must be called before this function
+
+	//	map all heap memory
+	for (size_t i = 0; (i+1) * 4096 < heap.physical.end - heap.physical.start; i++) {
+		(*((page_table_t*)heap.table))[i].address = (heap.physical.start + (i * 4096)) >> PAGE_SHIFT;
+	}
 
 	heap.start->next = null;
 	heap.start->used = false;
 	heap.start->size = HEAP_INITIAL_BLOCK_SIZE;
-	heap.base_virtual = heap.start;
+	heap.virtual_start = heap.start;
 	heap.end = (heap.used_until = heap.start);
 }
 
@@ -202,13 +228,19 @@ void *realloca(void *ptr, size_t bytes, size_t add) {
 
 
 void *heap_expand(size_t bytes) {
-	heap_segment_t *last = heap.end;
-	heap.end = (struct heap_segment_t *) ((size_t) heap.end + sizeof(heap_segment_t) + last->size);
+	heap_segment_t* last = heap.end;
+	last->next = (void*)((size_t)last + last->size + sizeof(heap_segment_t));
+	heap.end = last->next;
+	heap.end->next = null;
+	heap.end->size = bytes;
+	heap.end->used = true;
+	return (void*)((size_t)heap.end + sizeof(heap_segment_t));
+	/*heap_segment_t *last = heap.end;
 	last->next = heap.end;
 	heap.end->used = true;
 	heap.end->size = bytes;
 	heap.end->next = null;
-	return (void *) ((size_t) heap.end + sizeof(heap_segment_t));
+	return (void *) ((size_t) heap.end + sizeof(heap_segment_t));*/
 }
 
 void heap_connect(heap_segment_t *beg, heap_segment_t *end) {
@@ -458,4 +490,65 @@ void *heap_align_expand(size_t bytes, size_t *align_) {
 		*align_ = offset;
 		return ptr;
 	}
+}
+
+
+bool heap_map(size_t physical, void** virt, size_t size, bool* table_created) {
+	//	maps virtual memory for page heap
+	//	table is allocated at the arg:physical address
+		//	if is allocated:
+			//	*table_created = true
+			//	*virt points to physical + PAGE_SIZE
+
+	if (physical + (size * 2) >= (size_t)4*GB) {
+		//	out of hhdm
+
+		union virtual_union vu = {.voidptr = pages.system.pdpt.virtual};
+
+		if (vocality >= vocality_report_everything) {
+			report("page heap is not covered by HHDM => proceeding with mapping\n", report_note);
+		}
+
+		page_entry *page;
+		page_table_t *table = page_quick_map((void*)physical, &page);
+		if ((table == null) || (page == null)) {
+			report("could not quick map memory to initialize page heap\n", report_error);
+			return false;
+		}
+
+		//	create new table
+		u64 *tmp = (u64 *) table;
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			tmp[i] = page_bit_present | page_bit_write | page_bit_exec_disable;// | page_bit_page_size;
+		}
+		(*table)[0].address = physical >> PAGE_SHIFT;		//	points to itself
+		(*table)[1].address = (physical + PAGE_SIZE) >> PAGE_SHIFT;
+		vu.virtual_address.pt = 1;
+
+		//	connect the table to pdpt
+		for (ssize_t i = 511; i >= 0; i--) {
+			if (pages.system.pdpt.page[i].address == 0) {
+				pages.system.pdpt.page[i].address = physical >> PAGE_SHIFT;
+				vu.virtual_address.pdpt = i;
+				break;
+			}
+		}
+
+		*virt = vu.voidptr;
+		if (table_created != null) {
+			*table_created = true;
+		}
+
+		page_quick_unmap(page);
+	} else {
+		//	in hhdm
+		if (vocality >= vocality_report_everything) {
+			report("page heap is covered by HHDM\n", report_note);
+		}
+		if (table_created != null) {
+			*table_created = false;
+		}
+		*virt = (void*)(pages.heap.physical + pages.hhdm);
+	}
+	return true;
 }

@@ -3,16 +3,70 @@
 //		part of the CORE kernel belonging to the H-OS project
 //
 
-#pragma once
+
+//	NOTE: do NOT include in include.h
 
 //	heap implementation dedicated for page table management
 //	works with aligned data with fixed sizes
 //	needs regular heap to work
 
-#include "../../integers.h"
-#include "../paging.h"
-#include "../../memory.h"
-#include "../../vector/volatile-vector.h"
+#pragma once
+
+#include "../../../integers.h"
+#include "../heap.h"
+
+
+static void page_heap_init();
+
+static bool page_heap_reserve_memory();
+
+void page_heap_debug();
+
+
+[[nodiscard]] __attribute__((returns_nonnull))
+page_table_t* page_alloc(u32 count);
+
+[[nodiscard]] __attribute__((returns_nonnull))
+page_table_t* page_realloc(page_table_t* table, u32 count);
+
+void page_free(page_table_t* table);
+
+void page_heap_debug();
+
+
+
+/*void page_free(page_table_t* ptr);
+void __page_free_locked(page_table_t* ptr);
+
+[[nodiscard]] __attribute__((nonnull(1), returns_nonnull))
+page_segment* page_find(page_table_t* ptr);
+[[nodiscard]] __attribute__((nonnull(1)))
+ssize_t page_find_index(page_table_t* ptr);
+
+[[nodiscard]] __attribute__((always_inline))
+inline page_table_t* page_alloc([[maybe_unused]] u32 tables) {
+	return null;
+}
+
+[[nodiscard]] __attribute__((returns_nonnull))
+page_table_t* __page_alloc_locked(u32 tables);
+
+[[nodiscard]] __attribute__((nonnull(1), returns_nonnull))
+page_table_t* page_realloc(page_table_t* ptr, u32 tables, bool* reallocated);
+
+
+//	functions below assumes that the vector is already locked by one of functions above
+
+void __page_heap_divide_block(size_t segment, size_t tables);
+
+[[nodiscard]] __attribute__((always_inline))
+inline page_table_t* page_heap_expand([[maybe_unused]]size_t tables, [[maybe_unused]]bool unlock) {
+	return null;
+}*/
+
+
+
+/*
 
 typedef struct page_heap_segment_t {
 	page_table_t* entries;
@@ -75,3 +129,4 @@ void __page_heap_divide_block(size_t segment, size_t tables);
 
 [[nodiscard]] __attribute__((always_inline))
 inline page_table_t* page_heap_expand(size_t tables, bool unlock);
+*/

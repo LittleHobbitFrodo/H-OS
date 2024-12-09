@@ -28,16 +28,35 @@ typedef struct page_entry {
 	//	address must be shifted before accessing/setting it
 	u64 expansion: 8;
 	u64 key: 3;		//	process individual protection key
-	u64 execute_disable : 1;
+	u64 exec_disable : 1;
 } __attribute__((packed)) page_entry;
 
+enum page_bits {
+	page_bit_present = 1,
+	page_bit_write = 1 << 1,
+	page_bit_user = 1 << 2,
+	page_bit_caching = 1 << 3,
+	page_bit_disable_caching = 1 << 4,
+	page_bit_accessed = 1 << 5,
+	page_bit_dirty = 1 << 6,
+	page_bit_page_size = 1 << 7,
+	page_bit_global = 1 << 8,
+	//	reserved
+	page_bit_address = (size_t)0xffffffffff << 12,	//	40 bits
+	page_bit_expansion = (size_t)0xff << 52,
+	page_bit_key = (size_t)0b111 << 60,
+	page_bit_exec_disable = (size_t)1 << 63
+};
+
 typedef page_entry page_table_t[512];
+
+#include "./heap/page-heap/structures.h"
 
 typedef struct virtual_address {
 	u64 offset: 12;
 	u64 pt: 9;
-	u64 pdpt: 9;
 	u64 pd: 9;
+	u64 pdpt: 9;
 	u64 pml4: 9;
 	u64 sign: 16;
 } virtual_address;
@@ -93,28 +112,61 @@ static inline void page_cpy(page_table_t* src, page_table_t* dest, size_t table_
 	}
 }
 
-__attribute__((aligned(4096))) static page_table_t random_pages = {0};
-
 typedef struct pages_t {
 	page_table_t* pml4;		//	virtual address of the pml4 table
 
 	size_t hhdm;		//	virtual base address of hhdm
+		//	0 => any memory map region (<= 4GB)
 
 	struct kernel {
 		void* physical;
 		void* virtual;
 	} kernel;
+
 	struct {
-		//	virtual base addresses for each heap
-		void* regular;
-		void* page;
+		page_region_vec_t regions;
+		size_t size;		//	size of allocated space
+		size_t physical;	//	physical base (heap initialization purposes)
+		void* virtual;
 	} heap;
+
+	struct {
+		//	specific page tables for system resources
+		struct {
+			size_t physical;
+			void* virtual;
+			__attribute__((aligned(4096))) page_table_t page;
+		} pdpt;
+
+		struct {
+			void* virtual;
+			size_t physical;
+			__attribute__((aligned(4096))) page_table_t page;
+			//	pd layer (recursive mapped)
+		} random;
+
+
+	} system;
+
 } pages_t;
 
 static pages_t pages = {0};
 
-void* physical(virtual_address address);
+void* physical(void* address);
 
-void va_info(virtual_address address);
+void va_info(void* a);
+
+void* page_map(void* physical, size_t page_count, u64 perms);
+
+void page_flush();
+
+void* page_quick_map(void* physical, page_entry** ent);
+	//	maps one page for one-time use
+
+#define page_quick_unmap(pageptr) pageptr->address = 0;
+
+page_entry* page_find_empty_pdpt();
+	//	find empty pdpt entry
 
 
+#include "./heap/page-heap/page-heap.h"

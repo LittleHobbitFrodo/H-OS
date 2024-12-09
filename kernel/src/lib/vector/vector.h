@@ -179,13 +179,14 @@
 			this->len = 0;\
 			this->capacity = 0;\
 			return;\
-		}\
-		this->len = len;\
-		this->data = alloc(len * sizeof(type));\
-		for (size_t i = 0; i < len; i++) {\
-			construct(&this->data[i]);\
-		}\
-		this->capacity = heap_bsize(this->data) / sizeof(type);\
+		} else {\
+        	this->len = len;\
+        	this->data = alloc(len * sizeof(type));\
+        	for (size_t i = 0; i < len; i++) {\
+            	construct(&this->data[i]);\
+        	}\
+        	this->capacity = heap_bsize(this->data) / sizeof(type);\
+    	}\
 	}\
 	__attribute__((always_inline, nonnull(1))) static inline void name##_destruct(type_name* this) {\
 		if (this->data != 0) {\
@@ -244,7 +245,7 @@
 		for (size_t i = olen; i < this->len; i++) {\
 			construct(&this->data[i]);\
 		}\
-		return &this->data[this->len - count];\
+		return &this->data[olen];\
 	}\
 	__attribute__((nonnull(1))) void name##_pop(type_name* this, size_t count) {\
 		if (this->data == null) {\

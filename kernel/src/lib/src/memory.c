@@ -20,30 +20,19 @@ void memory_init() {
 	base.virtual = (void*)req_k_address.response->virtual_base;
 	base.physical = (void*)req_k_address.response->physical_base;
 
-	//	prepare stack structure
-	memset(&stack, sizeof(stack_holder), 0);
-
 	if ((req_memmap.response == null) || (req_memmap.response->entries == null)) {
 		report("memory map not found", report_critical);
 		panic(panic_code_memmap_not_found);
 	}
 
-	//	reserves memory for heap
-	if (!heap_reserve_memory(false)) {
-		//	initialize (maybe) temporary heap
-		//	once the kernel will deal with all reclaimable entries heap will be (maybe) reinitialized
-		//	maybe = if any reclaimable entry is in place where we want the kernel heap
-		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
-	}
-
 	//	initialize paging
 	page_init();
 
-	//	initialize regular heap
-	heap_init();
-
 	//	initialize heap for page table allocations
 	page_heap_init();
+
+	//	initialize regular heap
+	heap_init();
 
 	//	parse memory map
 	memmap_parse();
@@ -94,10 +83,10 @@ void memmap_parse() {
 			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
 			h->type = memmap_heap;
 			heap_index = memmap.len - 1;
-		} else if (ent->base == (size_t)page_heap.physical.start) {
+		} else if (ent->base == (size_t)pages.heap.physical) {
 			memmap_entry* h = memmap_push(1);
 			h->base = ent->base;
-			h->len = page_heap.size * PAGE_SIZE;
+			h->len = pages.heap.size;
 			h->type = memmap_heap;
 			page_heap_index = memmap.len - 1;
 		}
@@ -136,79 +125,6 @@ void memmap_parse() {
 		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
 		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
 	}
-
-
-	/*vecs(&memmap, sizeof(memmap_entry));
-	ssize_t msize = req_memmap.response->entry_count, heap_index = -1, page_heap_index = -1;
-	struct limine_memmap_entry **ents = req_memmap.response->entries;
-	enum memmap_types tmp = memmap_undefined;
-
-	struct limine_memmap_entry *ent;
-	ssize_t i = 0;
-	{
-		//	prepare first entry
-		memmap_entry *first = (memmap_entry *) vec_push(&memmap, 1);
-		first->base = ents[0]->base;
-		first->type = memmap_entry_type(ents[i]->type);
-		for (++i; memmap_entry_type(ents[i]->type) == tmp; i++);
-		--i;
-		first->len = ents[i]->base + ents[i]->length - first->base;
-		++i;
-	}
-
-	for (; i < msize; i++) {
-		ent = ents[i];
-
-		if (ent->base == (size_t)heap.physical.start) {
-			//	initialize heap entry
-			memmap_entry *h = vec_push(&memmap, 1);
-			h->base = ent->base;
-			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
-			h->type = memmap_heap;
-			heap_index = memmap.len - 1;
-		} else if (ent->base == (size_t)page_heap.physical.start) {
-			memmap_entry* h = vec_push(&memmap, 1);
-			h->base = ent->base;
-			h->len = page_heap.size * PAGE_SIZE;
-			h->type = memmap_heap;
-			page_heap_index = memmap.len - 1;
-		}
-
-		tmp = memmap_entry_type(ent->type);
-		//	skip entries of same type
-		for (++i; (i < msize) && (memmap_entry_type(ents[i]->type) == tmp); i++);
-		--i;
-
-		memmap_entry *new = (memmap_entry *) vec_push(&memmap, 1);
-		new->base = ent->base;
-		new->type = tmp;
-		if (i + 1 < msize) {
-			new->len = ents[i + 1]->base - new->base;
-		} else {
-			new->len = ents[i]->base + ents[i]->length - new->base;
-		}
-	}
-
-	//	make heap entry not overlap other entries
-	memmap_entry* es = memmap.data;
-	es[heap_index + 1].base += es[heap_index].len;
-	es[heap_index + 1].len -= es[heap_index].len;
-	es[page_heap_index + 1].base += es[page_heap_index].len;
-	es[page_heap_index + 1].len -= es[page_heap_index].len;
-
-
-	//	gather info about memory usage
-	memmap_analyze();
-
-	//	apply stacks (stck != null)
-		//	paging is not initialized yet -> special allocated memory will be used for stacks (memory.h)
-	//stack.kernel = (void*)(stck->base + stck->len - 1);
-	stack.kernel = (void*)((size_t)&KERNEL_STACK + (32*KB) - 1);
-	for (i = 0; i < 7; i++) {
-		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
-		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
-	}*/
-
 
 	if (vocality >= vocality_report_everything) {
 		report("memory map parsed successfully\n", report_note);
@@ -393,7 +309,8 @@ void memmap_display_original() {
 		}
 		printp((void *) ent->base);
 		print("\tto\t");
-		printp((void *) (ent->base + ent->length));
+		printp((void *) (ent->base + ent->length)); tab();
+		printu(ent->length);
 		endl();
 	}
 	output.color = c;

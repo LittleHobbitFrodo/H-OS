@@ -130,3 +130,10 @@ void wait(size_t milli);
 
 
 void memcpy_reverse(void* src, void* dest, size_t size);
+
+
+
+__attribute__((always_inline))
+static inline void to_be_optimized([[maybe_unused]] void* a) {}
+	//	empty function that will be optimized-out by compiler
+		//	yes it is actually used

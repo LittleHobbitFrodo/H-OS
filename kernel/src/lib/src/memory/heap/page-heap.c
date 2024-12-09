@@ -5,31 +5,69 @@
 
 #pragma once
 
-#include "../../../memory/heap/page-heap.h"
+#include "../../../memory/heap/page-heap/page-heap.h"
 
-void page_heap_init() {
-	//	allocate page tables into regular heap
-	//	add them into paging structure (test it)
-	//	reserve memory for page heap
-	//	cover page heap in virtual addresses
-	//	allocate tables (in page heap) and add them into paging structure
-	//	make the map the page heap
-	//	delete allocated page tables (regular heap)
-	//	initialize page heap
+bool page_heap_reserve_memory() {
 
-	page_heap_segment_t* seg = vvec_push(&page_heap.segments, 1);
-	seg->entries = page_heap.base.virtual;
-	seg->table_count = 1;
-	seg->used = false;
-	vvec_unlock((&page_heap.segments));
+	struct limine_memmap_entry* ent;
+	const size_t msize = req_memmap.response->entry_count;
+
+	//	calculate page heap size
+	pages.heap.size = (size_t)heap.physical.end - (size_t)heap.physical.end;
+	pages.heap.size = (pages.heap.size / PAGE_SIZE) + (pages.heap.size % PAGE_SIZE != 0);
+	pages.heap.size = ((pages.heap.size / PAGE_COUNT) + 1) * PAGE_COUNT;
+	pages.heap.size *= PAGE_SIZE;
+
+	//	find valid memory map entry (exclude bl. reclaimable)
+	for (size_t i = 0; i < msize; i++) {
+		if ((ent = req_memmap.response->entries[i])->type == LIMINE_MEMMAP_USABLE) {
+			if (ent->length >= pages.heap.size) {
+				pages.heap.physical = ent->base;
+				return heap_map(pages.heap.physical, &pages.heap.virtual, pages.heap.size, null);
+			}
+		}
+	}
+	return false;
 }
 
+void page_heap_init() {
+
+
+	//	quick map page
+	//	create new page table
+	//	connect the table to pdpt
+	//	map the table to page heap
+
+
+
+}
+
+
+
+
+page_table_t* page_alloc([[maybe_unused]]u32 count) {
+	return null;
+}
+
+page_table_t* page_realloc([[maybe_unused]] page_table_t* table, [[maybe_unused]] u32 count) {
+	return null;
+}
+
+void page_free([[maybe_unused]] page_table_t* table) {
+
+}
+
+void page_heap_debug() {
+
+}
+
+/*
 bool page_heap_reserve_memory() {
 	//	updates the page_heap.physical.start and .end variable
 
 	memnull(&page_heap, sizeof(page_heap_t));
 	vvecs(&page_heap.segments, sizeof(page_heap_segment_t));
-		//	initializes volatile vector
+	//	initializes volatile vector
 
 	struct limine_memmap_entry* ent;
 	struct {
@@ -42,12 +80,11 @@ bool page_heap_reserve_memory() {
 
 	//	calculate size for page heap
 	page_heap.size = (size_t)heap.physical.end - (size_t)heap.physical.start;
-		//	get heap size
+	//	get heap size
 	page_heap.size = (page_heap.size / PAGE_SIZE) * (page_heap.size % PAGE_SIZE != 0);
-		//	get page count
+	//	get page count
 	page_heap.size = ((page_heap.size / PAGE_COUNT) + 1) * PAGE_COUNT;
-		//	round up to 512
-
+	//	round up to 512
 
 	//	find good spot for it
 	for (size_t i = 0; i < mmp.size; i++) {
@@ -65,6 +102,64 @@ bool page_heap_reserve_memory() {
 	}
 	return false;
 }
+
+//void page_heap_init() {
+
+//}
+
+void page_heap_init() {
+	//	allocate page tables into regular heap
+	//	add them into paging structure (test it)
+	//	reserve memory for page heap
+	//	cover page heap in virtual addresses
+	//	allocate tables (in page heap) and add them into paging structure
+	//	make the map the page heap
+	//	delete allocated page tables (regular heap)
+	//	initialize page heap
+
+	if ((size_t)page_heap.physical.end + (4*MB) > (size_t)4*GB) {
+		//	4 Mb -> leave space for future expansion
+		//	create page table before page heap
+		page_entry* entry;
+		page_table_t* table = page_quick_map(page_heap.physical.start, &entry);
+		if (table == null) {
+			report("could not map page heap into virtual memory\n", report_error);
+			panic(panic_code_cannot_allocate_memory_for_kernel_heap);
+			__builtin_unreachable();
+		}
+
+		{	//	fill the table
+			u64 *tmp = (u64 *) table;
+			for (size_t i = 0; i < PAGE_COUNT; i++) {
+				tmp[i] = 0b11 | ((u64) 1 << 63);
+					//	present, write, exec disable
+			}
+		}
+
+
+		//	construct virtual address and connect table to system pdpt
+		union virtual_union virt = {.voidptr = pages.system.pdpt.virtual};
+		for (ssize_t i = 511; i >= 0; i--) {
+			if (pages.system.pdpt.page[i].address == 0) {
+				virt.virtual_address.pdpt = i;
+				pages.system.pdpt.page[i].address = (size_t)page_heap.physical.start >> PAGE_SHIFT;
+				break;
+			}
+		}
+		page_heap.base.virtual = virt.voidptr;
+
+
+		entry->address = 0;
+	}
+
+	page_heap_segment_t* seg = vvec_push(&page_heap.segments, 1);
+	seg->entries = page_heap.base.virtual;
+	seg->table_count = 1;
+	seg->used = false;
+	vvec_unlock((&page_heap.segments));
+}
+
+
 
 void page_heap_debug() {
 	vvec_wait_and_lock((&page_heap.segments));
@@ -234,4 +329,4 @@ ssize_t page_find_index(page_table_t* ptr) {
 	} while (low <= high);
 
 	return -1;
-}
+}*/

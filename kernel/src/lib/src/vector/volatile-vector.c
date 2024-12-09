@@ -8,7 +8,7 @@
 
 #include "../../utils.h"
 
-void vvec_resize(volatile_vector* this, vec_len_t len) {
+/*void vvec_resize(volatile_vector* this, vec_len_t len) {
 	//	will not unlock the vector
 	vvec_wait_and_lock(this);
 	if (this->data == null) {
@@ -162,9 +162,9 @@ void* vvec_insert(volatile_vector* this, vec_len_t index, vec_len_t count) {
 	vvec_wait_and_lock(this);
 	if (this->data != 0) {
 		vvec_push(this, count);
-		/*for (ssize_t i = this->len - 1; (i+1 > (ssize_t)index) && (i > 0); i--) {
+		*//*for (ssize_t i = this->len - 1; (i+1 > (ssize_t)index) && (i > 0); i--) {
 			memcpy(vvec_at(this, i-1), vvec_at(this, i), this->bsize);
-		}*/
+		}*//*
 		page_heap_segment_t* segs = &((page_heap_segment_t*)this->data)[index];
 		memcpy_reverse(segs, (void*)((size_t)segs + (count * this->bsize)), (this->len - index) * this->bsize);
 		return vvec_at_unlock(this, index);
@@ -188,3 +188,4 @@ void* __vvec_insert_locked(volatile_vector* this, vec_len_t index, vec_len_t cou
 	return null;
 }
 
+*/

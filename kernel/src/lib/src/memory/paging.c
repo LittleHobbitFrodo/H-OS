@@ -9,9 +9,7 @@
 
 #include "../../k_management.h"
 
-#define WAIT_INT (MAX_U16 << 10)
-
-void page_init() {
+/*void page_init() {
 
 	if (req_page_mode.response == null) {
 		report("cannot get paging mode, continuing blind\n", report_warning);
@@ -45,50 +43,219 @@ void page_init() {
 		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
 	}
 
+}*/
+
+void page_init() {
+
+	u64* tmp = null;
+
+	//	check initial paging setup
+	if (req_page_mode.response == null) {
+		report("cannot retrieve paging mode\n", report_critical);
+		panic(panic_code_paging_initialization_failure);
+		__builtin_unreachable();
+	}
+	if (req_page_mode.response->mode != LIMINE_PAGING_MODE_X86_64_4LVL) {
+		report("unsupported paging mode (", report_critical);
+		if (req_page_mode.response->mode == LIMINE_PAGING_MODE_X86_64_5LVL) {
+			printl("5 level)");
+		} else {
+			printl("unknown)");
+		}
+	}
+	req_page_mode.response = null;
+
+
+
+
+	//	read the pml4 physical address
+	asm volatile("mov %0, cr3" : "=r"(pages.pml4));
+	if (pages.pml4 == null) {
+		report("cannot retrieve paging table address\n", report_critical);
+		panic(panic_code_unable_to_allocate_paging_table);
+		__builtin_unreachable();
+	}
+
+
+
+
+	//	detect HHDM
+	if (req_page_hhdm.response == null) {
+		report("cannot get higher half direct map offset\n", report_critical);
+		panic(panic_code_paging_initialization_failure);
+		__builtin_unreachable();
+	}
+	if (req_page_hhdm.response->revision != 0) {
+		report("unsupported revision for higher half direct map => it can cause unexpected behaviour\n", report_warning);
+	}
+	pages.hhdm = req_page_hhdm.response->offset;
+	req_page_hhdm.response = null;
+	tmp = (u64*)&pages.pml4;
+	*tmp += pages.hhdm;
+
+
+
+	//	retrieve kernel address
+	if (req_k_address.response == null) {
+		report("could not find kernel address\n", report_warning);
+	} else {
+		pages.kernel.virtual = (void*)req_k_address.response->virtual_base;
+		pages.kernel.physical = (void*)req_k_address.response->physical_base;
+		req_k_address.response = null;
+	}
+
+
+
+
+
+	//	system pages
+	union virtual_union virt = {.u64 = 0};
+	virt.virtual_address.sign = 0xffff;
+	{
+		tmp = (u64*)&pages.system.pdpt.page;
+		u64* tmp2 = (u64*)&pages.system.random.page;
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			tmp[i] = (tmp2[i] = 0b11 | ((u64)1 << 63));
+				//	present, write, exec disable
+		}
+	}
+
+	for (size_t i = 511; i > 255; i--) {
+		//	find unused pml4 entry
+		if ((*pages.pml4)[i].address == 0) {
+			virt.virtual_address.pml4 = i;
+			break;
+		}
+	}
+	if (virt.virtual_address.pml4 == 0) {
+		report("could not find any free virtual memory in higher half\n", report_critical);
+		panic(panic_code_paging_initialization_failure);
+		__builtin_unreachable();
+	}
+
+		//	system pages addresses
+	pages.system.pdpt.physical = (size_t)&pages.system.pdpt.page - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
+	pages.system.pdpt.virtual = virt.voidptr;
+
+	pages.system.random.physical = (size_t)&pages.system.random.page - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
+	virt.virtual_address.pdpt = 511;
+	pages.system.random.virtual = virt.voidptr;
+
+	{	//	connect pdpt to pml4
+		page_entry* ent = &((*pages.pml4)[virt.virtual_address.pml4]);
+		ent->address = pages.system.pdpt.physical >> PAGE_SHIFT;
+		ent->present = true;
+		ent->write = true;
+		ent->exec_disable = true;
+	}
+
+	{	//	connect random to pdpt
+		page_entry* ent = &pages.system.pdpt.page[511];
+		ent->address = pages.system.random.physical >> PAGE_SHIFT;
+		ent->present = true;
+		ent->write = true;
+		ent->exec_disable = true;
+	}
+
+		//	map random to itself
+	pages.system.random.page[0].address = pages.system.random.physical >> PAGE_SHIFT;
+	virt.virtual_address.pt = 1;
+	pages.system.random.virtual = virt.voidptr;
+
+	pages.system.random.page[1].address = pages.system.random.physical >> PAGE_SHIFT;
+
+	//	find place for kernel heaps
+	if ((!page_heap_reserve_memory()) || (!heap_reserve_memory(false))) {
+		report("failed to find space for kernel heap", report_critical);
+		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
+		__builtin_unreachable();
+	}
+
 }
 
-void va_info(virtual_address address) {
-	union virtual_union vu;
-	vu.virtual_address = address;
-	if (address.sign > 0) {
+
+void va_info(void* a) {
+	union virtual_union address = {.voidptr = a};
+	if (address.virtual_address.sign > 0) {
 		print("higherhalf address ");
 	} else {
 		print("lowerhalf address ");
 	}
-	printp(vu.voidptr); printl(":");
-	print("\tpml4:\t"); printu(address.pml4); endl();
-	print("\tpdpt:\t"); printu(address.pdpt); endl();
-	print("\tpd:\t\t"); printu(address.pd); endl();
-	print("\tpt:\t\t"); printu(address.pt); endl();
-	print("\toffset:\t"); printu(address.offset); endl();
+	printp(a); printl(":");
+	print("\tpml4:\t"); printu(address.virtual_address.pml4); endl();
+	print("\tpdpt:\t"); printu(address.virtual_address.pdpt); endl();
+	print("\tpd:\t\t"); printu(address.virtual_address.pd); endl();
+	print("\tpt:\t\t"); printu(address.virtual_address.pt); endl();
+	print("\toffset:\t"); printu(address.virtual_address.offset); endl();
 }
 
-void* physical(virtual_address address) {
-	page_entry ent = (*pages.pml4)[address.pml4];
-	if ((!ent.present) || (ent.address == 0)) {
-		#ifndef KERNEL_DEBUG
-		printl("\t\tphysical():\tpage not present: 3");
-		#endif
+void page_flush() {
+	//	reload cr3
+	asm volatile("mov cr3, %0" :: "a"((size_t)pages.pml4 - pages.hhdm));
+}
+
+
+void* physical(void* a) {
+	union virtual_union address = {.voidptr = a};
+
+	//print("physical:\t"); printp(((union virtual_union)address).voidptr); endl();
+	page_entry ent = (*pages.pml4)[address.virtual_address.pml4];
+	if ((ent.present == false) || (ent.address == 0)) {
+		//printl("\t!present || address:\tpml4");
+		return null;
+	} else if (ent.page_size) {
+		//printl("\tpage size:\tpml4");
+		return (void*)((size_t)ent.address << PAGE_SHIFT);
+	}
+
+	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address.pdpt];
+	if ((ent.present == false) || (ent.address == 0)) {
+		//printl("\t!present || address:\tpdpt");
+		return null;
+	} else if (ent.page_size) {
+		//printl("\tpage size:\tpdpt");
+		return (void*)((size_t)ent.address << PAGE_SHIFT);
+	}
+
+	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address.pd];
+	if ((ent.present == false) || (ent.address == 0)) {
+		//printl("\t!present || address:\tpd");
+		return null;
+	} else if (ent.page_size) {
+		//printl("\tpage size:\tpd");
+		return (void*)((size_t)ent.address << PAGE_SHIFT);
+	}
+
+	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address.pt];
+	if ((ent.present == false) || (ent.address == 0)) {
+		//printl("\t!present || address:\tpt");
 		return null;
 	}
-	pages.pml4 = (page_table_t*)(page_address(ent));
-	ent = (*pages.pml4)[address.pdpt];
-	if ((!ent.present) || (ent.address == 0)) {
-		printl("\t\tphysical():\tpage not present: 2");
-		return null;
+	//printl("\tvalid");
+	return (void*)(((size_t)ent.address << PAGE_SHIFT) | address.virtual_address.offset);
+}
+
+
+void* page_quick_map(void* physical, page_entry** ent) {
+	for (size_t i = 0; i < PAGE_COUNT; i++) {
+		if (pages.system.random.page[i].address == 0) {
+			pages.system.random.page[i].address = (size_t)physical >> PAGE_SHIFT;
+			*ent = &pages.system.random.page[i];
+
+			union virtual_union ret = {.voidptr = pages.system.random.virtual};
+			ret.virtual_address.pt = i;
+			return ret.voidptr;
+		}
 	}
-	pages.pml4 = (page_table_t*)((size_t)ent.address << VA_SHIFT);
-	ent = (*pages.pml4)[address.pd];
-	if ((!ent.present) || (ent.address == 0)) {
-		printl("\t\tphysical():\tpage not present: 1");
-		return null;
+	return null;
+}
+
+page_entry* page_find_empty_pdpt() {
+	for (size_t i = 0; i < PAGE_COUNT; i++) {
+		if (pages.system.pdpt.page[i].address == 0) {
+			return &pages.system.pdpt.page[i];
+		}
 	}
-	pages.pml4 = (page_table_t*)((size_t)ent.address << VA_SHIFT);
-	ent = (*pages.pml4)[address.pt];
-	if ((!ent.present) || (ent.address == 0)) {
-		printl("\t\tphysical:\tpage not present: 0");
-		return null;
-	}
-	return (void*)((size_t)ent.address << VA_SHIFT);
+	return null;
 }
 

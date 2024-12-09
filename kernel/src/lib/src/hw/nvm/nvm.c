@@ -11,8 +11,6 @@ void nvm_init() {
 	report("proceeding to initialize NVM controller\n", report_warning);
 	wait(750);
 
-	print("random pages:\t"); printp(&random_pages); endl();
-
 	if (nvm.initialzed) {
 		return;
 	}

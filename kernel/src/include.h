@@ -52,7 +52,7 @@
 #include "./lib/memory.h"					//	basic memory management
 #include "./lib/memory/heap/heap.h"			//	kernel heap
 #include "./lib/memory/paging.h"			//	memory protection
-#include "./lib/memory/heap/page-heap.h"	//	kernel heap for page table allocations
+//#include "./lib/memory/heap/page-heap.h"	//	kernel heap for page table allocations
 
 #include "./lib/uefi.h"						//	includes uefi runtime services
 
@@ -65,7 +65,7 @@
 
 #include "./lib/segmentation.h"
 #include "./lib/tss.h"
-#include "./lib/gdt.h"				//	needs vector.h
+#include "./lib/gdt.h"
 
 #include "./lib/string.h"
 #include "./lib/font.h"
@@ -79,6 +79,12 @@
 #include "./lib/hw/keyboard.h"
 #include "./lib/acpi/acpi.h"
 #include "./lib/hw/nvm/nvm.h"
+
+
+
+
+
+
 
 
 //  sources
