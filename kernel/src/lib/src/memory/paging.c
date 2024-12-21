@@ -9,43 +9,13 @@
 
 #include "../../k_management.h"
 
-/*void page_init() {
-
-	if (req_page_mode.response == null) {
-		report("cannot get paging mode, continuing blind\n", report_warning);
-	} else if (req_page_mode.response->mode != LIMINE_PAGING_MODE_X86_64_4LVL) {
-		report("5 level paging mode is not supported\n", report_critical);
-		panic(panic_code_unsupported_paging_mode);
-		__builtin_unreachable();
-	}
-
-	//	0)	initialize pages structure
-	if ((req_k_address.response == null) || (req_page_hhdm.response == null)) {
-		report("cannot get virtual and physical base addresses\n", report_critical);
-		panic(panic_code_base_addresses_not_available);
-		__builtin_unreachable();
-	}
-
-	//memnull(&pages, sizeof(pages_t));
-	pages.hhdm = req_page_hhdm.response->offset;
-	pages.kernel.physical = (void*)req_k_address.response->physical_base;
-	pages.kernel.virtual = (void*)req_k_address.response->virtual_base;
-
-	req_k_address.response = null;
-	req_page_hhdm.response = null;
-	size_t pml4_addr;
-	asm volatile("mov %0, cr3" : "=r"(pml4_addr));
-	pages.pml4 = (void*)(pml4_addr + (size_t)pages.hhdm);
-
-	//	1)	find place for both heaps
-	if (!heap_reserve_memory(false) || !page_heap_reserve_memory()) {
-		report("failed to find space for kernel heap", report_critical);
-		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
-	}
-
-}*/
-
 void page_init() {
+
+	size_t line = 0;
+
+	if (vocality >= vocality_report_everything) {
+		line = report("proceeding with memory protection initialization\n", report_note);
+	}
 
 	u64* tmp = null;
 
@@ -95,6 +65,8 @@ void page_init() {
 
 
 
+
+
 	//	retrieve kernel address
 	if (req_k_address.response == null) {
 		report("could not find kernel address\n", report_warning);
@@ -112,11 +84,12 @@ void page_init() {
 	union virtual_union virt = {.u64 = 0};
 	virt.virtual_address.sign = 0xffff;
 	{
-		tmp = (u64*)&pages.system.pdpt.page;
-		u64* tmp2 = (u64*)&pages.system.random.page;
+		tmp = (u64*)&pages.system.pdpt.table;
+		u64* tmp2 = (u64*)&pages.system.quick.table;
 		for (size_t i = 0; i < PAGE_COUNT; i++) {
-			tmp[i] = (tmp2[i] = 0b11 | ((u64)1 << 63));
+			//tmp[i] = (tmp2[i] = 0b11 | ((u64)1 << 63));
 				//	present, write, exec disable
+			tmp[i] = (tmp2[i] = page_bit_present | page_bit_write | page_bit_exec_disable);
 		}
 	}
 
@@ -134,12 +107,25 @@ void page_init() {
 	}
 
 		//	system pages addresses
-	pages.system.pdpt.physical = (size_t)&pages.system.pdpt.page - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
+	pages.system.pdpt.physical = (size_t)&pages.system.pdpt.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
 	pages.system.pdpt.virtual = virt.voidptr;
 
-	pages.system.random.physical = (size_t)&pages.system.random.page - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
-	virt.virtual_address.pdpt = 511;
-	pages.system.random.virtual = virt.voidptr;
+	ssize_t pml4 = -1;
+	for (ssize_t i = 511; i >= 0; i--) {
+		//	find empty pml4 entry
+		if ((*pages.pml4)[i].address == 0) {
+			pml4 = i;
+			break;
+		}
+	}
+	if (pml4 == -1) {
+		report("could not find empty pml4 entry\n", report_critical);
+		panic(panic_code_paging_initialization_failure);
+	}
+
+	pages.system.quick.physical = (size_t)&pages.system.quick.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
+	virt.virtual_address.pdpt = pml4;
+	pages.system.quick.virtual = virt.voidptr;
 
 	{	//	connect pdpt to pml4
 		page_entry* ent = &((*pages.pml4)[virt.virtual_address.pml4]);
@@ -149,26 +135,67 @@ void page_init() {
 		ent->exec_disable = true;
 	}
 
-	{	//	connect random to pdpt
-		page_entry* ent = &pages.system.pdpt.page[511];
-		ent->address = pages.system.random.physical >> PAGE_SHIFT;
+	{	//	connect quick to pdpt
+		page_entry* ent = &pages.system.pdpt.table[511];
+		ent->address = pages.system.quick.physical >> PAGE_SHIFT;
 		ent->present = true;
 		ent->write = true;
 		ent->exec_disable = true;
 	}
 
-		//	map random to itself
-	pages.system.random.page[0].address = pages.system.random.physical >> PAGE_SHIFT;
+		//	map quick to itself
+	pages.system.quick.table[0].address = pages.system.quick.physical >> PAGE_SHIFT;
 	virt.virtual_address.pt = 1;
-	pages.system.random.virtual = virt.voidptr;
+	pages.system.quick.virtual = virt.voidptr;
 
-	pages.system.random.page[1].address = pages.system.random.physical >> PAGE_SHIFT;
+	pages.system.quick.table[1].address = pages.system.quick.physical >> PAGE_SHIFT;
 
-	//	find place for kernel heaps
-	if ((!page_heap_reserve_memory()) || (!heap_reserve_memory(false))) {
-		report("failed to find space for kernel heap", report_critical);
-		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
-		__builtin_unreachable();
+	{	//	heap pages -> make them null
+			//	recursive
+		tmp = (u64*)&pages.system.heap.table;
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			tmp[i] = page_bit_present | page_bit_write | page_bit_exec_disable;
+		}
+		pages.system.heap.table[0].address = (size_t)((size_t)&pages.system.heap.table - (size_t)pages.kernel.virtual + pages.kernel.physical) >> PAGE_SHIFT;
+
+		for (ssize_t i = 511; i >= 0; i--) {
+			//	find pdpt entry
+			if (pages.system.pdpt.table[i].address == 0) {
+				pages.system.pdpt.table[i].address = pages.system.heap.table[0].address;
+				union virtual_union vu = {.voidptr = pages.system.pdpt.virtual};
+				vu.virtual_address.pdpt = i;
+				vu.virtual_address.pt = 1;
+				pages.system.heap.virtual = vu.voidptr;
+				break;
+			}
+		}
+	}
+
+	{	//	page heap pages
+		tmp = (u64*)&pages.system.page_heap.pd;
+		u64* tmp2 = (u64*)&pages.system.page_heap.pt;
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			tmp[i] = (tmp2[i] = page_bit_present | page_bit_write | page_bit_exec_disable);
+		}
+
+		pages.system.page_heap.physical_pd = (size_t)((size_t)&pages.system.page_heap.pd - (size_t)pages.kernel.virtual + pages.kernel.physical);
+		pages.system.page_heap.physical_pt = (size_t)((size_t)&pages.system.page_heap.pt - (size_t)pages.kernel.virtual + pages.kernel.physical);
+		pages.system.page_heap.pd[0].address = pages.system.page_heap.physical_pt >> PAGE_SHIFT;
+
+		for (ssize_t i = 511; i >= 0; i--) {
+			//	find empty pdpt entry
+			if (pages.system.pdpt.table[i].address == 0) {
+				pages.system.pdpt.table[i].address = pages.system.page_heap.physical_pd >> PAGE_SHIFT;
+				union virtual_union vu = {.voidptr = pages.system.pdpt.virtual};
+				vu.virtual_address.pdpt = i;
+				pages.system.page_heap.virtual = vu.voidptr;
+				break;
+			}
+		}
+	}
+
+	if (vocality >= vocality_report_everything) {
+		report_status("SUCCESS", line, col.green);
 	}
 
 }
@@ -238,11 +265,11 @@ void* physical(void* a) {
 
 void* page_quick_map(void* physical, page_entry** ent) {
 	for (size_t i = 0; i < PAGE_COUNT; i++) {
-		if (pages.system.random.page[i].address == 0) {
-			pages.system.random.page[i].address = (size_t)physical >> PAGE_SHIFT;
-			*ent = &pages.system.random.page[i];
+		if (pages.system.quick.table[i].address == 0) {
+			pages.system.quick.table[i].address = (size_t)physical >> PAGE_SHIFT;
+			*ent = &pages.system.quick.table[i];
 
-			union virtual_union ret = {.voidptr = pages.system.random.virtual};
+			union virtual_union ret = {.voidptr = pages.system.quick.virtual};
 			ret.virtual_address.pt = i;
 			return ret.voidptr;
 		}
@@ -252,8 +279,8 @@ void* page_quick_map(void* physical, page_entry** ent) {
 
 page_entry* page_find_empty_pdpt() {
 	for (size_t i = 0; i < PAGE_COUNT; i++) {
-		if (pages.system.pdpt.page[i].address == 0) {
-			return &pages.system.pdpt.page[i];
+		if (pages.system.pdpt.table[i].address == 0) {
+			return &pages.system.pdpt.table[i];
 		}
 	}
 	return null;

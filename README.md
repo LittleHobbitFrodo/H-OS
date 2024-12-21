@@ -105,9 +105,9 @@ You can upload it to a flash drive, **the upload will completely erase the drive
   - [x] **CPUID** - Gather some information about processor.
   - [x] **Heap implementation**
     - [x] Find place for kernel heap.
-    - [x] Create simple allocator.
+    - [x] Create simple vector_allocator.
     - [x] Add other functionalities.
-    - [x] Port the allocator for virtual addresses (HHDM).
+    - [x] Port the vector_allocator for virtual addresses (HHDM).
   - [x] **Memory initialization**
     - [x] Parse and simplify memory map.
     - [x] Initialize GDT with TSS.

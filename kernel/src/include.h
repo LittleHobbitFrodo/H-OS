@@ -21,7 +21,7 @@
 #endif
 #ifndef KERNEL_BUILD_GUID
 	#define KERNEL_BUILD_GUID "0000"
-	//	KERNEL_BUILD_GUID will be most likely used for random number generation
+	//	KERNEL_BUILD_GUID will be most likely used for quick number generation
 #endif
 
 #define likely(x)   __builtin_expect(!!(x), 1)
@@ -50,13 +50,14 @@
 
 //  depends on headers above
 #include "./lib/memory.h"					//	basic memory management
-#include "./lib/memory/heap/heap.h"			//	kernel heap
+#include "./lib/memory/heap/multipurpose/heap.h"			//	kernel heap
 #include "./lib/memory/paging.h"			//	memory protection
 //#include "./lib/memory/heap/page-heap.h"	//	kernel heap for page table allocations
 
 #include "./lib/uefi.h"						//	includes uefi runtime services
+#include "./lib/atomic.h"
 
-#include "./lib/memory/aligned_ptr.h"		//	structure for aligned allocations
+//#include "./lib/memory/aligned_ptr.h"		//	structure for aligned allocations
 #include "./lib/vector/vector.h"
 #include "./lib/vector/volatile-vector.h"	//	multithreaded vector (untested)
 
@@ -104,9 +105,9 @@
 #include "./lib/src/convert.c"
 #include "./lib/src/cpu.c"
 #include "./lib/src/string.c"
-#include "./lib/src/memory/aligned_ptr.c"
+//#include "./lib/src/memory/aligned_ptr.c"
 #include "./lib/src/vector/vector.c"
-#include "./lib/src/vector/volatile-vector.c"
+//#include "./lib/src/vector/volatile-vector.c"
 
 #include "./lib/src/int-handler.c"
 #include "./lib/src/exceptions.c"

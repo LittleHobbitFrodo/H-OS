@@ -73,7 +73,7 @@ typedef i64 qwordi;
 #define false 0
 #define NULL (void*)0
 #define null (void*)0
-#define nullptr (void*)0
+//#define nullptr (void*)0
 
 typedef u8 bool;
 

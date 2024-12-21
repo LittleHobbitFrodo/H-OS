@@ -42,7 +42,7 @@ __attribute__((nonnull(1, 2)))
 bool strncmpb(const char* s1, const char* s2, size_t n);
 
 
-void memcpy(void *src, void *dest, size_t size);
+void memcpy(const void *src, void *dest, size_t size);
 
 __attribute__((always_inline))
 inline void memset(void *ptr, size_t size, u8 val) {
@@ -112,8 +112,6 @@ inline u64 inq(u16 port) {
 
 
 
-
-
 __attribute__((always_inline))
 inline void iowait() {
 	outb(0x80, 0);
@@ -131,9 +129,11 @@ void wait(size_t milli);
 
 void memcpy_reverse(void* src, void* dest, size_t size);
 
-
+#define PRE_INTERRUPT_READ_DELAY for (size_t i = 0; i < MAX_I32/32; i++) {iowait();}
 
 __attribute__((always_inline))
 static inline void to_be_optimized([[maybe_unused]] void* a) {}
 	//	empty function that will be optimized-out by compiler
 		//	yes it is actually used
+
+#define comptime_known(var) __builtin_constant_p(var)

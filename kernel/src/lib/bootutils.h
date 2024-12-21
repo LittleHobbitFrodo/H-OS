@@ -80,7 +80,13 @@ static volatile struct limine_smbios_request req_smbios = {
 	.revision = 0
 };
 
+static volatile struct limine_firmware_type_request req_firmware_type = {
+	.id = LIMINE_FIRMWARE_TYPE_REQUEST,
+	.revision = 0
+};
+
 static volatile struct limine_efi_system_table_request req_efi_system_table = {
 	.id = LIMINE_EFI_SYSTEM_TABLE_REQUEST,
 	.revision = 0,
 };
+

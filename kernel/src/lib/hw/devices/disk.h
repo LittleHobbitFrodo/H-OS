@@ -38,4 +38,4 @@ inline void disk_construct(disk_t* disk) {
 __attribute__((always_inline))
 inline void disk_destruct([[maybe_unused]] disk_t* disk) {}
 
-vector_instance_cd(disks, disk_t, disk_vector, disk_construct, disk_destruct);
+vector_instance(disks, disk_t, disk_vector, disk_construct, disk_destruct);

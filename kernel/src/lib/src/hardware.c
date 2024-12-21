@@ -7,6 +7,14 @@
 
 void hardware_init() {
 
+	size_t line = 0;
+	init_phase_status_line = &line;
+
+	if (vocality >= vocality_report_everything) {
+		endl();
+		line = report("nproceeding with hardware initialization\n", report_note);
+	}
+
 	kernel_status = k_state_init_hardware;
 
 	//	initialize cpu (cpuid)
@@ -21,9 +29,9 @@ void hardware_init() {
 
 	pci_init();
 
-	//acpi_init();
+	init_phase_status_line = null;
 
 	if (vocality >= vocality_report_everything) {
-		report("hardware initialization success\n", report_note);
+		report_status("SUCCESS", line, col.green);
 	}
 }

@@ -89,10 +89,6 @@ void print(const char *s);
 
 void printl(const char *s);
 
-void prints(const string *s);
-
-void printsl(const string *s);
-
 void printi(const i64 i);
 
 void printu(const u64 u);

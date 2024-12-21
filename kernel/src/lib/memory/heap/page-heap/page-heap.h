@@ -9,18 +9,25 @@
 //	heap implementation dedicated for page table management
 //	works with aligned data with fixed sizes
 //	needs regular heap to work
+//	each region can store 255 tables (2mb -> one pt)
+	//	if extended one table will be stored at the end of the region to map another region
 
 #pragma once
 
 #include "../../../integers.h"
-#include "../heap.h"
+#include "../multipurpose/heap.h"
 
 
 static void page_heap_init();
 
-static bool page_heap_reserve_memory();
-
 void page_heap_debug();
+
+page_table_t* page_alloc(page_allocator_t* alloc, u8 count);
+void page_free(page_allocator_t* alloc, page_table_t* table);
+
+/*page_segment* page_heap_find(page_table_t* table);
+
+page_segment* page_region_find(page_region* region, page_table_t* table);
 
 
 [[nodiscard]] __attribute__((returns_nonnull))
@@ -29,10 +36,7 @@ page_table_t* page_alloc(u32 count);
 [[nodiscard]] __attribute__((returns_nonnull))
 page_table_t* page_realloc(page_table_t* table, u32 count);
 
-void page_free(page_table_t* table);
-
-void page_heap_debug();
-
+void page_free(page_table_t* table);*/
 
 
 /*void page_free(page_table_t* ptr);

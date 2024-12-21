@@ -75,8 +75,8 @@ typedef struct device_header {
 
 typedef struct device_t {
 
-	enum device_types type;			//  enum device types
 	device_header* ptr;				//	device type specific
+	enum device_types type;			//  enum device types
 	bool allocated;
 
 } device_t;
@@ -95,4 +95,6 @@ void dev_destruct(device_t* dev);
 __attribute__((nonnull(1)))
 void* device_init(device_t* dev, enum device_types type);
 
-vector_instance_cd(devices, device_t, device_vector, dev_construct, dev_destruct);
+readonly_vector(devices, device_t, device_rvec_t, dev_destruct);
+
+//vector_instance(devices, device_t, device_vector, dev_construct, dev_destruct);

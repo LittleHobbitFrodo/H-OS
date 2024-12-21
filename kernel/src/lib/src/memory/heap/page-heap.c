@@ -6,14 +6,146 @@
 #pragma once
 
 #include "../../../memory/heap/page-heap/page-heap.h"
+#include "../../../vector/volatile-vector.h"
 
-bool page_heap_reserve_memory() {
+void page_header_construct(page_header* self, page_heap* heap) {
+	size_t* ptr = (size_t*)self;
+	for (size_t i = 0; i < PAGE_HEAP_SIZE / sizeof(size_t); i++) {
+		ptr[i] = 0;
+	}
+	(*self)[0].table = heap->meta.virtual.start;
+	(*self)[0].count = 1;
+	(*self)[0].used = false;
+
+}
+
+void page_heap_construct(page_heap* self, page_allocator_t* alloc) {
+	memnull(self, sizeof(page_heap));
+	self->meta.allocator = alloc;
+}
+
+void page_heap_init() {
+	//	static pages for page heap are initialized
+
+	//	1)	find place for page heap
+
+	size_t line = 0;
+	if (vocality >= vocality_report_everything) {
+		line = report("kernel page table allocator initialization:\n", report_note);
+	}
+
+	pages.heap.size = 2*MB;
+
+	{	//	find place for heap
+		struct limine_memmap_entry* ent;
+		size_t mlen = req_memmap.response->entry_count;
+		bool found = false;
+		for (size_t i = 0; i < mlen; i++) {
+			ent = req_memmap.response->entries[i];
+			if ((ent->type == LIMINE_MEMMAP_USABLE) && (ent->length >= 2*MB)) {
+				found = true;
+				pages.heap.init.physical = ent->base;
+				pages.heap.init.table = &pages.system.page_heap.pd;
+				pages.heap.init.virtual = pages.system.page_heap.virtual;
+				break;
+			}
+		}
+		if (!found) {
+			if (vocality >= vocality_report_everything) {
+				report_status("CRITICAL FAILURE", line, col.critical);
+			}
+			report("could not allocate memory for kernel page heap\n", report_critical);
+			panic(panic_code_cannot_allocate_memory_for_kernel_heap);
+		}
+	}
+
+	for (size_t i = 0; i*4096 < pages.heap.size; i++) {
+		pages.system.page_heap.pt[i].address = (pages.heap.init.physical + (i*4096)) >> PAGE_SHIFT;
+	}
+
+	memnull(&pages.heap.global, sizeof(page_allocator_t));
+	page_heaps_construct(&pages.heap.global.heaps, 1, &heap.global, &pages.heap.global);
+
+
+	page_heap* global = pages.heap.global.heaps.data;
+	global->meta.physical.start = pages.heap.init.physical;
+	global->meta.physical.end = pages.heap.init.physical + pages.heap.size;
+	global->meta.size = pages.heap.size;
+	global->meta.virtual.start = pages.heap.init.virtual;
+	global->meta.virtual.end = (void*)((size_t)pages.heap.init.virtual + pages.heap.size);
+	global->meta.table = &pages.system.page_heap.pt;
+	global->meta.allocator = &pages.heap.global;
+	global->header = global->meta.virtual.start;
+
+	for (size_t i = 0; i < 8; i++) {
+		global->bitmap[i] = 0;
+	}
+
+	for (size_t i = 0; i < 256; i++) {
+		(*global->header)[i].table = (page_table_t*)((size_t)pages.heap.init.virtual + (i*4096));
+		(*global->header)[i].count = 1;
+		(*global->header)[i].used = false;
+	}
+
+	if (vocality >= vocality_report_everything) {
+		report_status("SUCCESS", line, col.green);
+	}
+
+}
+
+page_table_t* page_alloc(page_allocator_t* alloc, u8 count) {
+	//	go through each heap in allocator
+	//	if one bitmap chunk is not MAX_U32 -> at least one page pointer is unused
+
+	page_heap* current;
+	page_ptr* ptr = null;
+	u32 map;
+	for (size_t i = 0; i < alloc->heaps.len; i++) {
+		current = page_heaps_at(&alloc->heaps, i);
+
+		for (size_t bitmap = 0; bitmap < 8; bitmap++) {
+			//	check if all pointer are used
+			if ((map = current->bitmap[i]) == 0xffffffff) {
+				continue;
+			}
+
+			//	find empty bits
+			for (size_t bit = 0; bit < 32; bit++) {
+				for (size_t free_count = 0; !((map >> bit) & 1); bit++, free_count++) {
+					//	if empty bit in row >= <count>
+					if (free_count >= count) {
+						ptr = &(*current->header)[(bitmap*32) + bit];
+						print("found ptr: "); printu((bitmap*32) + bit); print(" fc: "); printu(free_count); endl();
+						goto allocate;
+					}
+				}
+			}
+		}
+	}
+	return null;
+	allocate:
+	ptr->used = true;
+	ptr->count = count;
+	return ptr->table;
+}
+
+void page_heap_debug() {
+
+}
+
+//void page_allocator_init(page_allocator_t* self) {
+
+//}
+
+
+
+/*bool page_heap_reserve_memory() {
 
 	struct limine_memmap_entry* ent;
 	const size_t msize = req_memmap.response->entry_count;
 
 	//	calculate page heap size
-	pages.heap.size = (size_t)heap.physical.end - (size_t)heap.physical.end;
+	pages.heap.size = (size_t)heap.meta.physical.end - (size_t)heap.meta.physical.end;
 	pages.heap.size = (pages.heap.size / PAGE_SIZE) + (pages.heap.size % PAGE_SIZE != 0);
 	pages.heap.size = ((pages.heap.size / PAGE_COUNT) + 1) * PAGE_COUNT;
 	pages.heap.size *= PAGE_SIZE;
@@ -22,8 +154,8 @@ bool page_heap_reserve_memory() {
 	for (size_t i = 0; i < msize; i++) {
 		if ((ent = req_memmap.response->entries[i])->type == LIMINE_MEMMAP_USABLE) {
 			if (ent->length >= pages.heap.size) {
-				pages.heap.physical = ent->base;
-				return heap_map(pages.heap.physical, &pages.heap.virtual, pages.heap.size, null);
+				pages.heap.init.physical = ent->base;
+				return heap_map(pages.heap.init.physical, &pages.heap.init.virtual, pages.heap.size, (void**)&pages.heap.init.table);
 			}
 		}
 	}
@@ -31,16 +163,33 @@ bool page_heap_reserve_memory() {
 }
 
 void page_heap_init() {
+	//	map whole heap memory
 
+	report("proceeding to initialize page heap\n", report_warning);
 
-	//	quick map page
-	//	create new page table
-	//	connect the table to pdpt
-	//	map the table to page heap
+	page_regs_construct(&pages.heap.regions, 1);
+	page_region* reg = &pages.heap.regions.data[1];
+	reg->meta.physical.start = pages.heap.init.physical;
+	reg->meta.physical.end = reg->meta.physical.start + pages.heap.size;
 
+	reg->meta.size = pages.heap.size;
 
+	reg->meta.virtual.start = pages.heap.init.virtual;
+	reg->meta.virtual.end = (void*)((size_t)pages.heap.init.virtual + pages.heap.size);
 
+	reg->meta.table = pages.heap.init.table;
+
+	//	allocate segments
+	page_segs_construct(&reg->segments, 1);
+	page_segment* seg = &reg->segments.data[0];
+	seg->used = false;
+	seg->count = 1;
+	seg->entries = reg->meta.virtual.start;
+	print("segment pushed:\t"); printu(reg->segments.len); print(" : "); printp(reg->segments.data); endl();
+
+	printl("page heap initialized");
 }
+
 
 
 
@@ -57,10 +206,82 @@ void page_free([[maybe_unused]] page_table_t* table) {
 
 }
 
-void page_heap_debug() {
+page_segment* page_heap_find(page_table_t* table) {
+	const size_t tab = (size_t)table;
+	page_region* reg = null;
 
+	if (pages.heap.regions.len == 1) {
+		reg = &pages.heap.regions.data[0];
+
+		if ((tab >= (size_t)reg->meta.virtual.start) && (tab <= (size_t)reg->meta.virtual.end)) {
+			return page_region_find(reg, table);
+		}
+
+		return null;
+	}
+	//	binary search
+	u32 low = 0;
+	u32 high = pages.heap.regions.len-1;
+	u32 mid;
+
+	while (low <= high) {
+
+		mid = low + (high - low) / 2;
+		reg = &pages.heap.regions.data[mid];
+
+		if ((tab >= (size_t)reg->meta.virtual.start) && (tab <= (size_t)reg->meta.virtual.end)) {
+			return page_region_find(reg, table);
+		}
+
+		if ((size_t)reg->meta.virtual.end < tab) {
+			low = mid+1;
+		} else {
+			high = mid-1;
+		}
+	}
+	return null;
 }
 
+page_segment* page_region_find(page_region* region, page_table_t* table) {
+	const size_t tab = (size_t)table;
+	u32 low = 0;
+	u32 high = region->segments.len - 1;
+	u32 mid;
+	const page_segment* segs = region->segments.data;
+
+	while (low <= high) {
+		mid = low + (high - low) / 2;
+
+		if ((size_t)segs[mid].entries == tab) {
+			return (page_segment*)&segs[mid];
+		}
+
+		if (tab < (size_t)segs[mid].entries) {
+			high = mid - 1;
+		} else {
+			low = mid + 1;
+		}
+	}
+	return null;
+}
+
+void page_heap_debug() {
+	u32 c = output.color;
+	output.color = col.blue;
+	printl("page heap scheme:");
+	page_region* reg;
+	page_segment* seg;
+	for (size_t i = 0; i < pages.heap.regions.len; i++) {
+		reg = &pages.heap.regions.data[i];
+		print("\tregion "); printu(i); print(":\t"); printu(reg->segments.len); endl();
+		for (size_t ii = 0; ii < reg->segments.len; i++) {
+			seg = &reg->segments.data[i];
+			tab(); tab(); printp(seg->entries); print(":\t"); printu(seg->count); print(":\t");printl((seg->used)? "used" : "unused");
+		}
+	}
+	output.color = c;
+}
+*/
 /*
 bool page_heap_reserve_memory() {
 	//	updates the page_heap.physical.start and .end variable

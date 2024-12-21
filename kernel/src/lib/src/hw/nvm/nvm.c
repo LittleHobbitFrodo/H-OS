@@ -11,7 +11,7 @@ void nvm_init() {
 	report("proceeding to initialize NVM controller\n", report_warning);
 	wait(750);
 
-	if (nvm.initialzed) {
+	/*if (nvm.initialzed) {
 		return;
 	}
 
@@ -59,5 +59,5 @@ void nvm_init() {
 
 	if (vocality >= vocality_report_everything) {
 		report("NVM controller initialization succeeded\n", report_note);
-	}
+	}*/
 }

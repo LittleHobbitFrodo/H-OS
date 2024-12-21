@@ -10,7 +10,15 @@
 void keyboard_init() {
 	//	US (QWERTY) layout is used by default
 
+	size_t line = 0;
+	if (vocality >= vocality_report_everything) {
+		line = report("keyboard driver initialization\n", report_note);
+	}
+
 	if (!keyboard_send_cmd_data(KEYBOARD_CMD_SET_LEDS, 0)) {
+		if (vocality >= vocality_report_everything) {
+			report_status("PARTIAL FAILURE", line, col.yellow);
+		}
 		if (vocality >= vocality_vocal) {
 			report("failed to set leds\n", report_error);
 		}
@@ -27,7 +35,7 @@ void keyboard_init() {
 	pic_remap();
 
 	if (vocality >= vocality_report_everything) {
-		report("keyboard initialization completed\n", report_note);
+		report_status("SUCCESS", line, col.green);
 	}
 
 }
@@ -111,7 +119,7 @@ u8 keyboard_get_scan_code() {
 
 string keyboard_getline(bool draw) {
 	string input;
-	str(&input);
+	str(&input, &heap.global);
 	char c;
 
 	size_t start = output.column;

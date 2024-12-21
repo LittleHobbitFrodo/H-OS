@@ -5,6 +5,8 @@
 
 #pragma once
 
+//	TODO: add limine multiprocessor feature
+
 #include "../cpu.h"
 
 void cpu_info() {
@@ -32,6 +34,12 @@ void cpu_info() {
 
 void cpu_init() {
 
+	size_t line = 0;
+
+	if (vocality >= vocality_report_everything) {
+		line = report("gathering information about CPU\n", report_note);
+	}
+
 	memnull(&cpu, sizeof(cpu_t));
 
 	cpu.vendor = null;
@@ -52,8 +60,10 @@ void cpu_init() {
 	}
 
 	if (cpu.vendor == null) {
-		report("could not find CPU vendor", report_critical);
-		panic(panic_code_cpu_vendor_not_found);
+		if (vocality >= vocality_report_everything) {
+			report_status("PARTIAL FAILURE", line, col.yellow);
+		}
+		report("could not find CPU vendor", report_warning);
 	}
 
 	//	detect cpu model name
@@ -90,6 +100,6 @@ void cpu_init() {
 	}
 
 	if (vocality >= vocality_report_everything) {
-		report("CPU initialization completed\n", report_note);
+		report_status("SUCCESS", line, col.green);
 	}
 }

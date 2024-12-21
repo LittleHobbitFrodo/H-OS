@@ -26,21 +26,8 @@ for i in $argv
 end
 
 if test ! -e "./bin/kernel/H-OS.bin"
-	echo "kernel binary not found"
-	echo "do you wish to compile it? [Y/n]"
-	read -l answer -P ""
-	if test -z $answer
-		#	user left blank
-		set answer "y"
-	end
-	set answer (string lower $answer)
-
-	if test $answer = "y"
-		./scripts/build
-	else
-		exit
-	end
-
+	echo "ERROR: kernel binary not found"
+  exit
 end
 
 echo;echo;echo

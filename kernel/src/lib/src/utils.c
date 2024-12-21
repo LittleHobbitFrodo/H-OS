@@ -55,7 +55,7 @@ bool strncmpb(const char* s1, const char* s2, size_t n) {
 	return true;
 }
 
-void memcpy(void* src, void* dest, size_t size) {
+void memcpy(const void* src, void* dest, size_t size) {
 	for (size_t i = 0; i < size; i++) {
 		((u8 *) dest)[i] = ((u8 *) src)[i];
 	}

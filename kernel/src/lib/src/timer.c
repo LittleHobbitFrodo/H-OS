@@ -27,10 +27,6 @@ void timer_init() {
 	pit_set_divisor(PIT_DIVISOR_1MS);
 
 	enable_interrupts;
-
-	if (vocality >= vocality_report_everything) {
-		report("timer configuration succeeded\n", report_note);
-	}
 }
 
 void pit_set_divisor(size_t divisor) {

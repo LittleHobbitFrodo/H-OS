@@ -64,7 +64,7 @@ void time_update() {
 
 char* format_time(timespec_t* time, const char* format) {
 	string ret;
-	str(&ret);
+	str(&ret, &heap.global);
 	size_t len = strlen(format);
 	for (size_t i = 0; i < len; i++) {
 		if (format[i] == '{') {

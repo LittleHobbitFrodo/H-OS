@@ -28,7 +28,7 @@ void* kernel_stack_ptr = KERNEL_STACK;
 
 static bool kaslr = false;
 //	enable/disable kaslr
-//		enabled: places kernel stack and heap to "random" place
+//		enabled: places kernel stack and heap to "quick" place
 //		disabled: always places stack and heap to the same location
 
 typedef struct stack_holder {
@@ -40,9 +40,12 @@ static stack_holder stack;
 
 static void memory_init();
 
-__attribute__((always_inline)) inline void *align(void *ptr, size_t align) {
+#define align(val, algn) (((val) + (algn) - 1) & ~((algn) - 1))
+
+/*__attribute__((always_inline))
+inline void *align(void *ptr, size_t align) {
 	return (void *) (((u64) ptr + align - 1) & ~(align - 1));
-}
+}*/
 
 static struct meminfo {
 	size_t total;
@@ -80,7 +83,7 @@ static void memmap_parse();
 
 //static void memmap_reclaim();
 
-static void memmap_analyze();
+[[maybe_unused]] static void memmap_analyze();
 
 [[maybe_unused]] static memmap_entry* memmap_find(enum memmap_types type);
 

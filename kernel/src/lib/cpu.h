@@ -29,9 +29,10 @@ typedef struct cpu_t {
 	cpu_vendor_t *vendor;
 	char model[49]; //	48 + nullbyte
 	enum hypervisors hypervisor;
+	size_t count;
 } cpu_t;
 
-static cpu_t cpu;
+static cpu_t cpu = {0};
 
 static void cpu_init();
 

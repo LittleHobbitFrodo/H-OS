@@ -109,11 +109,14 @@ void handle_exception(exception_stack_frame *frame) {
 			break;
 		}
 		case exception_page_fault: {
-			report("page fault", report_critical);
+			report("page fault: ", report_critical);
 			if (frame->cr2 == 0) {
 				print(" (NULL)");
+			} else {
+				printp((void*)frame->cr2); endl();
 			}
 			endl();
+			heap_debug(&heap.global);
 			hang();
 			break;
 		}

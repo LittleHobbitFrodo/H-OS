@@ -7,6 +7,12 @@
 
 void interrupts_init() {
 
+	size_t line = 0;
+
+	if (vocality >= vocality_report_everything) {
+		line = report("proceeding with interrupt initialization\n", report_note);
+	}
+
 	kernel_status = k_state_init_interrupts;
 
 	//	set all idt entries to null
@@ -62,7 +68,7 @@ void interrupts_init() {
 
 	asm volatile("sti");
 
-	if ((vocality >= vocality_report_everything)) {
-		report("interrupt initialization completed\n", report_note);
+	if (vocality >= vocality_report_everything) {
+		report_status("SUCCESS", line, col.green);
 	}
 }

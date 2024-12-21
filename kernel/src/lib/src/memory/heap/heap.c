@@ -5,550 +5,237 @@
 
 #pragma once
 
-#include "../../../memory/heap/heap.h"
+#include "../../../memory/heap/multipurpose/heap.h"
 #include "../../../memory/paging.h"
-
-bool heap_reserve_memory(bool include_reclaimable_entries) {
-	//	sets heap.physical.start and heap.end_physical
-
-	memnull(&heap, sizeof(heap_t));
-
-	struct limine_memmap_entry* mstart = null;
-	size_t mlen = 0;
-
-	size_t size = req_memmap.response->entry_count;
-	struct limine_memmap_entry* ent = null;
-
-	if (include_reclaimable_entries) {
-		for (size_t i = 0; i < size; i++) {
-			ent = req_memmap.response->entries[i];
-			if (ent == null) {
-				output.color = col.critical;
-				print("ERROR");
-				output.color = col.white;
-				print(":\tmemory map entry ");
-				printu(i);
-				printl(" is NULL");
-				continue;
-			}
-			if ((ent->type == LIMINE_MEMMAP_USABLE) || (ent->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE)) {
-				if (mstart == null) {
-					mstart = ent;
-				}
-				mlen += ent->length;
-			} else {
-				mstart = null;
-				mlen = 0;
-			}
-			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
-				//	mlen != 0 => mstart != null
-				//	prepare heap for initialization
-				heap.physical.start = mstart->base;
-				heap.physical.end = heap.physical.start + (HEAP_MINIMAL_ENTRY_SIZE * KB);
-				bool table_created = false;
-				if (!heap_map(heap.physical.start, &heap.virtual_start, heap.physical.end - heap.physical.start, &table_created)) {
-					return false;
-				}
-				heap.start = (void *)heap.virtual_start;
-				heap.end = heap.start;
-				heap.virtual_end = (void*)((size_t)heap.virtual_start + (heap.physical.end + heap.physical.start - (PAGE_SIZE * table_created)));
-
-				//	prepare table
-				union virtual_union vu = {.voidptr = heap.virtual_start};
-				vu.virtual_address.pt = 0;
-				heap.table = vu.voidptr;
-				return true;
-			}
-		}
-	} else {
-		for (size_t i = 0; i < size; i++) {
-			ent = req_memmap.response->entries[i];
-			if (ent == null) {
-				output.color = col.critical;
-				print("ERROR");
-				output.color = col.white;
-				print(":\tmemory map entry ");
-				printu(i);
-				printl(" is NULL");
-				continue;
-			}
-			if (ent->type == LIMINE_MEMMAP_USABLE) {
-				if (mstart == null) {
-					mstart = ent;
-				}
-				mlen += ent->length;
-			} else {
-				mstart = null;
-				mlen = 0;
-			}
-			if (mlen >= HEAP_MINIMAL_ENTRY_SIZE * KB) {
-				//	mlen != 0 => mstart != null
-				heap.physical.start = mstart->base;
-				heap.physical.end = heap.physical.start + (HEAP_MINIMAL_ENTRY_SIZE * KB);
-				bool table_created = false;
-				if (!heap_map(heap.physical.start, &heap.virtual_start, heap.physical.end - heap.physical.start, &table_created)) {
-					return false;
-				}
-				heap.start = (void *)heap.virtual_start;
-				heap.end = heap.start;
-				heap.virtual_end = (void*)((size_t)heap.virtual_start + (heap.physical.end + heap.physical.start - (PAGE_SIZE * table_created)));
-
-				//	prepare table
-				union virtual_union vu = {.voidptr = heap.virtual_start};
-				vu.virtual_address.pt = 0;
-				heap.table = vu.voidptr;
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-void heap_debug() {
-	u32 c = output.color;
-	heap_segment_t* i = heap.start;
-	output.color = col.cyan;
-	printl("heap scheme: ");
-	size_t ii = 0;
-	for (;; i = i->next) {
-		output.color = col.white;
-		printu(ii); print("\t");
-		output.color = col.cyan;
-		printp(i);
-		print("):\tsize("); printu(i->size); print("):\t");
-		print("\tnext("); printp(i->next); printc('\t');
-		printl((i->used)? "used" : "free");
-		if (i->next == null) {
-			break;
-		}
-		++ii;
-	}
-	endl();
-	output.color = c;
-}
 
 
 void heap_init() {
-	//	heap_reserve_memory() must be called before this function
+	//	initializes global alloc
 
-	//	map all heap memory
-	for (size_t i = 0; (i+1) * 4096 < heap.physical.end - heap.physical.start; i++) {
-		(*((page_table_t*)heap.table))[i].address = (heap.physical.start + (i * 4096)) >> PAGE_SHIFT;
+	//	1)	find place for global heap
+	//	2)	construct virtual address space for it
+	//	3)	initialize heap
+
+	size_t line = 0;
+
+	if (vocality >= vocality_report_everything) {
+		line = report("initializing kernel multipurpose heap\n", report_note);
 	}
 
-	heap.start->next = null;
-	heap.start->used = false;
-	heap.start->size = HEAP_INITIAL_BLOCK_SIZE;
-	heap.virtual_start = heap.start;
-	heap.end = (heap.used_until = heap.start);
-}
+	heap.global.meta.size = HEAP_GLOBAL_MINIMAL_SIZE * KB;
 
-void *alloc(size_t bytes) {
-	heap_segment_t *i = heap.used_until;
-	heap_segment_t *con = null;
-	size_t c_size = 0;
-
-	for (;; i = i->next) {
-		if (i->used) {
-			if (c_size > bytes) {
-				heap_connect(con, i);
-				con->used = true;
-				return (void *) ((size_t) con + sizeof(heap_segment_t));
-			}
-			c_size = 0;
-			con = null;
-		} else {
-			if (i->size >= bytes) {
-				i->used = true;
-				if ((size_t) heap.used_until < (size_t) i) {
-					heap.used_until = i;
-				}
-				if (i->size > bytes + sizeof(heap_segment_t) + 8) {
-					heap_divide(i, bytes);
-				}
-				return (void *) ((size_t) i + sizeof(heap_segment_t));
-			} else if (con == null) {
-				con = i;
-				c_size = i->size;
-			} else if (c_size > bytes) {
-				heap_connect(con, i);
-				con->used = true;
-				return (void *) ((size_t) con + sizeof(heap_segment_t));
-			}
-		}
-
-		if (i->next == null) {
-			break;
-		}
-	}
-	return heap_enlarge(bytes);
-}
-
-
-void *realloc(void *ptr, size_t bytes) {
-	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t));
-	if (seg->size >= bytes) {
-		if (seg->size > bytes + sizeof(heap_segment_t) + 8) {
-			heap_divide(seg, bytes);
-		}
-		return ptr;
-	}
-	if (unlikely((size_t)heap.end == (size_t)seg)) {
-		seg->size = bytes;
-		return ptr;
-	}
-	u8 *data = alloc(bytes);
-	size_t bs = heap_bsize(ptr);
-	size_t size = (bytes < bs) ? bytes : bs;
-	for (size_t i = 0; i < size; i++) {
-		data[i] = ((u8 *) ptr)[i];
-	}
-	seg->used = false;
-	return data;
-}
-
-void *realloca(void *ptr, size_t bytes, size_t add) {
-	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t));
-	if (seg->size >= bytes) {
-		return ptr;
-	}
-	if ((size_t) heap.end == (size_t) seg) {
-		seg->size = bytes;
-		return ptr;
-	}
-	u8 *data = alloc(bytes + add);
-	size_t bs = heap_bsize(ptr);
-	size_t size = (bytes + add < bs) ? bytes + add : bs;
-	for (size_t i = 0; i < size; i++) {
-		data[i] = ((u8 *) ptr)[i];
-	}
-	seg->used = false;
-	return data;
-}
-
-
-void *heap_expand(size_t bytes) {
-	heap_segment_t* last = heap.end;
-	last->next = (void*)((size_t)last + last->size + sizeof(heap_segment_t));
-	heap.end = last->next;
-	heap.end->next = null;
-	heap.end->size = bytes;
-	heap.end->used = true;
-	return (void*)((size_t)heap.end + sizeof(heap_segment_t));
-	/*heap_segment_t *last = heap.end;
-	last->next = heap.end;
-	heap.end->used = true;
-	heap.end->size = bytes;
-	heap.end->next = null;
-	return (void *) ((size_t) heap.end + sizeof(heap_segment_t));*/
-}
-
-void heap_connect(heap_segment_t *beg, heap_segment_t *end) {
-	if ((size_t) beg < (size_t) end) {
-		beg->next = end;
-		beg->size = ((size_t) end - sizeof(heap_segment_t) - (size_t) beg);
-	}
-}
-
-heap_segment_t *heap_divide(heap_segment_t *seg, size_t size) {
-	if (seg->size > size + sizeof(heap_segment_t) + 8) {
-		size_t rsize = seg->size - sizeof(heap_segment_t);
-		seg->size = size;
-		heap_segment_t *nw = (heap_segment_t *) ((size_t) seg + sizeof(heap_segment_t) + size);
-		nw->next = seg->next;
-		seg->next = nw;
-		nw->used = false;
-		nw->size = rsize - size;
-		return nw;
-	}
-	return seg;
-}
-
-void *heap_enlarge(size_t bytes) {
-	if (!heap.end->used) {
-		heap.end->size = bytes;
-		heap.end->next = null;
-		heap.end->used = true;
-		return (void *) ((size_t) heap.end + sizeof(heap_segment_t));
-	}
-	return heap_expand(bytes);
-}
-
-
-void *align_alloc(size_t bytes, size_t *align_) {
-	heap_segment_t *i = heap.used_until;
-	heap_segment_t *con = null;
-	size_t c_size = 0;
-	void *ptr;
-	size_t offset = 0, c_offset = 0;
-
-	for (;; i = i->next) {
-		if (i->used) {
-			c_size = 0;
-			con = null;
-		} else {
-			ptr = align((void *) ((size_t) i + sizeof(heap_segment_t)), *align_);
-			offset = (size_t) ptr - ((size_t) i + sizeof(heap_segment_t));
-			if (i->size >= bytes + offset) {
-				//	block big enough
-				i->used = true;
-				if ((size_t) heap.used_until < (size_t) i) {
-					heap.used_until = i;
-				}
-				if (i->size > bytes + offset + sizeof(heap_segment_t) + 8) {
-					heap_divide(i, bytes + offset);
-				}
-				if (offset > sizeof(heap_segment_t) + 8) {
-					heap_segment_t *next = i->next;
-					heap_segment_t *nseg = (heap_segment_t *) ((size_t) i + offset);
-					i->next = nseg;
-					i->size = (size_t) nseg - (size_t) i - sizeof(heap_segment_t);
-					nseg->next = next;
-					nseg->size = (size_t) next - (size_t) nseg - sizeof(heap_segment_t);
-					nseg->used = true;
-					*align_ = 0;
-				} else {
-					*align_ = offset;
-				}
-				return ptr;
-			} else if (con == null) {
-				con = i;
-				c_size = i->size;
-				c_offset = (size_t) align((void *) ((size_t) con + sizeof(heap_segment_t)), *align_) - ((size_t) i + sizeof(heap_segment_t));
-			} else if (c_size > bytes + c_offset) {
-				heap_connect(con, i);
-				con->used = true;
-				if (c_offset > sizeof(heap_segment_t) + 8) {
-					heap_segment_t *next = i->next;
-					heap_segment_t *nseg = (heap_segment_t *) ((size_t) i + c_offset);
-					i->next = nseg;
-					i->size = (size_t) nseg - (size_t) i - sizeof(heap_segment_t);
-					nseg->next = next;
-					nseg->size = (size_t) next - (size_t) nseg - sizeof(heap_segment_t);
-					nseg->used = true;
-					*align_ = 0;
-				} else {
-					*align_ = c_offset;
-				}
-				return (void *) ((size_t) con + sizeof(heap_segment_t) + c_offset);
-			}
-		}
-
-		if (i->next == null) {
-			break;
-		}
-	}
-	return heap_align_enlarge(bytes, align_);
-}
-
-void *align_realloc(void *ptr, size_t *offset, size_t align, size_t bytes) {
-	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t) - *offset);
-	if (seg->size >= bytes + *offset) {
-		if (seg->size > bytes + sizeof(heap_segment_t) + 8) {
-			heap_divide(seg, bytes + *offset);
-		}
-		return ptr;
-	}
-	if ((size_t) heap.end == (size_t) seg) {
-		seg->size = bytes + *offset;
-		return ptr;
-	}
-	size_t original_offset = *offset;
-	*offset = align;
-	u8 *data = align_alloc(bytes, offset);
-	size_t bs = heap_bsize((void *) ((size_t) ptr - original_offset)) - original_offset;
-	size_t size = (bytes < bs) ? bytes : bs;
-	for (size_t i = 0; i < size; i++) {
-		data[i] = ((u8 *) ptr)[i];
-	}
-	seg->used = false;
-	return data;
-}
-
-void *align_reallocf(void *ptr, size_t *offset, size_t align, size_t bytes, void (*on_realloc)(void *)) {
-	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t) - *offset);
-	if (seg->size >= bytes + *offset) {
-		if (seg->size > bytes + sizeof(heap_segment_t) + 8) {
-			heap_divide(seg, bytes + *offset);
-		}
-		return ptr;
-	}
-	if ((size_t) heap.end == (size_t) seg) {
-		seg->size = bytes + *offset;
-		return ptr;
-	}
-	size_t original_offset = *offset;
-	*offset = align;
-	u8 *data = align_alloc(bytes, offset);
-	size_t bs = heap_bsize((void *) ((size_t) ptr - original_offset)) - original_offset;
-	size_t size = (bytes < bs) ? bytes : bs;
-	for (size_t i = 0; i < size; i++) {
-		data[i] = ((u8 *) ptr)[i];
-	}
-	seg->used = false;
-	if (on_realloc != null) {
-		on_realloc(data);
-	}
-	return data;
-}
-
-
-void *align_realloca(void *ptr, size_t *offset, size_t align, size_t bytes, size_t add) {
-	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t) - *offset);
-	if (seg->size >= bytes + *offset) {
-		return ptr;
-	}
-	if ((size_t) heap.end == (size_t) seg) {
-		//	is last block -> enlarge
-		seg->size = bytes + *offset;
-		return ptr;
-	}
-	size_t original_offset = *offset;
-	*offset = align;
-	u8 *data = align_alloc(bytes + add, offset);
-	size_t bs = heap_bsize((void *) ((size_t) ptr - original_offset)) - original_offset;
-	size_t size = (bytes + add < bs) ? bytes + add : bs;
-	for (size_t i = 0; i < size; i++) {
-		data[i] = ((u8 *) ptr)[i];
-	}
-	seg->used = false;
-	return data;
-}
-
-void *align_reallocaf(void *ptr, size_t *offset, size_t align, size_t bytes, size_t add, void (*on_realloc)(void *)) {
-	heap_segment_t *seg = (heap_segment_t *) ((size_t) ptr - sizeof(heap_segment_t) - *offset);
-	if (seg->size >= bytes + *offset) {
-		return ptr;
-	}
-	if ((size_t) heap.end == (size_t) seg) {
-		//	is last block -> enlarge
-		seg->size = bytes + *offset;
-		return ptr;
-	}
-	size_t original_offset = *offset;
-	*offset = align;
-	u8 *data = align_alloc(bytes + add, offset);
-	size_t bs = heap_bsize((void *) ((size_t) ptr - original_offset)) - original_offset;
-	size_t size = (bytes + add < bs) ? bytes + add : bs;
-	for (size_t i = 0; i < size; i++) {
-		data[i] = ((u8 *) ptr)[i];
-	}
-	seg->used = false;
-	if (on_realloc != null) {
-		on_realloc(data);
-	}
-	return data;
-}
-
-void *heap_align_enlarge(size_t bytes, size_t *align_) {
-	if (!heap.end->used) {
-		void *ptr = align((void *) ((size_t) heap.end + sizeof(heap_segment_t)), *align_);
-		size_t offset = (size_t) ptr - ((size_t) heap.end + sizeof(heap_segment_t));
-		if (offset >= sizeof(heap_segment_t) + 8) {
-			heap_segment_t *last = heap.end;
-			heap.end = (heap_segment_t *) ((size_t) heap.end + offset);
-			last->next = heap.end;
-			last->size = (size_t) heap.end - (size_t) last - sizeof(heap_segment_t);
-
-			heap.end->size = bytes;
-			heap.end->next = null;
-			heap.end->used = true;
-			*align_ = 0;
-			return ptr;
-		}
-		heap.end->size = bytes + offset;
-		heap.end->used = true;
-		*align_ = offset;
-		return ptr;
-	}
-	return heap_align_expand(bytes, align_);
-}
-
-void *heap_align_expand(size_t bytes, size_t *align_) {
-	heap_segment_t *last = heap.end;
-	heap.end = (heap_segment_t *) ((size_t) last + sizeof(heap_segment_t) + last->size);
-	last->next = heap.end;
-
-	void *ptr = align((void *) ((size_t) heap.end + sizeof(heap_segment_t)), *align_);
-	size_t offset = (size_t) ptr - (size_t) heap.end - sizeof(heap_segment_t);
-	if (offset > sizeof(heap_segment_t) + 8) {
-		heap_segment_t *nseg = (heap_segment_t *) ((size_t) heap.end + offset);
-		heap.end->next = nseg;
-		heap.end->used = false;
-		heap.end->size = (size_t) nseg - (size_t) heap.end - sizeof(heap_segment_t);
-		heap.end = nseg;
-
-		heap.end->next = null;
-		heap.end->size = bytes;
-		heap.end->used = true;
-		*align_ = 0;
-		return ptr;
-	} else {
-		heap.end->size = offset + bytes;
-		heap.end->next = null;
-		heap.end->used = true;
-		*align_ = offset;
-		return ptr;
-	}
-}
-
-
-bool heap_map(size_t physical, void** virt, size_t size, bool* table_created) {
-	//	maps virtual memory for page heap
-	//	table is allocated at the arg:physical address
-		//	if is allocated:
-			//	*table_created = true
-			//	*virt points to physical + PAGE_SIZE
-
-	if (physical + (size * 2) >= (size_t)4*GB) {
-		//	out of hhdm
-
-		union virtual_union vu = {.voidptr = pages.system.pdpt.virtual};
-
-		if (vocality >= vocality_report_everything) {
-			report("page heap is not covered by HHDM => proceeding with mapping\n", report_note);
-		}
-
-		page_entry *page;
-		page_table_t *table = page_quick_map((void*)physical, &page);
-		if ((table == null) || (page == null)) {
-			report("could not quick map memory to initialize page heap\n", report_error);
-			return false;
-		}
-
-		//	create new table
-		u64 *tmp = (u64 *) table;
-		for (size_t i = 0; i < PAGE_COUNT; i++) {
-			tmp[i] = page_bit_present | page_bit_write | page_bit_exec_disable;// | page_bit_page_size;
-		}
-		(*table)[0].address = physical >> PAGE_SHIFT;		//	points to itself
-		(*table)[1].address = (physical + PAGE_SIZE) >> PAGE_SHIFT;
-		vu.virtual_address.pt = 1;
-
-		//	connect the table to pdpt
-		for (ssize_t i = 511; i >= 0; i--) {
-			if (pages.system.pdpt.page[i].address == 0) {
-				pages.system.pdpt.page[i].address = physical >> PAGE_SHIFT;
-				vu.virtual_address.pdpt = i;
+	{	//	find place for global heap
+		struct limine_memmap_entry* ent;
+		bool found = false;
+		size_t msize = req_memmap.response->entry_count;
+		for (size_t i = 0; i < msize; i++) {
+			ent = req_memmap.response->entries[i];
+			if ((ent->type == LIMINE_MEMMAP_USABLE) && (ent->length >= HEAP_GLOBAL_MINIMAL_SIZE * KB)) {
+				heap.global.meta.physical.start = ent->base;
+				heap.global.meta.physical.end = ent->base + heap.global.meta.size;
+				heap.global.meta.allocator = &heap.global;
+				heap.global.meta.virtual.start = pages.system.heap.virtual;
+				heap.global.meta.virtual.end = (void*)((size_t)heap.global.meta.virtual.start + heap.global.meta.size);
+				found = true;
 				break;
 			}
 		}
-
-		*virt = vu.voidptr;
-		if (table_created != null) {
-			*table_created = true;
+		if (!found) {
+			if (vocality >= vocality_report_everything) {
+				report_status("FAILURE", line, col.critical);
+			}
+			report("could not allocate memory for kernel heap\n", report_critical);
+			panic(panic_code_cannot_allocate_memory_for_kernel_heap);
 		}
-
-		page_quick_unmap(page);
-	} else {
-		//	in hhdm
-		if (vocality >= vocality_report_everything) {
-			report("page heap is covered by HHDM\n", report_note);
-		}
-		if (table_created != null) {
-			*table_created = false;
-		}
-		*virt = (void*)(pages.heap.physical + pages.hhdm);
 	}
-	return true;
+
+
+	{	//	construct address space
+		page_entry* ent = pages.system.heap.table;
+		for (size_t i = 1; (i < PAGE_COUNT) && ((i-1)*4096 < heap.global.meta.size); i++) {
+			ent[i].address = (heap.global.meta.physical.start + (4096 * i)) >> PAGE_SHIFT;
+		}
+	}
+
+	//	initialize alloc
+	heap.global.alloc = multipurpose_alloc;
+	heap.global.realloc = multipurpose_realloc;
+	heap.global.realloca = multipurpose_realloca;
+	heap.global.free = multipurpose_free;
+
+	//	initialize heap
+	heap.global.first = (heap.global.first_free = heap.global.meta.virtual.start);
+	heap.global.last = heap.global.first;
+
+	heap_block* b = heap.global.first;
+	b->next = null;
+	b->size = HEAP_INITIAL_BLOCK_SIZE;
+	b->used = false;
+	b->lock = false;
+
+	if (vocality >= vocality_report_everything) {
+		report_status("SUCCESS", line, col.green);
+	}
+
+}
+
+void* multipurpose_alloc(allocator_t* alloc, heap_size_t bytes) {
+	heap_wait_and_mark_pending(alloc);
+	heap_block* con = null;
+	size_t c_size = 0;
+	bytes = align(bytes, 8);
+
+	for (heap_block* block = alloc->first;; block = block->next) {
+
+		if (block->used) {
+			con = null;
+			c_size = 0;
+		} else {
+
+			if (block->size >= bytes) {
+				block->used = true;
+				if (block->size >= bytes + sizeof(heap_block) + 32) {
+					_heap_divide(alloc, block, bytes);
+				}
+				heap_pending_unmark(alloc);
+				return ++block;
+			}
+
+			c_size += block->size;
+			if (con == null) {
+				con = block;
+			} else if (c_size >= bytes) {
+				_heap_connect(alloc, con, block);
+				con->used = true;
+				heap_pending_unmark(alloc);
+				return ++con;
+			}
+		}
+
+		if (block->next == null) {
+			break;
+		}
+	}
+	void* ret = _heap_enlarge(alloc, bytes);
+	return ret;
+}
+
+void* multipurpose_realloc(allocator_t* alloc, void* ptr, heap_size_t bytes) {
+	heap_size_t block_size = heap_bsize(ptr);
+	bytes = align(bytes, 8);
+	if (bytes <= block_size) {
+		if (block_size > sizeof(heap_block) + 32 + bytes) {
+			_heap_divide(alloc, ((heap_block*)ptr)-1, bytes);
+		}
+		heap_pending_unmark(alloc);
+		return ptr;
+	}
+
+	//	block_size < new->size
+	heap_pending_unmark(alloc);
+	u64* new = alloc->alloc(alloc, bytes);
+	block_size /= sizeof(u64);
+	for (size_t i = 0; i < block_size; i++) {
+		new[i] = ((u64*)ptr)[i];
+	}
+	(((heap_block*)ptr)-1)->used = false;
+	return new;
+}
+
+void* multipurpose_realloca(allocator_t* alloc, void* ptr, heap_size_t bytes, heap_size_t add) {
+	heap_wait_and_mark_pending(alloc);
+	heap_size_t block_size = heap_bsize(ptr);
+	bytes = align(bytes, 8);
+	if (bytes <= block_size) {
+		if (block_size > sizeof(heap_block) + 32 + bytes) {
+			_heap_divide(alloc, ((heap_block*)ptr)-1, bytes);
+		}
+		heap_pending_unmark(alloc);
+		return ptr;
+	}
+
+	//	block_size < new->size
+	heap_pending_unmark(alloc);
+	u64* new = alloc->alloc(alloc, bytes + add);
+	block_size /= sizeof(u64);
+	for (size_t i = 0; i < block_size; i++) {
+		new[i] = ((u64*)ptr)[i];
+	}
+	(((heap_block*)ptr)-1)->used = false;
+	heap_pending_unmark(alloc);
+	return new;
+}
+
+
+void* _heap_enlarge(allocator_t* alloc, heap_size_t bytes) {
+	if (alloc->last->used) {
+		//	create new block and set the last pointer to it
+
+		heap_block* old = alloc->last;
+		alloc->last->size = align(alloc->last->size, 8);
+		heap_block* new = (void*)align(((size_t)(old + 1) + old->size), 8);
+		alloc->last = new;
+		new->next = null;
+		new->size = align(bytes, 8);
+		new->lock = false;
+		new->used = true;
+		old->next = new;
+		heap_pending_unmark(alloc);
+		return new+1;
+	}
+
+	//	resize last (unused) block
+	alloc->last->size = align(bytes, 8);
+	alloc->last->used = true;
+	heap_pending_unmark(alloc);
+	return alloc->last + 1;
+}
+
+void _heap_connect(allocator_t* alloc, heap_block* beg, heap_block* fin) {
+	if (fin->next == null) {
+		beg->size = (size_t)fin - (size_t)beg + fin->size;
+	} else {
+		beg->next = fin;
+		beg->size = (size_t) fin - (size_t) beg;
+	}
+	heap_pending_unmark(alloc);
+}
+
+void _heap_divide(allocator_t* alloc, heap_block* block, heap_size_t bytes) {
+	if (block->next == null) {
+		printl("\t\t\t\tdivide: last");
+		block->size = align(bytes, 8);
+	} else {
+		print("\t\t\t\tdivide: not last: size("); printu(block->size); print(") bytes("); printu(bytes); print(") block("); printp(block); printl(")");
+		bytes = align(bytes, 8);
+		heap_block* new = (void*)align((size_t)block + sizeof(heap_block) + bytes, 8);
+		new->next = block->next;
+		new->size = block->size - sizeof(heap_block) - bytes;
+		new->lock = (new->used = false);
+		block->next = new;
+	}
+	heap_pending_unmark(alloc);
+}
+
+
+void multipurpose_free(allocator_t* alloc, void* ptr) {
+	heap_block* block = ((heap_block*)ptr - 1);
+	block->used = false;
+	if ((size_t)block < (size_t)alloc->first_free) {
+		alloc->last = block;
+	}
+}
+
+void heap_debug(allocator_t* alloc) {
+	u32 c = output.color;
+	output.color = col.cyan;
+	print("allocator "); printp(alloc); printl(" scheme:");
+	for (heap_block* i = alloc->first;; i = i->next) {
+		tab(); printp(i); print((i->used)? "\tused" : "\tfree"); tab(); printu(i->size); print("\tnext("); printp(i->next); printl(")");
+
+		if (i->next == null) {
+			break;
+		}
+	}
+	output.color = c;
 }

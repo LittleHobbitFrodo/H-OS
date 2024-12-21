@@ -17,6 +17,8 @@ void kernel() {
 
 	print("nvm_capabilities_t size:\t"); printu(sizeof(nvm_capabilities_t)); endl();
 
+	print("memmap address:\t"); printp(memmap.data); endl();
+	print("heap start:\t"); printp(heap.global.meta.virtual.start); endl();
 
 	shell();
 

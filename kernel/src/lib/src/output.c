@@ -95,20 +95,6 @@ void printl(const char *s) {
 	endl();
 }
 
-void prints(const string *s) {
-	for (size_t i = 0; i < s->size; i++) {
-		printc(s->data[i]);
-	}
-}
-
-void printsl(const string *s) {
-	for (size_t i = 0; i < s->size; i++) {
-		printc(s->data[i]);
-	}
-	endl();
-}
-
-
 void printi(const i64 i) {
 	char num[INTLEN_I64];
 	to_stringi((char *) &num, i);
@@ -122,6 +108,10 @@ void printu(const u64 u) {
 }
 
 void printp(void *p) {
+	if (p == null) {
+		print("NULL");
+		return;
+	}
 	char num[HEXLEN_PTR];
 	to_hex((char *) num, p);
 	print((const char *) &num);

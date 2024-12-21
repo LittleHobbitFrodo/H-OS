@@ -6,9 +6,11 @@ function help_build
 	echo "build mkimage/yes/true:	builds kernel and create disk image"
 	echo;echo "build help:	displays this text"
 	echo "build --help:	do the same thing"
+	echo "-ignore-firmware-type: compiles the kernel to try to run even on BIOS"
 end
 
 set DEBUG "0"
+set IFT "0"
 
 if test ! (basename (pwd)) = "H-OS"
 	echo run in project root directory
@@ -33,6 +35,9 @@ if test (count $argv) -ge 1
 			case "debug"
 			  echo building kernel with debug options
 			  set DEBUG "1"
+			case "-ignore-firmware-type"
+			  set IFT "1"
+			  echo ignoring firmware type
 		end
 	end
 end
@@ -42,10 +47,16 @@ echo "starting build: CORE $KERNEL_VERSION"
 ./scripts/kernel/rmimage	#	deletes disk image (if existent)
 ./scripts/kernel/clean		#	delete files used in previous builds
 
+set compile_args ""
+
+if test $IFT = "1"
+  set compile_args $compile_args -ignore-firmware-type
+end
+
 if test $DEBUG -eq 1
-  ./scripts/kernel/compile debug
+  ./scripts/kernel/compile debug $compile_args
 else
-  ./scripts/kernel/compile
+  ./scripts/kernel/compile $compile_args
 end
 
 ./scripts/kernel/link		#	links kernel objects

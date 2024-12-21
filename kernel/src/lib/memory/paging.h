@@ -21,7 +21,7 @@ typedef struct page_entry {
 	u64 accessed: 1;
 	u64 dirty: 1;
 	u64 page_size: 1;
-		//	change page size: pml4 = 512GB, pdpt = 1GB, pd = 2MB, pt = undefined
+		//	change page size: pml4 = 512GB, pdpt = 1GB, page = 2MB, pt = undefined
 	u64 global: 1;
 	u64 reserved: 3;
 	u64 address: 40;
@@ -48,7 +48,7 @@ enum page_bits {
 	page_bit_exec_disable = (size_t)1 << 63
 };
 
-typedef page_entry page_table_t[512];
+typedef page_entry page_table_t[512] __attribute__((aligned(4096)));
 
 #include "./heap/page-heap/structures.h"
 
@@ -124,10 +124,17 @@ typedef struct pages_t {
 	} kernel;
 
 	struct {
-		page_region_vec_t regions;
+		//page_region_vec_t regions;
+		page_allocator_t global;
+
+
 		size_t size;		//	size of allocated space
-		size_t physical;	//	physical base (heap initialization purposes)
-		void* virtual;
+		struct {
+			//	initialization purposes only
+			size_t physical;    //	physical base
+			void *virtual;
+			page_table_t *table;
+		} init;
 	} heap;
 
 	struct {
@@ -135,15 +142,30 @@ typedef struct pages_t {
 		struct {
 			size_t physical;
 			void* virtual;
-			__attribute__((aligned(4096))) page_table_t page;
+			__attribute__((aligned(4096))) page_table_t table;
 		} pdpt;
 
 		struct {
 			void* virtual;
 			size_t physical;
-			__attribute__((aligned(4096))) page_table_t page;
-			//	pd layer (recursive mapped)
-		} random;
+			__attribute__((aligned(4096))) page_table_t table;
+			//	page layer (recursive mapped)
+		} quick;
+
+		struct {
+			void* virtual;
+			size_t physical;
+			__attribute__((aligned(4096))) page_table_t table;
+		} heap;
+
+		struct {
+			void* virtual;
+			size_t physical_pd;
+			size_t physical_pt;
+			__attribute__((aligned(4096))) page_table_t pd;
+			__attribute__((aligned(4096))) page_table_t pt;
+			//	other page tables will be allocated in page heap
+		} page_heap;
 
 
 	} system;

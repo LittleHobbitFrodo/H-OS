@@ -8,26 +8,77 @@
 
 void uefi_init() {
 
+	size_t line = 0;
+
+	if (vocality >= vocality_report_everything) {
+		line = report("checking UEFI runtime services\n", report_note);
+	}
+
+	if (req_firmware_type.response->firmware_type != LIMINE_FIRMWARE_TYPE_UEFI64) {
+
+		#ifndef IGNORE_FIRMWARE_TYPE
+		if (vocality >= vocality_report_everything) {
+			report_status("CRITICAL FAILURE", line, col.critical);
+		}
+
+		report("unsupported firmware platform (", report_critical);
+
+		switch (req_firmware_type.response->firmware_type) {
+			case LIMINE_FIRMWARE_TYPE_UEFI32: {
+				printl("x86 UEFI)");
+				break;
+			}
+			case LIMINE_FIRMWARE_TYPE_X86BIOS: {
+				printl("x86 BIOS)");
+				break;
+			}
+			default: {
+				printl("UNKNOWN");
+				break;
+			}
+		}
+		panic(panic_code_unsupported_firmware);
+		__builtin_unreachable();
+		#else
+		if (vocality >= vocality_report_everything) {
+			report_status("PARTIAL FAILURE", line, col.yellow);
+		}
+		report("unsupported firmware platform (", report_warning);
+		switch (req_firmware_type.response->firmware_type) {
+			case LIMINE_FIRMWARE_TYPE_UEFI32: {
+				printl("x86 UEFI)");
+				break;
+			}
+			case LIMINE_FIRMWARE_TYPE_X86BIOS: {
+				printl("x86 BIOS)");
+				break;
+			}
+			default: {
+				printl("UNKNOWN");
+				break;
+			}
+		}
+		#endif
+	}
+
 	//	prepare uefi structure
 	memnull(&uefi, sizeof(uefi_t));
 
 	uefi.supported = (req_efi_system_table.response != null) && (req_efi_system_table.response->address != null);
 
 	if (!uefi.supported) {
+		if (vocality >= vocality_report_everything) {
+			report_status("FAILURE", line, col.red);
+		}
 		report("UEFI runtime services may not be supported on this platform\n", report_warning);
 		return;
 	}
-	#ifdef KERNEL_DEBUG
-	else {
-		report("UEFI seems to be supported on this platform\n", report_debug);
-	}
-	#endif
 
 	uefi.system_table = (EFI_SYSTEM_TABLE*)req_efi_system_table.response->address;
 	uefi.runtime = uefi.system_table->RuntimeServices;
 
 	if (vocality >= vocality_report_everything) {
-		report("UEFI firmware communication has been successfully initialized\n", report_note);
+		report_status("SUCCESS", line, col.green);
 	}
 }
 

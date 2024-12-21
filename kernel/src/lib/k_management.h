@@ -48,6 +48,7 @@ enum panic_codes {
 	panic_code_failed_to_initialize_acpi,
 	panic_code_acpi_validation_failed,
 	panic_code_efi_systable_not_found,
+	panic_code_unsupported_firmware,
 } panic_codes;
 
 enum report_seriousness {
@@ -64,7 +65,12 @@ enum report_seriousness {
 
 extern void panic(enum panic_codes code);
 
-void report(const char *msg, enum report_seriousness seriousness);
+size_t report(const char *msg, enum report_seriousness seriousness);
+void report_status(const char* msg, size_t line, u32 color);
+	//	in pair with report()
+	//	writes text at the end of the line
+
+static size_t* init_phase_status_line = null;
 
 
 static enum vocal vocality = vocality_normal;

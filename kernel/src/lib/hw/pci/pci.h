@@ -19,9 +19,15 @@
 //	initializes PCI
 static void pci_init();
 
-void* pci_read_bar(pci_address address, u8 bar);
+static u32 pci_enumerate();		//	checks how many supported devices are connected
+static void pci_scan();			//	scan and initialize device structures
 
-static bool pci_initialized = false;
+void pci_scan_bus(u8 bus);	//	scan one bus
+
+
+
+
+void* pci_read_bar(pci_address address, u8 bar);
 
 u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset);
 __attribute__((always_inline))
@@ -33,10 +39,6 @@ inline void pci_writea(union pci_address_u32 address, u32 data) {
 	outd(PCI_CONFIG_ADDRESS, address.u32);
 	outd(PCI_CONFIG_DATA, data);
 }
-
-u8 pci_enumerate();
-
-void pci_scan_bus(u8 bus);
 
 __attribute__((always_inline))
 inline bool pci_exists(u8 bus, u8 slot, u8 function) {
@@ -82,3 +84,13 @@ typedef struct pci_discovery_data {
 	u8 programming;
 	pci_bist_t test;
 } pci_discovery_data;
+
+typedef struct pci_t {
+	device_rvec_t devices;
+
+	u8 initialized:		1;
+	u8 used:			1;
+
+} pci_t;
+
+static pci_t pci = {0};

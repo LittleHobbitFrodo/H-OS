@@ -41,6 +41,9 @@ void init() {
 
 
 void panic(enum panic_codes code) {
+	if ((init_phase_status_line != null) && (vocality >= vocality_report_everything)) {
+		report_status("CRITICAL ERROR", *init_phase_status_line, col.critical);
+	}
 	output.color = col.critical;
 	print("PANIC: CRITICAL ERROR");
 	output.color = col.white;
@@ -130,7 +133,8 @@ void panic(enum panic_codes code) {
 	__builtin_unreachable();
 }
 
-void report(const char *msg, enum report_seriousness seriousness) {
+size_t report(const char *msg, enum report_seriousness seriousness) {
+	size_t ret = output.line;
 	switch (seriousness) {
 		case report_note: {
 			output.color = col.blue;
@@ -166,6 +170,22 @@ void report(const char *msg, enum report_seriousness seriousness) {
 	output.color = col.white;
 	print(":\t");
 	print(msg);
+	return ret;
+}
+
+void report_status(const char* msg, size_t line, u32 color) {
+	const size_t ln = output.line, clm = output.column, cl = output.color;
+	output.line = line;
+
+	size_t slen = strlen(msg);
+	output.column = (screen.w / font.size) - slen;
+	output.color = color;
+
+	printn(msg, slen);
+
+	output.color = cl;
+	output.line = ln;
+	output.column = clm;
 }
 
 void shutdown() {
@@ -187,7 +207,7 @@ void shutdown() {
 
 void __parse_cmd_out_of_bounds(const string *token) {
 	report("command line argument error: expected anything for \'", report_problem);
-	prints(token);
+	printn(token->data, token->size);
 	printl("\', got nothing");
 }
 
@@ -290,7 +310,7 @@ void parse_cmd() {
 
 	return;
 
-	struct limine_file *file = req_kernel_file.response->kernel_file;
+	/*struct limine_file *file = req_kernel_file.response->kernel_file;
 	if (file == null) {
 		report("kernel file (provided by bootloader) is NULL => no parameters taken\n", report_problem);
 		return;
@@ -303,7 +323,7 @@ void parse_cmd() {
 
 	//	tokenize cmd
 	strvec_t tokens_;	//	strings
-	strvec_construct(&tokens_, 0);
+	strvec_construct(&tokens_, 0, &heap.global);
 	str_tokenize(cmd_, &tokens_);
 
 	string *s = tokens_.data;
@@ -358,5 +378,5 @@ void parse_cmd() {
 	}
 
 	//	free vector memory
-	strvec_destruct(&tokens_);
+	strvec_destruct(&tokens_);*/
 }

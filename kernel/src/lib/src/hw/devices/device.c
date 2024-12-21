@@ -10,7 +10,7 @@ void dev_destruct(device_t* dev) {
 	if (dev->ptr != null) {
 		switch (dev->type) {
 			case device_type_undefined: case device_type_unsupported: {
-				free(dev->ptr);
+				heap.global.free(&heap.global, dev->ptr);
 				break;
 			}
 			case device_type_disk: {
@@ -30,7 +30,7 @@ void* device_init(device_t* dev, enum device_types type) {
 	switch (dev->type) {
 		case device_type_disk: {
 			dev->allocated = true;
-			dev->ptr = alloc(sizeof(disk_t));
+			dev->ptr = heap.global.alloc(&heap.global, sizeof(disk_t));
 			disk_construct((disk_t *) dev->ptr);
 			dev->type = type;
 			return dev->ptr;
