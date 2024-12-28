@@ -9,7 +9,7 @@
 void nvm_init() {
 
 	report("proceeding to initialize NVM controller\n", report_warning);
-	wait(750);
+	//wait(750);
 
 	/*if (nvm.initialzed) {
 		return;
@@ -28,9 +28,9 @@ void nvm_init() {
 	print("nvm.table:\t"); printp(nvm.table); endl();
 	wait(1500);
 	{
-		u64* ptr = (u64*)nvm.table;
+		u64* specific = (u64*)nvm.table;
 		for (size_t i = 0; i < 512; i++) {
-			*ptr++ = 1;	//	present bit is on
+			*specific++ = 1;	//	present bit is on
 		}
 	}
 	//	map it to itself

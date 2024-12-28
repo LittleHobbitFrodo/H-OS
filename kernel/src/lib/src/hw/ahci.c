@@ -47,8 +47,8 @@ void ahci_init() {
 	pci_memory_base base;
 	u8 offset = (sizeof(pci_device_header) / sizeof(u32)) + 5;
 	{
-		u32 *ptr = (u32 *) &base;
-		*ptr = pci_read(ahci.pci_address.bus, ahci.pci_address.slot, ahci.pci_address.function, offset);
+		u32 *specific = (u32 *) &base;
+		*specific = pci_read(ahci.pci_address.bus, ahci.pci_address.slot, ahci.pci_address.function, offset);
 	}
 	if (base.always_zero != 0) {
 		//	check if the base address is memory base address

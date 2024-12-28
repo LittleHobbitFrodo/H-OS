@@ -12,7 +12,7 @@ void hardware_init() {
 
 	if (vocality >= vocality_report_everything) {
 		endl();
-		line = report("nproceeding with hardware initialization\n", report_note);
+		line = report("proceeding with hardware initialization\n", report_note);
 	}
 
 	kernel_status = k_state_init_hardware;

@@ -8,52 +8,95 @@
 #include "../../../memory/heap/multipurpose/heap.h"
 #include "../../../memory/paging.h"
 
+void heap_reserve_memory() {
+	//	finds place for global allocator
+
+
+	table_heap_reserve_memory();
+
+
+	heap.global.meta.size = align(HEAP_GLOBAL_MINIMAL_SIZE * KB, 2*MB);
+
+	struct limine_memmap_entry* ent;
+	const size_t mlen = req_memmap.response->entry_count;
+
+
+	{	//	check if there is enough space right next to page heap
+		const heap_metadata* const meta = &pages.heap.global.meta;
+
+		for (size_t i = 0; i < mlen; i++) {
+			ent = req_memmap.response->entries[i];
+
+			if (ent->type != LIMINE_MEMMAP_USABLE) {
+				continue;
+			}
+
+			if ((meta->physical.start >= ent->base) && (meta->physical.end + (heap.global.meta.size*2) <= ent->base + ent->length)) {
+
+				heap.global.meta.physical.start = meta->physical.end;
+				heap.global.meta.physical.end = meta->physical.end + heap.global.meta.size;
+				heap.global.meta.virtual.start = pages.system.heap.virtual;
+				heap.global.meta.virtual.end = (void*)((size_t)heap.global.meta.virtual.start + heap.global.meta.size);
+				heap.global.meta.allocator = &heap.global;
+				return;
+			}
+		}
+	}
+
+	//	try to find usable entry aligned to 2mb
+	for (size_t i = 0; i < mlen; i++) {
+		ent = req_memmap.response->entries[i];
+		if (ent->type != LIMINE_MEMMAP_USABLE) {
+			continue;
+		}
+		if ((ent->base == align(ent->base, 2*MB)) && (ent->length >= 4*MB)) {
+			heap.global.meta.physical.start = ent->base;
+			heap.global.meta.physical.end = ent->base + heap.global.meta.size;
+			heap.global.meta.virtual.start = pages.system.heap.virtual;
+			heap.global.meta.virtual.end = (void*)((size_t)heap.global.meta.virtual.start + heap.global.meta.size);
+			heap.global.meta.allocator = &heap.global;
+			return;
+		}
+	}
+
+
+	//	find valid place and align heap to 2mb
+	for (size_t i = 0; i < mlen; i++) {
+		ent = req_memmap.response->entries[i];
+		if ((ent->type == LIMINE_MEMMAP_USABLE) && (ent->length >= 4*MB)) {
+			heap.global.meta.physical.start = align(ent->base, 2*MB);
+			heap.global.meta.physical.end = align(ent->base, 2*MB) + heap.global.meta.size;
+			heap.global.meta.virtual.start = pages.system.heap.virtual;
+			heap.global.meta.virtual.end = (void*)((size_t)heap.global.meta.virtual.start + heap.global.meta.size);
+			heap.global.meta.allocator = &heap.global;
+			return;
+		}
+	}
+
+	//	did not find any valid area
+	if (vocality >= vocality_report_everything) {
+		report_status("CRITICAL FAILURE", *init_phase_status_line, col.critical);
+	}
+	report("could not allocate memory for kernel heap\n", report_critical);
+	panic(panic_code_cannot_allocate_memory_for_kernel_heap);
+	__builtin_unreachable();
+
+}
+
 
 void heap_init() {
 	//	initializes global alloc
+	//	IMPORTANT:	heap_reserve_memory MUST be called before this
 
-	//	1)	find place for global heap
-	//	2)	construct virtual address space for it
-	//	3)	initialize heap
+	//	NOTE: 2mb alignment is for usage of 2MB pages
 
-	size_t line = 0;
+	//	1)	construct virtual address space for it
+	//	2)	initialize heap
 
-	if (vocality >= vocality_report_everything) {
-		line = report("initializing kernel multipurpose heap\n", report_note);
-	}
-
-	heap.global.meta.size = HEAP_GLOBAL_MINIMAL_SIZE * KB;
-
-	{	//	find place for global heap
-		struct limine_memmap_entry* ent;
-		bool found = false;
-		size_t msize = req_memmap.response->entry_count;
-		for (size_t i = 0; i < msize; i++) {
-			ent = req_memmap.response->entries[i];
-			if ((ent->type == LIMINE_MEMMAP_USABLE) && (ent->length >= HEAP_GLOBAL_MINIMAL_SIZE * KB)) {
-				heap.global.meta.physical.start = ent->base;
-				heap.global.meta.physical.end = ent->base + heap.global.meta.size;
-				heap.global.meta.allocator = &heap.global;
-				heap.global.meta.virtual.start = pages.system.heap.virtual;
-				heap.global.meta.virtual.end = (void*)((size_t)heap.global.meta.virtual.start + heap.global.meta.size);
-				found = true;
-				break;
-			}
-		}
-		if (!found) {
-			if (vocality >= vocality_report_everything) {
-				report_status("FAILURE", line, col.critical);
-			}
-			report("could not allocate memory for kernel heap\n", report_critical);
-			panic(panic_code_cannot_allocate_memory_for_kernel_heap);
-		}
-	}
-
-
-	{	//	construct address space
-		page_entry* ent = pages.system.heap.table;
-		for (size_t i = 1; (i < PAGE_COUNT) && ((i-1)*4096 < heap.global.meta.size); i++) {
-			ent[i].address = (heap.global.meta.physical.start + (4096 * i)) >> PAGE_SHIFT;
+	{	//	construct virtual address space
+		const size_t max = (heap.global.meta.size / (2*MB)) + ((heap.global.meta.size % (2*MB)) != 0);
+		for (size_t i = 0; i < max; i++) {
+			sized_page_set_address(pages.system.heap.table[i], heap.global.meta.physical.start + ((2*MB) * i));
 		}
 	}
 
@@ -72,10 +115,6 @@ void heap_init() {
 	b->size = HEAP_INITIAL_BLOCK_SIZE;
 	b->used = false;
 	b->lock = false;
-
-	if (vocality >= vocality_report_everything) {
-		report_status("SUCCESS", line, col.green);
-	}
 
 }
 

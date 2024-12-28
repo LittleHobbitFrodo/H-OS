@@ -224,6 +224,7 @@ enum pci_device_classes {
 	pci_device_class_wireless_controller = 0xD,
 } pci_device_classes;
 
+
 enum pci_controller_mass_storage {
 	pci_mass_storage_scsi_bus = 0x0,
 	pci_mass_storage_ide = 0x1,
@@ -236,6 +237,11 @@ enum pci_controller_mass_storage {
 	pci_mass_storage_nvm_controller = 0x8,
 	pci_mass_storage_other = 0x80,
 } pci_controller_mass_storage;
+
+enum pci_nvm_controller {
+	pci_nvm_controller_nvme = 0x2,
+	pci_nvm_controller_nvmhci = 0x1
+};
 
 enum pci_serial_ata_programming {
 	pci_serial_ata_vendor_specific = 0x0,
@@ -250,3 +256,12 @@ enum pci_controller_base_peripheral {
 	pci_base_peripheral_rtc_controller = 0x3,
 	pci_base_peripheral_other = 0x80,
 } pci_controller_base_peripheral;
+
+#define pci_device_info_any 0xff
+
+typedef struct pci_device_info_t {
+	//	code for supported device or -1 for any
+	u8 class;
+	u8 subclass;
+	u8 programming;
+} pci_device_info_t;

@@ -24,9 +24,6 @@ typedef struct nvm_t {
 		size_t max_size;
 	} queue;
 
-	page_table_t* table;
-
-
 } nvm_t;
 
 static nvm_t nvm = {0};

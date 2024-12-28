@@ -12,7 +12,7 @@
 #define VECTOR_MAX_CAPACITY_DIFFERENCE 6
 
 
-#define readonly_vector(name, type, type_name, destruct)\
+#define readonly_vector(name, type, type_name, construct, destruct)\
 	typedef struct type_name {\
 		type *data;\
 		allocator_t *alloc;\
@@ -27,8 +27,10 @@
 		}\
 		self->alloc = alloc;\
 		self->data = self->alloc->alloc(self->alloc, count * sizeof(type));\
-		memnull(self->data, count * sizeof(type));\
 		self->len = count;\
+		for (u32 i = 0; i < count; i++) {\
+			construct(&self->data[i]);\
+		}\
 		return self->data;\
 	}\
 	void name##_destruct(type_name* self) {\
@@ -731,7 +733,8 @@ __attribute__((nonnull(1)))
 void* vec_insert(multipurpose_vector* self, u32 index, u32 count);
 
 
+
 //vector_instance(memmap, memmap_entry, memmap_vector, to_be_optimized, to_be_optimized);
-readonly_vector(memmap, memmap_entry, memmap_vec, to_be_optimized);
+readonly_vector(memmap, memmap_entry, memmap_vec, memmap_ent_construct, to_be_optimized);
 
 static memmap_vec memmap = {0};

@@ -94,7 +94,7 @@ void acpi_query() {
 
 			if ((tp != acpi_table_unknown) && (tp != acpi_table_unsupported)) {
 				acpi_table_t* table = vec_push(&acpi.tables, 1);
-				table->ptr = header;
+				table->specific = header;
 				table->type = tp;
 			}
 		}
@@ -109,7 +109,7 @@ void acpi_query() {
 				continue;
 			}
 			acpi_table_t* table = vec_push(&acpi.tables, 1);
-			table->ptr = entries[i];
+			table->specific = entries[i];
 			table->type = tp;
 		}
 	}
@@ -123,7 +123,7 @@ void acpi_query() {
 		table = ((acpi_table_t*)vec_at(&acpi.tables, i));
 		switch (table->type) {
 			case acpi_table_fadt: {
-				acpi.fadt = (acpi_fadt_t*)table->ptr;
+				acpi.fadt = (acpi_fadt_t*)table->specific;
 				if (acpi.version == 1) {
 					acpi.facs = (acpi_sdt_header*)((size_t)acpi.fadt->firmware_ctrl_ptr);
 					acpi.dsdt = (acpi_sdt_header*)((size_t)acpi.fadt->dsdt_ptr);
@@ -134,15 +134,15 @@ void acpi_query() {
 				break;
 			}
 			case acpi_table_dsdt: {
-				acpi.dsdt = table->ptr;
+				acpi.dsdt = table->specific;
 				break;
 			}
 			case acpi_table_facs: {
-				acpi.facs = table->ptr;
+				acpi.facs = table->specific;
 				break;
 			}
 			case acpi_table_bgrt: {
-				acpi.bgrt = (acpi_bgrt_t*)table->ptr;
+				acpi.bgrt = (acpi_bgrt_t*)table->specific;
 			}
 			default: break;
 		}

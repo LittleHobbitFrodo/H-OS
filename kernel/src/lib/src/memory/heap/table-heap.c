@@ -1,30 +1,78 @@
 //
-//	memory/heap/page-heap.c
+//	memory/heap/table-heap.c
 //		part of the CORE kernel belonging to the H-OS project
 //
 
 #pragma once
 
-#include "../../../memory/heap/page-heap/page-heap.h"
-#include "../../../vector/volatile-vector.h"
+#include "../../../memory/heap/table-heap/table-heap.h"
 
-void page_header_construct(page_header* self, page_heap* heap) {
-	size_t* ptr = (size_t*)self;
-	for (size_t i = 0; i < PAGE_HEAP_SIZE / sizeof(size_t); i++) {
-		ptr[i] = 0;
+void table_heap_reserve_memory() {
+
+	//	finds place for global table allocator
+
+	struct limine_memmap_entry* ent;
+	const size_t mlen = req_memmap.response->entry_count;
+
+	//	try to find aligned place
+	for (size_t i = 0; i < mlen; i++) {
+		ent = req_memmap.response->entries[i];
+		if ((ent->type != LIMINE_MEMMAP_USABLE) || (ent->base == heap.global.meta.physical.start)) {
+			continue;
+		}
+		if ((ent->base == align(ent->base, 2*MB)) && (ent->length >= 4*MB)) {
+			pages.heap.global.meta.physical.start = ent->base;
+			pages.heap.global.meta.size = 2*MB;
+			pages.heap.global.meta.physical.end = ent->base + (2*MB);
+			pages.heap.global.meta.table = &pages.system.page_heap.table;
+			printl("found aligned entry");
+			return;
+		}
 	}
-	(*self)[0].table = heap->meta.virtual.start;
-	(*self)[0].count = 1;
-	(*self)[0].used = false;
 
+	//	find valid place and align it to 2mb
+	for (size_t i = 0; i < mlen; i++) {
+		ent = req_memmap.response->entries[i];
+		if ((ent->type == LIMINE_MEMMAP_USABLE) && (ent->length >= 4*MB)) {
+			pages.heap.global.meta.physical.start = align(ent->base, 2*MB);
+			pages.heap.global.meta.size = 2*MB;
+			pages.heap.global.meta.physical.end = ent->base + (2*MB);
+			pages.heap.global.meta.table = &pages.system.page_heap.table;
+			printl("found unaligned entry");
+			return;
+		}
+	}
+
+
+
+
+	if (vocality >= vocality_report_everything) {
+		report_status("CRITICAL ERROR", *init_phase_status_line, col.critical);
+	}
+	report("could not allocate memory for table heap\n", report_critical);
+	panic(panic_code_cannot_allocate_memory_for_kernel_heap);
+	__builtin_unreachable();
 }
 
-void page_heap_construct(page_heap* self, page_allocator_t* alloc) {
-	memnull(self, sizeof(page_heap));
-	self->meta.allocator = alloc;
+void table_heap_init() {
+	//	table_heap_reserve_memory MUST be called
+
+	size_t line = 0;
+	if (vocality >= vocality_report_everything) {
+		line = report("kernel page table heap initialization\n", report_note);
+	}
+
+	print("table allocator:\t"); printp((void*)pages.heap.global.meta.physical.start); endl();
+
+
+	if (vocality >= vocality_report_everything) {
+		report_status("SUCCESS", line, col.green);
+	}
 }
 
-void page_heap_init() {
+
+/*
+void table_heap_init() {
 	//	static pages for page heap are initialized
 
 	//	1)	find place for page heap
@@ -45,7 +93,7 @@ void page_heap_init() {
 			if ((ent->type == LIMINE_MEMMAP_USABLE) && (ent->length >= 2*MB)) {
 				found = true;
 				pages.heap.init.physical = ent->base;
-				pages.heap.init.table = &pages.system.page_heap.pd;
+				pages.heap.init.table = &pages.system.page_heap.table;
 				pages.heap.init.virtual = pages.system.page_heap.virtual;
 				break;
 			}
@@ -115,7 +163,7 @@ page_table_t* page_alloc(page_allocator_t* alloc, u8 count) {
 					//	if empty bit in row >= <count>
 					if (free_count >= count) {
 						ptr = &(*current->header)[(bitmap*32) + bit];
-						print("found ptr: "); printu((bitmap*32) + bit); print(" fc: "); printu(free_count); endl();
+						print("found specific: "); printu((bitmap*32) + bit); print(" fc: "); printu(free_count); endl();
 						goto allocate;
 					}
 				}
@@ -127,7 +175,7 @@ page_table_t* page_alloc(page_allocator_t* alloc, u8 count) {
 	ptr->used = true;
 	ptr->count = count;
 	return ptr->table;
-}
+}*/
 
 void page_heap_debug() {
 
@@ -139,7 +187,7 @@ void page_heap_debug() {
 
 
 
-/*bool page_heap_reserve_memory() {
+/*bool table_heap_reserve_memory() {
 
 	struct limine_memmap_entry* ent;
 	const size_t msize = req_memmap.response->entry_count;
@@ -162,7 +210,7 @@ void page_heap_debug() {
 	return false;
 }
 
-void page_heap_init() {
+void table_heap_init() {
 	//	map whole heap memory
 
 	report("proceeding to initialize page heap\n", report_warning);
@@ -283,7 +331,7 @@ void page_heap_debug() {
 }
 */
 /*
-bool page_heap_reserve_memory() {
+bool table_heap_reserve_memory() {
 	//	updates the page_heap.physical.start and .end variable
 
 	memnull(&page_heap, sizeof(page_heap_t));
@@ -328,7 +376,7 @@ bool page_heap_reserve_memory() {
 
 //}
 
-void page_heap_init() {
+void table_heap_init() {
 	//	allocate page tables into regular heap
 	//	add them into paging structure (test it)
 	//	reserve memory for page heap
@@ -341,7 +389,7 @@ void page_heap_init() {
 	if ((size_t)page_heap.physical.end + (4*MB) > (size_t)4*GB) {
 		//	4 Mb -> leave space for future expansion
 		//	create page table before page heap
-		page_entry* entry;
+		unsized_page_entry* entry;
 		page_table_t* table = page_quick_map(page_heap.physical.start, &entry);
 		if (table == null) {
 			report("could not map page heap into virtual memory\n", report_error);
@@ -359,10 +407,10 @@ void page_heap_init() {
 
 
 		//	construct virtual address and connect table to system pdpt
-		union virtual_union virt = {.voidptr = pages.system.pdpt.virtual};
+		union virtual_address_t virt = {.voidptr = pages.system.pdpt.virtual};
 		for (ssize_t i = 511; i >= 0; i--) {
 			if (pages.system.pdpt.page[i].address == 0) {
-				virt.virtual_address.pdpt = i;
+				virt.virtual_address_t.pdpt = i;
 				pages.system.pdpt.page[i].address = (size_t)page_heap.physical.start >> PAGE_SHIFT;
 				break;
 			}
@@ -430,9 +478,9 @@ page_table_t* __page_alloc_locked(u32 tables) {
 	return page_heap_expand(tables, false);
 }
 
-page_table_t* page_realloc(page_table_t* ptr, u32 tables, bool* reallocated) {
+page_table_t* page_realloc(page_table_t* specific, u32 tables, bool* reallocated) {
 	vvec_wait_and_lock((&page_heap.segments));
-	ssize_t index = page_find_index(ptr);
+	ssize_t index = page_find_index(specific);
 	if (index == -1) {
 		page_table_t* ret = __page_alloc_locked(tables);
 		vvec_unlock((&page_heap.segments));
@@ -447,10 +495,10 @@ page_table_t* page_realloc(page_table_t* ptr, u32 tables, bool* reallocated) {
 			__page_heap_divide_block(index, tables);
 		}
 		vvec_unlock((&page_heap.segments));
-		return ptr;
+		return specific;
 	}
 	page_table_t* new = page_alloc(tables);
-	page_cpy(ptr, new, PAGE_TABLE_SIZE * ((seg->table_count > tables)? tables : seg->table_count));
+	page_cpy(specific, new, PAGE_TABLE_SIZE * ((seg->table_count > tables)? tables : seg->table_count));
 	seg->used = false;
 	vvec_unlock((&page_heap.segments));
 	return new;
@@ -495,16 +543,16 @@ void __page_heap_divide_block(size_t segment, [[maybe_unused]] size_t tables) {
 }
 
 
-void page_free(page_table_t* ptr) {
+void page_free(page_table_t* specific) {
 	vvec_wait_and_lock((&page_heap.segments));
-	page_heap_segment_t* seg = page_find(ptr);
+	page_heap_segment_t* seg = page_find(specific);
 	if (seg != null) {
 		seg->used = false;
 	}
 	vvec_unlock((&page_heap.segments));
 }
 
-page_heap_segment_t* page_find(page_table_t* ptr) {
+page_heap_segment_t* page_find(page_table_t* specific) {
 	//	uses the vector as already locked
 	//	binary search implementation
 	page_heap_segment_t *segs = page_heap.segments.data;
@@ -513,11 +561,11 @@ page_heap_segment_t* page_find(page_table_t* ptr) {
 	do {
 		mid = low + (high - low) / 2;
 
-		if (segs[mid].entries == ptr) {
+		if (segs[mid].entries == specific) {
 			return &segs[mid];
 		}
 
-		if (segs[mid].entries < ptr) {
+		if (segs[mid].entries < specific) {
 			low = mid + 1;
 		} else {
 			high = mid - 1;
@@ -528,7 +576,7 @@ page_heap_segment_t* page_find(page_table_t* ptr) {
 	return null;
 }
 
-ssize_t page_find_index(page_table_t* ptr) {
+ssize_t page_find_index(page_table_t* specific) {
 	//	uses the vector as already locked
 	//	binary search implementation
 	page_heap_segment_t *segs = page_heap.segments.data;
@@ -537,11 +585,11 @@ ssize_t page_find_index(page_table_t* ptr) {
 	do {
 		mid = low + (high - low) / 2;
 
-		if (segs[mid].entries == ptr) {
+		if (segs[mid].entries == specific) {
 			return mid;
 		}
 
-		if (segs[mid].entries < ptr) {
+		if (segs[mid].entries < specific) {
 			low = mid + 1;
 		} else {
 			high = mid - 1;

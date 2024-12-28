@@ -52,7 +52,7 @@
 #include "./lib/memory.h"					//	basic memory management
 #include "./lib/memory/heap/multipurpose/heap.h"			//	kernel heap
 #include "./lib/memory/paging.h"			//	memory protection
-//#include "./lib/memory/heap/page-heap.h"	//	kernel heap for page table allocations
+//#include "./lib/memory/heap/table-heap.h"	//	kernel heap for page table allocations
 
 #include "./lib/uefi.h"						//	includes uefi runtime services
 #include "./lib/atomic.h"
@@ -119,7 +119,7 @@
 #include "./lib/src/hw/kb-keys.c"
 #include "./lib/src/acpi/acpi.c"
 #include "./lib/src/uefi.c"
-#include "./lib/src/memory/heap/page-heap.c"
+#include "./lib/src/memory/heap/table-heap.c"
 
 #include "./lib/src/hw/pci/pci.c"
 #include "./lib/src/hw/ahci.c"

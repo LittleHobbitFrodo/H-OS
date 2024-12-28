@@ -12,6 +12,8 @@
 
 typedef u32 heap_size_t;
 
+struct any_page_table;
+
 typedef struct heap_metadata {
 	//	required by page heap
 

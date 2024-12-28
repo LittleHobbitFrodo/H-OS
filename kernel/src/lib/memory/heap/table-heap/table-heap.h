@@ -1,5 +1,5 @@
 //
-//	memory/heap/page-heap.h
+//	memory/heap/table-heap/table-heap.h
 //		part of the CORE kernel belonging to the H-OS project
 //
 
@@ -18,12 +18,15 @@
 #include "../multipurpose/heap.h"
 
 
-static void page_heap_init();
+static void table_heap_init();
+
+static void table_heap_reserve_memory();
 
 void page_heap_debug();
 
-page_table_t* page_alloc(page_allocator_t* alloc, u8 count);
-void page_free(page_allocator_t* alloc, page_table_t* table);
+any_page_table* table_alloc(u16 count);
+void table_free(any_page_table* table);
+bool table_shrink(any_page_table* table, u16 count);
 
 /*page_segment* page_heap_find(page_table_t* table);
 
@@ -39,13 +42,13 @@ page_table_t* page_realloc(page_table_t* table, u32 count);
 void page_free(page_table_t* table);*/
 
 
-/*void page_free(page_table_t* ptr);
-void __page_free_locked(page_table_t* ptr);
+/*void page_free(page_table_t* specific);
+void __page_free_locked(page_table_t* specific);
 
 [[nodiscard]] __attribute__((nonnull(1), returns_nonnull))
-page_segment* page_find(page_table_t* ptr);
+page_segment* page_find(page_table_t* specific);
 [[nodiscard]] __attribute__((nonnull(1)))
-ssize_t page_find_index(page_table_t* ptr);
+ssize_t page_find_index(page_table_t* specific);
 
 [[nodiscard]] __attribute__((always_inline))
 inline page_table_t* page_alloc([[maybe_unused]] u32 tables) {
@@ -56,7 +59,7 @@ inline page_table_t* page_alloc([[maybe_unused]] u32 tables) {
 page_table_t* __page_alloc_locked(u32 tables);
 
 [[nodiscard]] __attribute__((nonnull(1), returns_nonnull))
-page_table_t* page_realloc(page_table_t* ptr, u32 tables, bool* reallocated);
+page_table_t* page_realloc(page_table_t* specific, u32 tables, bool* reallocated);
 
 
 //	functions below assumes that the vector is already locked by one of functions above
@@ -99,23 +102,23 @@ typedef struct page_heap_t {
 
 } page_heap_t;
 
-#define PAGE_TABLE_SIZE (sizeof(page_entry) * PAGE_COUNT)
+#define PAGE_TABLE_SIZE (sizeof(unsized_page_entry) * PAGE_COUNT)
 
 static page_heap_t page_heap;
 
-static void page_heap_init();
+static void table_heap_init();
 
-static bool page_heap_reserve_memory();
+static bool table_heap_reserve_memory();
 
 void page_heap_debug();
 
-void page_free(page_table_t* ptr);
-void __page_free_locked(page_table_t* ptr);
+void page_free(page_table_t* specific);
+void __page_free_locked(page_table_t* specific);
 
 [[nodiscard]] __attribute__((nonnull(1), returns_nonnull))
-page_heap_segment_t* page_find(page_table_t* ptr);
+page_heap_segment_t* page_find(page_table_t* specific);
 [[nodiscard]] __attribute__((nonnull(1)))
-ssize_t page_find_index(page_table_t* ptr);
+ssize_t page_find_index(page_table_t* specific);
 
 [[nodiscard]] __attribute__((always_inline))
 inline page_table_t* page_alloc(u32 tables);
@@ -124,7 +127,7 @@ inline page_table_t* page_alloc(u32 tables);
 page_table_t* __page_alloc_locked(u32 tables);
 
 [[nodiscard]] __attribute__((nonnull(1), returns_nonnull))
-page_table_t* page_realloc(page_table_t* ptr, u32 tables, bool* reallocated);
+page_table_t* page_realloc(page_table_t* specific, u32 tables, bool* reallocated);
 
 
 //	functions below assumes that the vector is already locked by one of functions above

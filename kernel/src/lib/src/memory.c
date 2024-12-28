@@ -12,6 +12,7 @@ void memory_init() {
 
 	size_t line = 0;
 	init_phase_status_line = &line;
+		//	in case of panic
 
 	if (vocality >= vocality_report_everything) {
 		endl();
@@ -49,14 +50,17 @@ void memory_init() {
 		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
 	}
 
+	heap_reserve_memory();
+		//	calls table_heap_reserve_memory
+
 	//	initialize paging
-	page_init();
+	paging_init();
 
 	//	initialize regular heap
 	heap_init();
 
 	//	initialize heap for page table allocations
-	page_heap_init();
+	table_heap_init();
 
 	//	parse memory map
 	memmap_parse();
@@ -68,6 +72,8 @@ void memory_init() {
 	gdt_init();
 
 	init_phase_status_line = null;
+
+	//	make all bl reclaimable entries usable
 
 	if (vocality >= vocality_report_everything) {
 		report_status("SUCCESS", line, col.green);
@@ -473,4 +479,10 @@ memmap_entry* memmap_find(enum memmap_types type) {
 		}
 	}
 	return null;
+}
+
+void memmap_ent_construct(memmap_entry* ent) {
+	ent->len = 0;
+	ent->base = 0;
+	ent->type = memmap_undefined;
 }

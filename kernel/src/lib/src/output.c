@@ -97,8 +97,8 @@ void printl(const char *s) {
 
 void printi(const i64 i) {
 	char num[INTLEN_I64];
-	to_stringi((char *) &num, i);
-	print((const char *) &num);
+	to_stringi((char*)&num, i);
+	print((const char*) &num);
 }
 
 void printu(const u64 u) {

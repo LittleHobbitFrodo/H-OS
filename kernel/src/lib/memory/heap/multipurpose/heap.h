@@ -12,7 +12,7 @@
 #include "./structures.h"
 
 //	in KB
-#define HEAP_GLOBAL_MINIMAL_SIZE 1024
+#define HEAP_GLOBAL_MINIMAL_SIZE 2048	//	2mb
 #define HEAP_MINIMAL_SIZE 256
 #define HEAP_INITIAL_BLOCK_SIZE 64
 
@@ -35,7 +35,7 @@ void multipurpose_free(allocator_t* alloc, void* ptr);
 
 
 //	lock alloc and pending
-void* multipurpose_foreign_alloc(allocator_t* alloc, heap_size_t bytes);
+/*void* multipurpose_foreign_alloc(allocator_t* alloc, heap_size_t bytes);
 void* multipurpose_foreign_realloc(allocator_t* alloc, void* ptr, heap_size_t bytes);
 void* multipurpose_foreign_realloca(allocator_t* alloc, void* ptr, heap_size_t bytes, heap_size_t add);
 inline void multipurpose_foreign_free(allocator_t* alloc, void* ptr) {
@@ -44,7 +44,7 @@ inline void multipurpose_foreign_free(allocator_t* alloc, void* ptr) {
 	heap_block* block = ((heap_block*)ptr - 1);
 	block->used = false;
 	heap_unlock(alloc);
-}
+}*/
 
 //[[maybe_unused]] static bool heap_map(allocator_t* alloc);
 
@@ -62,6 +62,9 @@ void _heap_divide(allocator_t* alloc, heap_block* block, heap_size_t bytes);
 void heap_debug(allocator_t* alloc);
 
 static void heap_init();
+static void heap_reserve_memory();
+	//	IMPORTANT:	calls table_heap_reserve_memory
+
 //static void heap_allocator_init(allocator_t* alloc);
 
 /*static void heap_init();
@@ -71,26 +74,26 @@ void heap_debug();
 bool heap_map(size_t physical, void** virt, size_t size, void** tableptr);
 
 __attribute__((always_inline, nonnull))
-inline void free(void* ptr) {
-	heap_segment_t* seg = (heap_segment_t*)((size_t)ptr - sizeof(heap_segment_t));
+inline void free(void* specific) {
+	heap_segment_t* seg = (heap_segment_t*)((size_t)specific - sizeof(heap_segment_t));
 	if ((size_t)heap.used_until > (size_t)seg) {
 		heap.used_until = seg;
 	}
 	seg->used = false;
 }
 
-__attribute__((always_inline, nonnull(1))) inline void align_free(void* ptr, size_t offset) {
-	free((void*)((size_t)ptr - offset));
+__attribute__((always_inline, nonnull(1))) inline void align_free(void* specific, size_t offset) {
+	free((void*)((size_t)specific - offset));
 }
 
 [[nodiscard]] void* alloc(size_t bytes) __attribute__((returns_nonnull));
 
-[[nodiscard]] void* realloc(void* ptr, size_t bytes) __attribute__((nonnull, returns_nonnull));
-[[nodiscard]] void* realloca(void* ptr, size_t bytes, size_t add) __attribute__((nonnull, returns_nonnull));
+[[nodiscard]] void* realloc(void* specific, size_t bytes) __attribute__((nonnull, returns_nonnull));
+[[nodiscard]] void* realloca(void* specific, size_t bytes, size_t add) __attribute__((nonnull, returns_nonnull));
 //	reserve more/less space if reallocation is needed
 
-__attribute__((always_inline, nonnull)) inline size_t heap_bsize(void* ptr) {
-	return ((heap_segment_t*)((size_t)ptr - sizeof(heap_segment_t)))->size;
+__attribute__((always_inline, nonnull)) inline size_t heap_bsize(void* specific) {
+	return ((heap_segment_t*)((size_t)specific - sizeof(heap_segment_t)))->size;
 }
 
 [[nodiscard]] void* heap_expand(size_t bytes) __attribute__((returns_nonnull));
@@ -105,12 +108,12 @@ heap_segment_t* heap_divide(heap_segment_t* seg, size_t size);
 [[nodiscard]] void* align_alloc(size_t bytes, size_t* align) __attribute__((nonnull(2), returns_nonnull));
 //	allocates aligned memory and create new block at the empty space
 
-[[nodiscard]] void* align_realloc(void* ptr, size_t* offset, size_t align, size_t bytes) __attribute__((nonnull(1, 2), returns_nonnull));
-[[nodiscard]] void* align_reallocf(void* ptr, size_t* offset, size_t align, size_t bytes, void (*on_realloc)(void*)) __attribute__((nonnull(1, 2), returns_nonnull));
+[[nodiscard]] void* align_realloc(void* specific, size_t* offset, size_t align, size_t bytes) __attribute__((nonnull(1, 2), returns_nonnull));
+[[nodiscard]] void* align_reallocf(void* specific, size_t* offset, size_t align, size_t bytes, void (*on_realloc)(void*)) __attribute__((nonnull(1, 2), returns_nonnull));
 //	if data is reallocated -> calls on_realloc and pass pointer to it
 
-[[nodiscard]] void* align_realloca(void* ptr, size_t* offset, size_t align, size_t bytes, size_t add) __attribute__((nonnull(1, 2), returns_nonnull));
-[[nodiscard]] void* align_reallocaf(void* ptr, size_t* offset, size_t align, size_t bytes, size_t add, void (*on_realloc)(void*)) __attribute__((nonnull(1, 2), returns_nonnull));
+[[nodiscard]] void* align_realloca(void* specific, size_t* offset, size_t align, size_t bytes, size_t add) __attribute__((nonnull(1, 2), returns_nonnull));
+[[nodiscard]] void* align_reallocaf(void* specific, size_t* offset, size_t align, size_t bytes, size_t add, void (*on_realloc)(void*)) __attribute__((nonnull(1, 2), returns_nonnull));
 //	if data is reallocated -> calls on_realloc and pass pointer to it
 
 [[nodiscard]] void* heap_align_enlarge(size_t bytes, size_t* align_) __attribute__((nonnull(2), returns_nonnull));

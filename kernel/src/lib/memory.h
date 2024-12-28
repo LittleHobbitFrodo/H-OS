@@ -43,8 +43,8 @@ static void memory_init();
 #define align(val, algn) (((val) + (algn) - 1) & ~((algn) - 1))
 
 /*__attribute__((always_inline))
-inline void *align(void *ptr, size_t align) {
-	return (void *) (((u64) ptr + align - 1) & ~(align - 1));
+inline void *align(void *specific, size_t align) {
+	return (void *) (((u64) specific + align - 1) & ~(align - 1));
 }*/
 
 static struct meminfo {
@@ -93,5 +93,6 @@ enum memmap_types memmap_entry_type(u64 constant);
 [[maybe_unused]] static void memmap_display();
 [[maybe_unused]] static void memmap_display_original();
 
+void memmap_ent_construct(memmap_entry* ent);
 
 //	memmap vector is declared in vector.h

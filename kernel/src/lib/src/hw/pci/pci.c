@@ -97,6 +97,9 @@ void pci_init() {
 		nvm_init();
 	}
 
+	pci.initialized = true;
+	pci.used = true;
+
 	if (vocality >= vocality_report_everything) {
 		report_status("SUCCESS", line, col.green);
 	}
@@ -105,12 +108,394 @@ void pci_init() {
 
 
 u32 pci_enumerate() {
-	return 0;
+
+	u32 count = 0;
+	pci_device_info_t info = {0};
+	const pci_device_info_t* device = null;
+
+	for (size_t i = 0; i < 256; i++) {
+		for (size_t ii = 0; ii < 8; ii++) {
+			for (size_t iii = 0; iii < 8; iii++) {
+				if (!pci_exists(i, ii, iii)) {
+					continue;
+				}
+
+				info = pci_read_info(i, ii, iii);
+
+				for (size_t iv = 0; iv < pci_supported_devices_count; iv++) {
+					device = &pci_supported_devices[iv];
+					if ((device->class != info.class) && (info.class != pci_device_info_any)) {
+						continue;
+					}
+					if ((device->subclass != info.subclass) && (info.subclass != pci_device_info_any)) {
+						continue;
+					}
+					if ((device->programming != info.programming) && (info.programming != pci_device_info_any)) {
+						continue;
+					}
+					//	device is supported
+					count++;
+				}
+			}
+		}
+	}
+
+	return count;
 }
+
+#define _pci_print(i, ii, iii) printu(i); print(" : "); printu(ii); print(" : "); printu(iii)
 
 void pci_scan() {
 
+	//	scans each bus and writes data into vector
+
+	pci_device_info_t info = {0};
+	const pci_device_info_t* supported_device = null;
+	size_t v = 0;		//	vector iterator
+	bool supported = false;
+
+	for (size_t i = 0; i < 256; i++) {
+		for (size_t ii = 0; ii < 8; ii++) {
+			for (size_t iii = 0; iii < 8; iii++) {
+				if (!pci_exists(i, ii, iii)) {
+					continue;
+				}
+
+				supported = false;
+				info = pci_read_info(i, ii, iii);
+
+				for (size_t iv = 0; iv < pci_supported_devices_count; iv++) {
+					supported_device = &pci_supported_devices[iv];
+					if ((supported_device->class != info.class) && (info.class != pci_device_info_any)) {
+						continue;
+					}
+					if ((supported_device->subclass != info.subclass) && (info.subclass != pci_device_info_any)) {
+						continue;
+					}
+					if ((supported_device->programming != info.programming) && (info.programming != pci_device_info_any)) {
+						continue;
+					}
+					//	supported_device is supported
+					supported = true;
+					break;
+				}
+				if (!supported) {
+					continue;
+				}
+
+				switch (info.class) {
+					case pci_device_class_mass_storage_controller: {
+						switch (info.subclass) {
+							case pci_mass_storage_serial_ata: {
+								switch (info.programming) {
+									case pci_serial_ata_ahci: {
+										printl("found AHCI");
+										ahci.used = true;
+										ahci.pci_address = pci_address_construct(i, ii, iii, 0, true);
+
+										device_t* device = &pci.devices.data[v];
+
+										disk_t* disk = device_init(device, device_type_disk);
+										disk->header.discovery.specific = heap.global.alloc(&heap.global, sizeof(pci_discovery_data));
+										disk->header.discovery.type = device_discovery_pci;
+										disk->header.discovery.allocated = true;
+
+										pci_discovery_data* data = disk->header.discovery.specific;
+										data->class = info.class;
+										data->subclass = info.subclass;
+										data->programming = info.programming;
+										data->address = pci_address_construct(i, ii, iii, 0, true);
+
+										disk->type = disk_type_ssd;
+										disk->header.connect.allocated = false;
+										disk->header.connect.type = device_connect_pci;
+										disk->header.connect.specific = disk->header.discovery.specific;
+
+										break;
+									}
+									default: {
+										printl("mass storage: SATA: unknown");
+										break;
+									}
+								}
+								break;
+							}
+							case pci_mass_storage_nvm_controller: {
+								switch (info.programming) {
+									case pci_nvm_controller_nvme: {
+										printl("found NVMe");
+										nvm.pci_address = pci_address_construct(i, ii, iii, 0, true);
+										nvm.used = true;
+
+										device_t* device = &pci.devices.data[v];
+										disk_t* disk = device_init(device, device_type_disk);
+										disk->type = disk_type_nvm;
+										disk->header.type = device_type_disk;
+
+										disk->header.discovery.type = device_discovery_pci;
+										disk->header.discovery.allocated = false;
+										disk->header.discovery.specific = heap.global.alloc(&heap.global, sizeof(pci_discovery_data));
+										pci_discovery_data* data = disk->header.discovery.specific;
+										data->address = pci_address_construct(i, ii, iii, 0, true);
+										data->class = info.class;
+										data->subclass = info.subclass;
+										data->programming = info.programming;
+
+										disk->header.connect.type = device_connect_pci;
+										disk->header.connect.allocated = false;
+										disk->header.connect.specific = disk->header.discovery.specific;
+
+										//	construct supported_device
+										break;
+									}
+									case pci_nvm_controller_nvmhci: {
+										printl("found NVMHCI (unsupported)");
+										break;
+									}
+									default: {
+										printl("mass storage: NVM: unknown");
+										break;
+									}
+								}
+								break;
+							}
+						}
+						break;
+					}
+					case pci_device_class_display_controller: {
+						switch (info.subclass) {
+							case 0x0: {		//	VGA compatible
+								printl("display controller");
+								break;
+							}
+							default: {
+								printl("display controller (unknown)");
+								break;
+							}
+						}
+						break;
+					}
+					case pci_device_class_processor: {
+						printl("processor");
+						break;
+					}
+					case pci_device_class_base_system_peripheral: {
+						switch (info.subclass) {
+							case pci_base_peripheral_pic: {
+								printl("PIC");
+								break;
+							}
+							case pci_base_peripheral_rtc_controller: {
+								printl("RTC");
+								break;
+							}
+							case pci_base_peripheral_timer: {
+								printl("timer");
+								break;
+							}
+						}
+						break;
+					}
+					default: {
+						printl("unknown");
+					}
+				}
+
+				v++;
+
+			}
+		}
+	}
+
 }
+
+/*switch (info.class) {
+					case pci_device_class_mass_storage_controller: {
+						switch (info.subclass) {
+							case pci_mass_storage_serial_ata: {
+								switch (info.programming) {
+									case pci_serial_ata_ahci: {
+										printl("found AHCI");
+										ahci.used = true;
+										ahci.pci_address = pci_address_construct(i, ii, iii, 0, true);
+
+										//	construct device
+										break;
+									}
+									default: {
+										printl("mass storage: SATA: unknown");
+										break;
+									}
+								}
+								break;
+							}
+							case pci_mass_storage_nvm_controller: {
+								switch (info.programming) {
+									case pci_nvm_controller_nvme: {
+										printl("found NVMe");
+										nvm.pci_address = pci_address_construct(i, ii, iii, 0, true);
+										nvm.used = true;
+
+										//	construct device
+										break;
+									}
+									case pci_nvm_controller_nvmhci: {
+										printl("found NVMHCI (unsupported)");
+										break;
+									}
+									default: {
+										printl("mass storage: NVM: unknown");
+										break;
+									}
+								}
+								break;
+							}
+						}
+						break;
+					}
+					case pci_device_class_display_controller: {
+						switch (info.subclass) {
+							case 0x0: {		//	VGA compatible
+								printl("display controller");
+								break;
+							}
+							default: {
+								printl("display controller (unknown)");
+								break;
+							}
+						}
+						break;
+					}
+					case pci_device_class_processor: {
+						printl("processor");
+						break;
+					}
+					case pci_device_class_base_system_peripheral: {
+						switch (info.subclass) {
+							case pci_base_peripheral_pic: {
+								printl("PIC");
+								break;
+							}
+							case pci_base_peripheral_rtc_controller: {
+								printl("RTC");
+								break;
+							}
+							case pci_base_peripheral_timer: {
+								printl("timer");
+								break;
+							}
+						}
+						break;
+					}
+					default: {
+						printl("unknown");
+					}
+				}*/
+
+
+/*void pci_scan_bus(u8 bus) {
+
+	for (size_t i = 0; i < 8; i++) {
+		for (size_t ii = 0; ii < 8; ii++) {
+			if (!pci_exists(bus, i , ii)) {
+				continue;
+			}
+			u8 class = pci_read_class(bus, i, ii);
+			u8 subclass = pci_read_subclass(bus, i, ii);
+			u8 programming = pci_read_programming(bus, i, ii);
+
+			switch (class) {
+				case pci_device_class_mass_storage_controller: {
+					print("\t\tstorage controller");
+
+					device_t* device = devices_push(1);		//	crashes here
+					printl("device pushed");
+					device->type = device_type_disk;
+					switch (subclass) {
+						case pci_mass_storage_serial_ata: {
+							switch (programming) {
+								case pci_serial_ata_ahci: {
+									printl("\t\tahci");
+									devices_pop(1);
+									ahci.pci_address = pci_address_construct(bus, i, ii, 0, 1);
+									ahci.used = true;
+									break;
+								}
+								case pci_serial_ata_vendor_specific: {
+									printl("\t\tvendor specific");
+									disk_t* disk = disks_push(1);
+									device->specific = (device_header_t*)disk;
+									disk->connect.type = device_connect_vendor_specific;
+									disk->discovery.type = device_discovery_pci;
+									disk->discovery.specific = heap.global.alloc(&heap.global, sizeof(pci_discovery_data));
+									printl("pushed");
+									pci_discovery_data* ddata = disk->discovery.specific;
+									ddata->address = pci_address_construct(bus, i, ii, 0, 1);
+									ddata->class = class;
+									ddata->subclass = subclass;
+									ddata->programming = programming;
+									u8* bist = (u8*)&ddata->test;
+									*bist = (pci_read(bus, i, ii, 3) >> 24) & 0xff;
+									printl("allocated");
+									break;
+								}
+								case pci_serial_ata_serial_storage_bus: {
+									printl("\t\tsata");
+									disk_t* disk = disks_push(1);
+									device->specific = (device_header_t*)disk;
+									disk->connect.type = device_connect_ata_bus;
+									break;
+								}
+								default: {
+									print("\t\tdefault: ");
+									disk_t* disk = disks_push(1);
+									printl("pushed");
+									device->specific = (device_header_t*)disk;
+									disk->connect.type = device_connect_unknown;
+									break;
+								}
+							}
+							break;
+						}
+						case pci_mass_storage_nvm_controller: {
+							print("\t\tNVME: ");
+							devices_pop(1);
+							printl("popped");
+							nvm.used = true;
+							nvm.pci_address = pci_address_construct(bus, i, ii, 0, true);
+							break;
+						}
+						default: {
+							print("\t\tdefault: ");
+							disk_t* disk = disks_push(1);
+							printl("pushed");
+							disk->connect.type = device_connect_unknown;
+							device->specific = (device_header_t*)disk;
+							break;
+						}
+					}
+					break;
+				}
+				case pci_device_class_display_controller: {
+					device_t* device = devices_push(1);
+					device->type = device_type_display_controller;
+					break;
+				}
+				case pci_device_class_processor: {
+					device_t* device = devices_push(1);
+					device->type = device_type_processor;
+					break;
+				}
+				case pci_device_class_base_system_peripheral: {
+					device_t* device = devices_push(1);
+					device->type = device_type_base_peripheral;
+					break;
+				}
+				default: break;
+			}
+		}
+	}
+}*/
 
 
 /*void pci_init() {
@@ -145,111 +530,6 @@ void pci_scan() {
 
 }
 
-
-
-void pci_scan_bus(u8 bus) {
-
-	for (size_t i = 0; i < 8; i++) {
-		for (size_t ii = 0; ii < 8; ii++) {
-			if (!pci_exists(bus, i , ii)) {
-				continue;
-			}
-			u8 class = pci_read_class(bus, i, ii);
-			u8 subclass = pci_read_subclass(bus, i, ii);
-			u8 programming = pci_read_programming(bus, i, ii);
-
-			switch (class) {
-				case pci_device_class_mass_storage_controller: {
-					print("\t\tstorage controller");
-
-					device_t* device = devices_push(1);		//	crashes here
-					printl("device pushed");
-					device->type = device_type_disk;
-					switch (subclass) {
-						case pci_mass_storage_serial_ata: {
-							switch (programming) {
-								case pci_serial_ata_ahci: {
-									printl("\t\tahci");
-									devices_pop(1);
-									ahci.pci_address = pci_address_construct(bus, i, ii, 0, 1);
-									ahci.used = true;
-									break;
-								}
-								case pci_serial_ata_vendor_specific: {
-									printl("\t\tvendor specific");
-									disk_t* disk = disks_push(1);
-									device->ptr = (device_header*)disk;
-									disk->connect.type = device_connect_vendor_specific;
-									disk->discovery.type = device_discovery_pci;
-									disk->discovery.ptr = heap.global.alloc(&heap.global, sizeof(pci_discovery_data));
-									printl("pushed");
-									pci_discovery_data* ddata = disk->discovery.ptr;
-									ddata->address = pci_address_construct(bus, i, ii, 0, 1);
-									ddata->class = class;
-									ddata->subclass = subclass;
-									ddata->programming = programming;
-									u8* bist = (u8*)&ddata->test;
-									*bist = (pci_read(bus, i, ii, 3) >> 24) & 0xff;
-									printl("allocated");
-									break;
-								}
-								case pci_serial_ata_serial_storage_bus: {
-									printl("\t\tsata");
-									disk_t* disk = disks_push(1);
-									device->ptr = (device_header*)disk;
-									disk->connect.type = device_connect_ata_bus;
-									break;
-								}
-								default: {
-									print("\t\tdefault: ");
-									disk_t* disk = disks_push(1);
-									printl("pushed");
-									device->ptr = (device_header*)disk;
-									disk->connect.type = device_connect_unknown;
-									break;
-								}
-							}
-							break;
-						}
-						case pci_mass_storage_nvm_controller: {
-							print("\t\tNVME: ");
-							devices_pop(1);
-							printl("popped");
-							nvm.used = true;
-							nvm.pci_address = pci_address_construct(bus, i, ii, 0, true);
-							break;
-						}
-						default: {
-							print("\t\tdefault: ");
-							disk_t* disk = disks_push(1);
-							printl("pushed");
-							disk->connect.type = device_connect_unknown;
-							device->ptr = (device_header*)disk;
-							break;
-						}
-					}
-					break;
-				}
-				case pci_device_class_display_controller: {
-					device_t* device = devices_push(1);
-					device->type = device_type_display_controller;
-					break;
-				}
-				case pci_device_class_processor: {
-					device_t* device = devices_push(1);
-					device->type = device_type_processor;
-					break;
-				}
-				case pci_device_class_base_system_peripheral: {
-					device_t* device = devices_push(1);
-					device->type = device_type_base_peripheral;
-					break;
-				}
-				default: break;
-			}
-		}
-	}
-}
 
 
 void pci_enumerate() {

@@ -9,7 +9,7 @@
 
 #include "../../k_management.h"
 
-void page_init() {
+void paging_init() {
 
 	size_t line = 0;
 
@@ -38,15 +38,6 @@ void page_init() {
 
 
 
-	//	read the pml4 physical address
-	asm volatile("mov %0, cr3" : "=r"(pages.pml4));
-	if (pages.pml4 == null) {
-		report("cannot retrieve paging table address\n", report_critical);
-		panic(panic_code_unable_to_allocate_paging_table);
-		__builtin_unreachable();
-	}
-
-
 
 
 	//	detect HHDM
@@ -58,13 +49,19 @@ void page_init() {
 	if (req_page_hhdm.response->revision != 0) {
 		report("unsupported revision for higher half direct map => it can cause unexpected behaviour\n", report_warning);
 	}
+
+
+	//	read the pml4 physical address
+	asm volatile("mov %0, cr3" : "=r"(pages.pml4));
+	if (pages.pml4 == null) {
+		report("cannot retrieve paging table address\n", report_critical);
+		panic(panic_code_unable_to_allocate_paging_table);
+		__builtin_unreachable();
+	}
 	pages.hhdm = req_page_hhdm.response->offset;
 	req_page_hhdm.response = null;
 	tmp = (u64*)&pages.pml4;
 	*tmp += pages.hhdm;
-
-
-
 
 
 	//	retrieve kernel address
@@ -78,18 +75,25 @@ void page_init() {
 
 
 
-
+	union virtual_address virt = {.u64 = 0};
+	virt.virtual_address.sign = 0xffff;
 
 	//	system pages
-	union virtual_union virt = {.u64 = 0};
-	virt.virtual_address.sign = 0xffff;
 	{
 		tmp = (u64*)&pages.system.pdpt.table;
-		u64* tmp2 = (u64*)&pages.system.quick.table;
+
+		//	system pdpt (global?)
+		union any_page_entry ape = {.unsized = {.present = true, .write = true, .exec_disable = true}};
 		for (size_t i = 0; i < PAGE_COUNT; i++) {
-			//tmp[i] = (tmp2[i] = 0b11 | ((u64)1 << 63));
-				//	present, write, exec disable
-			tmp[i] = (tmp2[i] = page_bit_present | page_bit_write | page_bit_exec_disable);
+			tmp[i] = ape.u64;
+		}
+
+		//	pages for quick mapping
+		tmp = (u64*)&pages.system.quick.table;
+		ape.u64 = 0;	//	clear all flags
+		ape.sized = (sized_page_entry){.present = true, .write = true, .exec_disable = true, .page_size = true};
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			tmp[i] = ape.u64;
 		}
 	}
 
@@ -128,67 +132,39 @@ void page_init() {
 	pages.system.quick.virtual = virt.voidptr;
 
 	{	//	connect pdpt to pml4
-		page_entry* ent = &((*pages.pml4)[virt.virtual_address.pml4]);
-		ent->address = pages.system.pdpt.physical >> PAGE_SHIFT;
+		unsized_page_entry* ent = &((*pages.pml4)[virt.virtual_address.pml4]);
+		unsized_page_set_address(*ent, pages.system.pdpt.physical);
 		ent->present = true;
 		ent->write = true;
 		ent->exec_disable = true;
 	}
 
 	{	//	connect quick to pdpt
-		page_entry* ent = &pages.system.pdpt.table[511];
-		ent->address = pages.system.quick.physical >> PAGE_SHIFT;
+		//	NOTE:	quick is sized
+		unsized_page_entry* ent = &pages.system.pdpt.table[511];
+		//ent->address = pages.system.quick.physical >> PAGE_SHIFT;
+		unsized_page_set_address(*ent, pages.system.quick.physical);
 		ent->present = true;
 		ent->write = true;
 		ent->exec_disable = true;
 	}
 
-		//	map quick to itself
-	pages.system.quick.table[0].address = pages.system.quick.physical >> PAGE_SHIFT;
-	virt.virtual_address.pt = 1;
-	pages.system.quick.virtual = virt.voidptr;
-
-	pages.system.quick.table[1].address = pages.system.quick.physical >> PAGE_SHIFT;
-
-	{	//	heap pages -> make them null
-			//	recursive
-		tmp = (u64*)&pages.system.heap.table;
+	{	//	heap pages (2mb) -> make them null
+		sized_page_entry ent = {.present = true, .write = true, .exec_disable = true, .page_size = true};
+		any_page_table* table = (any_page_table*)&pages.system.heap.table;
 		for (size_t i = 0; i < PAGE_COUNT; i++) {
-			tmp[i] = page_bit_present | page_bit_write | page_bit_exec_disable;
+			(*table)[i].sized = ent;
 		}
-		pages.system.heap.table[0].address = (size_t)((size_t)&pages.system.heap.table - (size_t)pages.kernel.virtual + pages.kernel.physical) >> PAGE_SHIFT;
+		pages.system.heap.physical = (size_t)&pages.system.heap.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
 
-		for (ssize_t i = 511; i >= 0; i--) {
-			//	find pdpt entry
+		for (ssize_t i = PAGE_COUNT-1; i >= 0; i--) {
+			//	find unused pdpt entry connect it to heap table and set heap virtual address
 			if (pages.system.pdpt.table[i].address == 0) {
-				pages.system.pdpt.table[i].address = pages.system.heap.table[0].address;
-				union virtual_union vu = {.voidptr = pages.system.pdpt.virtual};
-				vu.virtual_address.pdpt = i;
-				vu.virtual_address.pt = 1;
-				pages.system.heap.virtual = vu.voidptr;
-				break;
-			}
-		}
-	}
+				unsized_page_set_address(pages.system.pdpt.table[i], pages.system.heap.physical);
 
-	{	//	page heap pages
-		tmp = (u64*)&pages.system.page_heap.pd;
-		u64* tmp2 = (u64*)&pages.system.page_heap.pt;
-		for (size_t i = 0; i < PAGE_COUNT; i++) {
-			tmp[i] = (tmp2[i] = page_bit_present | page_bit_write | page_bit_exec_disable);
-		}
-
-		pages.system.page_heap.physical_pd = (size_t)((size_t)&pages.system.page_heap.pd - (size_t)pages.kernel.virtual + pages.kernel.physical);
-		pages.system.page_heap.physical_pt = (size_t)((size_t)&pages.system.page_heap.pt - (size_t)pages.kernel.virtual + pages.kernel.physical);
-		pages.system.page_heap.pd[0].address = pages.system.page_heap.physical_pt >> PAGE_SHIFT;
-
-		for (ssize_t i = 511; i >= 0; i--) {
-			//	find empty pdpt entry
-			if (pages.system.pdpt.table[i].address == 0) {
-				pages.system.pdpt.table[i].address = pages.system.page_heap.physical_pd >> PAGE_SHIFT;
-				union virtual_union vu = {.voidptr = pages.system.pdpt.virtual};
-				vu.virtual_address.pdpt = i;
-				pages.system.page_heap.virtual = vu.voidptr;
+				union virtual_address address = {.voidptr = pages.system.pdpt.virtual};
+				address.virtual_address.pdpt = i;
+				pages.system.heap.virtual = address.voidptr;
 				break;
 			}
 		}
@@ -202,7 +178,7 @@ void page_init() {
 
 
 void va_info(void* a) {
-	union virtual_union address = {.voidptr = a};
+	union virtual_address address = {.voidptr = a};
 	if (address.virtual_address.sign > 0) {
 		print("higherhalf address ");
 	} else {
@@ -222,11 +198,12 @@ void page_flush() {
 }
 
 
-void* physical(void* a) {
-	union virtual_union address = {.voidptr = a};
+void* physical([[maybe_unused]] void* a) {
+	return null;
+	/*union virtual_address_t address = {.voidptr = a};
 
-	//print("physical:\t"); printp(((union virtual_union)address).voidptr); endl();
-	page_entry ent = (*pages.pml4)[address.virtual_address.pml4];
+	//print("physical:\t"); printp(((union virtual_address_t)address).voidptr); endl();
+	unsized_page_entry ent = (*pages.pml4)[address.virtual_address_t.pml4];
 	if ((ent.present == false) || (ent.address == 0)) {
 		//printl("\t!present || address:\tpml4");
 		return null;
@@ -235,7 +212,7 @@ void* physical(void* a) {
 		return (void*)((size_t)ent.address << PAGE_SHIFT);
 	}
 
-	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address.pdpt];
+	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address_t.pdpt];
 	if ((ent.present == false) || (ent.address == 0)) {
 		//printl("\t!present || address:\tpdpt");
 		return null;
@@ -244,7 +221,7 @@ void* physical(void* a) {
 		return (void*)((size_t)ent.address << PAGE_SHIFT);
 	}
 
-	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address.pd];
+	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address_t.table];
 	if ((ent.present == false) || (ent.address == 0)) {
 		//printl("\t!present || address:\tpd");
 		return null;
@@ -253,31 +230,33 @@ void* physical(void* a) {
 		return (void*)((size_t)ent.address << PAGE_SHIFT);
 	}
 
-	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address.pt];
+	ent = (*((page_table_t*)((size_t)ent.address << PAGE_SHIFT)))[address.virtual_address_t.pt];
 	if ((ent.present == false) || (ent.address == 0)) {
 		//printl("\t!present || address:\tpt");
 		return null;
 	}
 	//printl("\tvalid");
-	return (void*)(((size_t)ent.address << PAGE_SHIFT) | address.virtual_address.offset);
+	return (void*)(((size_t)ent.address << PAGE_SHIFT) | address.virtual_address_t.offset);*/
 }
 
 
-void* page_quick_map(void* physical, page_entry** ent) {
+void* page_quick_map(size_t physical, sized_page_entry** ent) {
 	for (size_t i = 0; i < PAGE_COUNT; i++) {
 		if (pages.system.quick.table[i].address == 0) {
-			pages.system.quick.table[i].address = (size_t)physical >> PAGE_SHIFT;
+			print("quick map: found empty page at "); printu(i); endl();
+			sized_page_set_address(pages.system.quick.table[i], physical);
 			*ent = &pages.system.quick.table[i];
 
-			union virtual_union ret = {.voidptr = pages.system.quick.virtual};
-			ret.virtual_address.pt = i;
-			return ret.voidptr;
+			union virtual_address address = {.voidptr = pages.system.quick.virtual};
+			address.virtual_address.pd = i;
+			print("address:\t"); printp(address.voidptr); endl();
+			return address.voidptr;
 		}
 	}
 	return null;
 }
 
-page_entry* page_find_empty_pdpt() {
+unsized_page_entry* page_find_empty_pdpt() {
 	for (size_t i = 0; i < PAGE_COUNT; i++) {
 		if (pages.system.pdpt.table[i].address == 0) {
 			return &pages.system.pdpt.table[i];

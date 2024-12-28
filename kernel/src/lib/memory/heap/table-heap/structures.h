@@ -1,25 +1,45 @@
 //
-//	memory/heap/page-heap/structures.h
+//	memory/heap/table-heap/structures.h
 //		part of the CORE kernel belonging to the H-OS project
 //
 
-
-
-//	each page heap uses one page (4kb) as header
-	//	all pointers to tables are stored here
-//	each page heap is exactly 2mb wide
-	//	first table as header
-	//	last table is for allocation of another page heap
-	//	other 254 tables are for allocations
-//	header:
-	//	page_ptr entries are put on address where they would be if all allocations were 1 table
+//	each allocator is 2mb in size (uses one sized page entry)
 
 #pragma once
 #include "../../../integers.h"
-#include "../../../vector/volatile-vector.h"
 
 typedef struct page_ptr {
-	page_table_t* table;
+	//	4 bytes in size (the smaller the better)
+	u32 index:		9;		//	table index in the allocator
+	u32 count:		9;		//	table count
+	u32 used:		1;
+	u32 _reserved:	13;
+} __attribute__((packed)) page_ptr;
+
+typedef any_page_table page_heap_t[512] __attribute__((aligned(0x200000)));		//	exactly 2mb of memory, aligned to 2mb
+
+typedef struct table_allocator_t {
+
+	//	this structure is fokun huge wt
+
+	page_heap_t* data;
+	u64 bitmap[64];	//	each bit for each table used/free
+		//	if multiple tables allocated (bit for each table is marked as used too)
+	struct page_ptr ptr[512];
+
+	heap_metadata meta;		//	metadata for *data
+
+	struct table_allocator_t* next;
+
+} table_allocator_t;
+
+
+
+
+
+
+/*typedef struct page_ptr {
+	u64* table;
 	u8 count;		//	table count (heap contains max 256 tables)
 	u8 used;
 } page_ptr;
@@ -47,11 +67,11 @@ vector_with_different_allocator_type(page_heaps, page_heap, page_heap_vec_t, pag
 typedef struct page_allocator_t {
 	page_heap_vec_t heaps;
 
-	page_table_t* (*alloc)(struct page_allocator_t* alloc, size_t physical, u32 count);
-	//page_table_t* (*realloc)(page_table_t* ptr, u32 size);
-	void (*free)(struct page_allocator_t* alloc, page_table_t* table);
+	u64* (*alloc)(struct page_allocator_t* alloc, size_t physical, u32 count);
+	//page_table_t* (*realloc)(page_table_t* specific, u32 size);
+	void (*free)(struct page_allocator_t* alloc, u64* table);
 
-} page_allocator_t;
+} page_allocator_t;*/
 
 //void page_allocator_init(page_allocator_t* self);
 
