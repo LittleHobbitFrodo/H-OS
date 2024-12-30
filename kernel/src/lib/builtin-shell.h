@@ -292,7 +292,7 @@ void shell() {
 			__builtin_unreachable();
 		} else if (str_cmpb(str, "heap")) {		//	heap
 			if ((tokens.len > 1) && (str_cmpb(&str[1], "page"))) {
-				page_heap_debug();
+				table_heap_debug(&pages.heap.global);
 			} else {
 				heap_debug(&heap.global);
 			}

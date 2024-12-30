@@ -9,7 +9,9 @@
 void gdt_init() {
 	//	flat memory model:	base must be 0, limit is ignored
 
-	memset(&gdt, sizeof(gdt), 0);
+	tss_init();
+
+	memnull(&gdt, sizeof(gdt));
 
 	gdt.kernel_code.flags = (gdt.user_code.flags = 0xA0);
 	gdt.kernel_data.flags = (gdt.user_data.flags = 0xA0);

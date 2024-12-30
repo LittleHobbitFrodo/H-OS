@@ -288,13 +288,7 @@ void parse_cmd() {
 		} else if (strcmpb(token, "kaslr")) {
 
 			i += __parse_cmd_next_token(cmd, len, token, i);
-
-			if (strcmpb(token, "enable")) {
-				kaslr = true;
-				if (vocality >= vocality_report_everything) {
-					report("enabling kernel address space randomization\n", report_note);
-				}
-			} else if (strcmpb(token, "disable")) {
+			if (strcmpb(token, "disable")) {
 				if (vocality >= vocality_report_everything) {
 					report("disabling kernel address space randomization\n", report_note);
 				}
@@ -306,77 +300,4 @@ void parse_cmd() {
 		}
 
 	}
-
-
-	return;
-
-	/*struct limine_file *file = req_kernel_file.response->kernel_file;
-	if (file == null) {
-		report("kernel file (provided by bootloader) is NULL => no parameters taken\n", report_problem);
-		return;
-	}
-	const char *cmd_ = file->cmdline;
-	if (file->cmdline == null) {
-		report("no command line arguments given\n", report_note);
-		return;
-	}
-
-	//	tokenize cmd
-	strvec_t tokens_;	//	strings
-	strvec_construct(&tokens_, 0, &heap.global);
-	str_tokenize(cmd_, &tokens_);
-
-	string *s = tokens_.data;
-
-	for (size_t i = 0; i < tokens_.len; i++) {
-		if (str_cmpb(&s[i], "-vocality")) {
-			if (++i < tokens_.len) {
-				if (unlikely(str_cmpb(&s[0], "stfu"))) {
-					vocality = vocality_stfu;
-				} else if (unlikely(str_cmpb(&s[i], "quiet-please"))) {
-					vocality = vocality_quiet_please;
-				} else if (unlikely(str_cmpb(&s[i], "normal"))) {
-					vocality = vocality_normal;
-				} else if (unlikely(str_cmpb(&s[i], "vocal"))) {
-					vocality = vocal;
-				} else if (unlikely(str_cmpb(&s[i], "report-everything"))) {
-					vocality = vocality_report_everything;
-					report("setting kernel vocality to \'report-everything\'\n", report_note);
-				} else {
-					__parse_cmd_report("unknown word \'", report_problem);
-					prints(&s[i]);
-					printl("\' for \'-vocality\' switch, setting default vocality to \'normal\'");
-				}
-			} else {
-				__parse_cmd_out_of_bounds(&s[i - 1]);
-			}
-		} else if (str_cmpb(&s[i], "-kaslr")) {
-			if (++i < tokens_.len) {
-				if (likely(str_cmpb(&s[i], "enable"))) {
-					if (vocality >= vocality_vocal) {
-						report("enabling KASLR\n", report_note);
-					}
-					kaslr = true;
-				} else if (unlikely(str_cmpb(&s[i], "disable"))) {
-					if (vocality >= vocality_vocal) {
-						report("disabling KASLR\n", report_note);
-					}
-					kaslr = false;
-				} else {
-					__parse_cmd_report("expected \'enable\' or \'disable\' for \'", report_problem);
-					prints(&s[i]);
-					printl("\', skipping");
-				}
-			} else {
-				__parse_cmd_out_of_bounds(&s[i - 1]);
-			}
-		} else {
-			__parse_cmd_report("unknown word \'", report_problem);
-			prints(&s[i]);
-			printl("\', skipping");
-		}
-	}
-
-	//	free vector memory
-	strvec_destruct(&tokens_);*/
 }

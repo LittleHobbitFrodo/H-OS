@@ -17,35 +17,11 @@ static struct base {
 } base;
 
 
-extern void* kernel_stack_ptr;
-
-static u8 KERNEL_STACK[32*KB] = {0};
-
-static u8 INTERRUPT_STACK[(8*7)*KB] = {0};
-
-void* kernel_stack_ptr = KERNEL_STACK;
-
-
-static bool kaslr = false;
-//	enable/disable kaslr
-//		enabled: places kernel stack and heap to "quick" place
-//		disabled: always places stack and heap to the same location
-
-typedef struct stack_holder {
-	void* kernel;
-	void* interrupt[7];
-} stack_holder;
-
-static stack_holder stack;
+static u8 stack[7][8*KB];
 
 static void memory_init();
 
 #define align(val, algn) (((val) + (algn) - 1) & ~((algn) - 1))
-
-/*__attribute__((always_inline))
-inline void *align(void *specific, size_t align) {
-	return (void *) (((u64) specific + align - 1) & ~(align - 1));
-}*/
 
 static struct meminfo {
 	size_t total;
@@ -81,8 +57,6 @@ typedef struct memmap_entry {
 
 static void memmap_parse();
 
-//static void memmap_reclaim();
-
 [[maybe_unused]] static void memmap_analyze();
 
 [[maybe_unused]] static memmap_entry* memmap_find(enum memmap_types type);
@@ -94,5 +68,3 @@ enum memmap_types memmap_entry_type(u64 constant);
 [[maybe_unused]] static void memmap_display_original();
 
 void memmap_ent_construct(memmap_entry* ent);
-
-//	memmap vector is declared in vector.h

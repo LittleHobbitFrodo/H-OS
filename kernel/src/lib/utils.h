@@ -129,7 +129,7 @@ void wait(size_t milli);
 
 void memcpy_reverse(void* src, void* dest, size_t size);
 
-#define PRE_INTERRUPT_READ_DELAY for (size_t i = 0; i < MAX_I32/32; i++) {iowait();}
+#define PRE_INTERRUPT_READ_DELAY for (size_t y = 0; y < MAX_I32/32; y++) {iowait();}
 	//	short delay (in seconds) for user to read from display
 	//	DEBUG/TEST ONLY
 

@@ -78,6 +78,25 @@ void output_init() {
 	output.space_between_lines = SPACE_BETWEEN_LINES_DEFAULT;
 	output.fb = 0;
 	output.color = col.white;
+
+	switch (font.size) {
+		case 8: default: {
+			printc = _printc_8;
+			break;
+		}
+		case 16: {
+			printc = _printc_16;
+			break;
+		}
+		case 32: {
+			printc = _printc_32;
+			break;
+		}
+		case 64: {
+			printc = _printc_64;
+			break;
+		}
+	}
 }
 
 
@@ -132,5 +151,164 @@ void printb(size_t bin) {
 void printn(const char* str, size_t n) {
 	for (size_t i = 0; i < n; i++) {
 		printc(str[i]);
+	}
+}
+
+
+void _printc_8(const char c) {
+	if ((c < ' ') && (c != '\t') && (c != '\n')) {
+		return;
+	}
+	switch (c) {
+		case '\n': {
+			endl();
+			break;
+		}
+		case ' ': {
+			output.column++;
+			if (output.column >= screen.w) {
+				endl();
+			}
+			break;
+		}
+		case '\t': {
+			tab();
+			break;
+		}
+		default: {
+			u8 actual = c - FONT_PLACE_SUB;
+			u32 *ptr = screen.address + ((output.line * screen.w * (8 + output.space_between_lines))) + (output.column * 8);
+			u8 *fnt;
+			for (u16 i = 0; i < 8; i++) {
+				fnt = font.table[actual];
+				for (u16 ii = 0; ii < 8; ii++) {
+					*(ptr + (i * screen.w) + (8 - ii)) = output.color * ((fnt[i] >> ii) & 1);
+				}
+			}
+
+			output.column++;
+			if ((output.column * 8) >= screen.w) {
+				endl();
+			}
+		}
+	}
+}
+
+
+void _printc_16(const char c) {
+	if ((c < ' ') && (c != '\t') && (c != '\n')) {
+		return;
+	}
+	switch (c) {
+		case '\n': {
+			endl();
+			break;
+		}
+		case ' ': {
+			output.column++;
+			if (output.column >= screen.w) {
+				endl();
+			}
+			break;
+		}
+		case '\t': {
+			tab();
+			break;
+		}
+		default: {
+			u8 actual = c - FONT_PLACE_SUB;
+			u32 *ptr = screen.address + ((output.line * screen.w * (16 + output.space_between_lines))) + (output.column * 16);
+			u16 *fnt;
+			for (u16 i = 0; i < 16; i++) {
+				fnt = font.table[actual];
+				for (u16 ii = 0; ii < 16; ii++) {
+					*(ptr + (i * screen.w) + (16 - ii)) = output.color * ((fnt[i] >> ii) & 1);
+				}
+			}
+
+			output.column++;
+			if ((output.column * 16) >= screen.w) {
+				endl();
+			}
+		}
+	}
+}
+
+void _printc_32(const char c) {
+	if ((c < ' ') && (c != '\t') && (c != '\n')) {
+		return;
+	}
+	switch (c) {
+		case '\n': {
+			endl();
+			break;
+		}
+		case ' ': {
+			output.column++;
+			if (output.column >= screen.w) {
+				endl();
+			}
+			break;
+		}
+		case '\t': {
+			tab();
+			break;
+		}
+		default: {
+			u8 actual = c - FONT_PLACE_SUB;
+			u32 *ptr = screen.address + ((output.line * screen.w * (32 + output.space_between_lines))) + (output.column * 32);
+
+			u32 *fnt;
+			for (u16 i = 0; i < 32; i++) {
+				fnt = font.table[actual];
+				for (u16 ii = 0; ii < 32; ii++) {
+					*(ptr + (i * screen.w) + (32 - ii)) = output.color * ((fnt[i] >> ii) & 1);
+				}
+			}
+
+			output.column++;
+			if ((output.column * 32) >= screen.w) {
+				endl();
+			}
+		}
+	}
+}
+
+void _printc_64(const char c) {
+	if ((c < ' ') && (c != '\t') && (c != '\n')) {
+		return;
+	}
+	switch (c) {
+		case '\n': {
+			endl();
+			break;
+		}
+		case ' ': {
+			output.column++;
+			if (output.column >= screen.w) {
+				endl();
+			}
+			break;
+		}
+		case '\t': {
+			tab();
+			break;
+		}
+		default: {
+			u8 actual = c - FONT_PLACE_SUB;
+			u32 *ptr = screen.address + ((output.line * screen.w * (64 + output.space_between_lines))) + (output.column * 64);
+			u64 *fnt;
+			for (u16 i = 0; i < 64; i++) {
+				fnt = font.table[actual];
+				for (u16 ii = 0; ii < 64; ii++) {
+					*(ptr + (i * screen.w) + (64 - ii)) = output.color * ((fnt[i] >> ii) & 1);
+				}
+			}
+
+			output.column++;
+			if ((output.column * 64) >= screen.w) {
+				endl();
+			}
+		}
 	}
 }

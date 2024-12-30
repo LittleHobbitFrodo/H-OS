@@ -1,6 +1,6 @@
 ## Important
 
-- [ ] make memmap_parse know about heaps (if they are not directly at the beginning of the entry)
+- [X] memmap_parse redo => unaligned heaps (multiple in one entry)
 
 - [x] create TODO file
 - [X] fix paging (again) (again)
@@ -12,8 +12,6 @@
 
 - [ ] write driver for NVME
 
-- [ ] heap redo: atomic, non-linear address space
-- [ ] TODO:	redo PCI init
   - static vector disks should be diskptr_vector
 - [ ] implement limine device tree blob feature
   - update limine

@@ -201,7 +201,7 @@ typedef struct pages_t {
 			size_t physical;
 			__attribute__((aligned(4096))) sized_page_table table;
 			//	other page tables will be allocated in page heap
-		} page_heap;
+		} table_heap;
 
 
 	} system;

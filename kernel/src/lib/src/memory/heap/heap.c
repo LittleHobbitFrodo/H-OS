@@ -10,6 +10,7 @@
 
 void heap_reserve_memory() {
 	//	finds place for global allocator
+	//	IMPORTANT:	paging must be initialized
 
 
 	table_heap_reserve_memory();
@@ -22,7 +23,7 @@ void heap_reserve_memory() {
 
 
 	{	//	check if there is enough space right next to page heap
-		const heap_metadata* const meta = &pages.heap.global.meta;
+		const heap_metadata* const meta = &pages.heap.global.data->meta;
 
 		for (size_t i = 0; i < mlen; i++) {
 			ent = req_memmap.response->entries[i];
@@ -242,10 +243,8 @@ void _heap_connect(allocator_t* alloc, heap_block* beg, heap_block* fin) {
 
 void _heap_divide(allocator_t* alloc, heap_block* block, heap_size_t bytes) {
 	if (block->next == null) {
-		printl("\t\t\t\tdivide: last");
 		block->size = align(bytes, 8);
 	} else {
-		print("\t\t\t\tdivide: not last: size("); printu(block->size); print(") bytes("); printu(bytes); print(") block("); printp(block); printl(")");
 		bytes = align(bytes, 8);
 		heap_block* new = (void*)align((size_t)block + sizeof(heap_block) + bytes, 8);
 		new->next = block->next;

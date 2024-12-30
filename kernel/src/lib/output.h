@@ -100,79 +100,9 @@ void printb(size_t bin);
 
 void printn(const char* str, size_t n);
 
+void _printc_8(const char c);
+void _printc_16(const char c);
+void _printc_32(const char c);
+void _printc_64(const char c);
 
-__attribute__((target("general-regs-only"))) static inline void printc(const char c) {
-	if (((c >= ' ') && (c <= '~')) || ((c == '\t') || (c == '\n'))) {
-		switch (c) {
-			case '\n': {
-				endl();
-				break;
-			}
-			case ' ': {
-				output.column++;
-				if (output.column >= screen.w) {
-					endl();
-				}
-				break;
-			}
-			case '\t': {
-				tab();
-				break;
-			}
-			default: {
-				u8 actual = c * (c > FONT_PLACE_SUB) - (FONT_PLACE_SUB * (c > FONT_PLACE_SUB));
-				u32 *ptr = screen.address + ((output.line * screen.w * (font.size + output.space_between_lines))) + (output.column * font.size);
-
-				switch (font.size) {
-					case 8: {
-						u8 *fnt;
-						for (u16 i = 0; i < font.size; i++) {
-							fnt = font.table[actual];
-							for (u16 ii = 0; ii < font.size; ii++) {
-								*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
-							}
-						}
-						break;
-					}
-					case 16: {
-						u16 *fnt;
-						for (u16 i = 0; i < font.size; i++) {
-							fnt = font.table[actual];
-							for (u16 ii = 0; ii < font.size; ii++) {
-								*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
-							}
-						}
-						break;
-					}
-					case 32: {
-						u32 *fnt;
-						for (u16 i = 0; i < font.size; i++) {
-							fnt = font.table[actual];
-							for (u16 ii = 0; ii < font.size; ii++) {
-								*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
-							}
-						}
-						break;
-					}
-					case 64: {
-						u64 *fnt;
-						for (u16 i = 0; i < font.size; i++) {
-							fnt = font.table[actual];
-							for (u16 ii = 0; ii < font.size; ii++) {
-								*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
-							}
-						}
-						break;
-					}
-					default: break;
-				}
-
-
-				output.column++;
-				if ((output.column * font.size) >= screen.w) {
-					endl();
-				}
-			}
-		}
-	}
-}
+static void (*printc)(const char) __attribute__((nonnull)) = _printc_8;

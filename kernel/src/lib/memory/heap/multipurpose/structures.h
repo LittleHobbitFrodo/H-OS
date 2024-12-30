@@ -33,6 +33,8 @@ typedef struct heap_metadata {
 
 	void* allocator;
 
+	void* next;		//	pointer to next heap
+
 } heap_metadata;
 
 typedef struct heap_block {

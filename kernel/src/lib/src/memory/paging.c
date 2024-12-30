@@ -149,11 +149,11 @@ void paging_init() {
 		ent->exec_disable = true;
 	}
 
+	sized_page_entry ent = {.present = true, .write = true, .exec_disable = true, .page_size = true};
 	{	//	heap pages (2mb) -> make them null
-		sized_page_entry ent = {.present = true, .write = true, .exec_disable = true, .page_size = true};
-		any_page_table* table = (any_page_table*)&pages.system.heap.table;
+		sized_page_table* table = (sized_page_table*)&pages.system.heap.table;
 		for (size_t i = 0; i < PAGE_COUNT; i++) {
-			(*table)[i].sized = ent;
+			(*table)[i] = ent;
 		}
 		pages.system.heap.physical = (size_t)&pages.system.heap.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
 
@@ -168,6 +168,27 @@ void paging_init() {
 				break;
 			}
 		}
+	}
+
+	{	//	table heap (2mb)
+		sized_page_table* table = &pages.system.table_heap.table;
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			(*table)[i] = ent;
+		}
+		pages.system.table_heap.physical = (size_t)&pages.system.table_heap.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
+
+		for (ssize_t i = PAGE_COUNT-1; i >= 0; i--) {
+			//	find unused pdpt entry and connect it
+			if (pages.system.pdpt.table[i].address == 0) {
+				unsized_page_set_address(pages.system.pdpt.table[i], pages.system.table_heap.physical);
+
+				union virtual_address address = {.voidptr = pages.system.pdpt.virtual};
+				address.virtual_address.pdpt = i;
+				pages.system.table_heap.virtual = address.voidptr;
+				break;
+			}
+		}
+
 	}
 
 	if (vocality >= vocality_report_everything) {
