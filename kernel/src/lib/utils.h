@@ -139,3 +139,58 @@ static inline void to_be_optimized([[maybe_unused]] void* a) {}
 		//	yes it is actually used
 
 #define comptime_known(var) __builtin_constant_p(var)
+
+inline u64 set_bits(u8 count) {
+	u64 ret = 0;
+	for (u8 i = 0; i < count; i++) {
+		ret |= 1 << i;
+	}
+	return ret;
+}
+
+inline u64 set_bits_at(u8 offset, u8 bits) {
+	u64 ret = 0;
+	bits += offset;
+	for (; offset < bits; offset++) {
+		ret |= 1 << offset;
+	}
+	return ret;
+}
+
+inline void bitmap_clear(u64* map, size_t start, size_t bits) {
+	const size_t index = start/64;
+	const size_t offset = start - (index*64);
+	const size_t tmp = ((start + bits) % 64);
+
+	if (tmp < bits) {
+		//	two qwords
+		u64 mask = ~set_bits_at(offset, bits);
+		map[index] &= mask;
+
+		mask = ~set_bits(tmp);
+		map[index] &= mask;
+	} else {
+		//	one qword case
+		map[index] &= ~set_bits_at(offset, bits);
+	}
+}
+
+inline void bitmap_set(u64* map, size_t start, size_t bits) {
+	const size_t index = start/64;
+	const size_t offset = start - (index*64);
+	const size_t tmp = ((start + bits) % 64);
+
+	if (tmp < bits) {
+		//	two qwords
+		u64 mask = set_bits_at(offset, bits);
+		map[index] |= mask;
+
+		mask = set_bits(tmp);
+		map[index] |= mask;
+	} else {
+		//	one qword case
+		map[index] |= set_bits_at(offset, bits);
+	}
+}
+
+ssize_t bitmap_find_cleared(const u64* bitmap, size_t size, size_t n);

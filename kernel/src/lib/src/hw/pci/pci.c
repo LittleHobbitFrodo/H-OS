@@ -85,7 +85,7 @@ void pci_init() {
 	}
 
 	//	build readonly vector for PCI devices
-	devices_build(&pci.devices, &heap.global, count);
+	devices_alloc(&pci.devices, &heap.global, count);
 
 	pci_scan();
 

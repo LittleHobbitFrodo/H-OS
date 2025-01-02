@@ -4,7 +4,8 @@
 //
 
 
-//	NOTE: do NOT include in include.h
+//	IMPORTANT: do NOT include in include.h
+	//	is included in paging.h
 
 //	heap implementation dedicated for page table management
 //	works with aligned data with fixed sizes
@@ -17,6 +18,7 @@
 #include "../../../integers.h"
 #include "../multipurpose/heap.h"
 
+#define TABLE_HEAP_TABLE_COUNT 511
 
 static void table_heap_reserve_memory();
 
@@ -24,7 +26,7 @@ any_page_table* table_alloc(table_allocator_t* alloc, u16 count);
 
 void table_free(table_allocator_t* alloc, any_page_table* table);
 
-bool table_shrink(table_allocator_t* alloc, any_page_table* table, u16 count);
+void table_shrink(table_allocator_t* alloc, any_page_table* table, u16 count);
 
-void table_heap_debug(table_allocator_t* alloc);
+void table_heap_debug(const table_allocator_t* alloc);
 

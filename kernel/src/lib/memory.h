@@ -21,7 +21,7 @@ static u8 stack[7][8*KB];
 
 static void memory_init();
 
-#define align(val, algn) (((val) + (algn) - 1) & ~((algn) - 1))
+#define align(val, algn) (((size_t)(val) + (algn) - 1) & ~((algn) - 1))
 
 static struct meminfo {
 	size_t total;

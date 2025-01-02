@@ -80,7 +80,7 @@ void memmap_parse() {
 
 	memmap_display_original();
 
-	u32 count = 0;
+	u32 v = 0;		//	vector iterator
 	struct limine_memmap_entry *ent = null;
 	u64 last_type = MAX_U64;
 	size_t original_size = req_memmap.response->entry_count;
@@ -93,7 +93,7 @@ void memmap_parse() {
 		}
 	}
 
-	//	calculate entry count
+	//	calculate entry count of the new vector
 	for (size_t i = 0; i < original_size; i++) {
 		ent = req_memmap.response->entries[i];
 		last_type = ent->type;
@@ -104,46 +104,40 @@ void memmap_parse() {
 			}
 			ent = req_memmap.response->entries[i];
 		}
-
-		count++,i--;
-
+		v++,i--;
 	}
+	v += 2;		//	include heaps
 
-	count += 2;		//	heaps
-
-	memmap_build(&memmap, &heap.global, count);
-	count = 0;		//	used as iterator for new memmap
+	memmap_alloc(&memmap, &heap.global, v);
+	v = 0;		//	used as iterator for new memmap
 	u8 tmp;
+
 
 	//	fill base address and type fields
 		//	each entry base may not be perfectly aligned with previous entry length, so length field is skipped yet
 		//	if heaps are right next to each other they will be in one heap entry
-
-	for (size_t i = 0; i < original_size; count++,i++) {
+	for (size_t i = 0; i < original_size; v++,i++) {
+		//	i iterates the original memmap
 		ent = req_memmap.response->entries[i];
 		last_type = ent->type;
 
 		tmp = (ent->base <= heap.global.meta.physical.start) && (ent->base + ent->length >= heap.global.meta.physical.end);
 		tmp |= (((ent->base <= pages.heap.global.data->meta.physical.start) && (ent->base + ent->length >= pages.heap.global.data->meta.physical.end)) << 1);
 
-		if (tmp != 0) {
-			printl("found heap at "); printu(i+1); print("\ttype:\t");
-		}
-
+		//	check if any heap is in current entry
 		switch (tmp) {
 			case 0: default: {
 				break;
 			}
 			case 0b1: {		//	multipurpose heap only
-				printl("multipurpose only");
 
-				memmap_entry* m = &memmap.data[count];
+				memmap_entry* m = &memmap.data[v];
 				m->base = ent->base;
 				if (ent->base == heap.global.meta.physical.start) {
 					//	heap entry
 					m->type = memmap_heap;
 					m->len = heap.global.meta.size;
-					++count, ++m;
+					++v, ++m;
 
 					//	rest of usable entry
 					m->base = heap.global.meta.physical.end;
@@ -155,13 +149,13 @@ void memmap_parse() {
 					m->len = heap.global.meta.physical.start - ent->base;
 
 					//	the actual heap entry
-					++count, ++m;
+					++v, ++m;
 					m->base = heap.global.meta.physical.start;
 					m->len = heap.global.meta.size;
 					m->type = memmap_heap;
 
 					//	rest of the entry
-					++count, ++m;
+					++v, ++m;
 					m->base = heap.global.meta.physical.end;
 					m->type = memmap_usable;
 					m->len = ent->base + ent->length - m->base;
@@ -169,16 +163,15 @@ void memmap_parse() {
 				continue;	//	for loop
 			}
 			case 0b10: {	//	table heap only
-				printl("table only");
 
-				memmap_entry* m = &memmap.data[count];
+				memmap_entry* m = &memmap.data[v];
 
 				m->base = ent->base;
 				if (pages.heap.global.data->meta.physical.start == ent->base) {
 					//	heap entry
 					m->type = memmap_heap;
 					m->len = pages.heap.global.data->meta.size;
-					++count,++m;
+					++v,++m;
 
 					//	rest of the entry
 					m->base = pages.heap.global.data->meta.physical.end;
@@ -188,13 +181,13 @@ void memmap_parse() {
 					//	start of the entry
 					m->type = memmap_usable;
 					m->len = pages.heap.global.data->meta.physical.start - ent->base;
-					++count,++m;
+					++v,++m;
 
 					//	the actual heap entry
 					m->type = memmap_heap;
 					m->len = pages.heap.global.data->meta.size;
 					m->base = pages.heap.global.data->meta.physical.start;
-					++count, ++m;
+					++v, ++m;
 
 					//	rest of the entry
 					m->base = pages.heap.global.data->meta.physical.start;
@@ -205,36 +198,33 @@ void memmap_parse() {
 				continue;	//	for loop
 			}
 			case 0b11: {
-				print("both:\t");
 				//	both in one entry (linear)
 					//	page heap is first and multipurpose heap is right next to it
-				memmap_entry* m = &memmap.data[count];
+				memmap_entry* m = &memmap.data[v];
 				m->base = ent->base;
 
 				if (ent->base == pages.heap.global.data->meta.physical.start) {
-					printl("aligned");
 					//	heap entry
 					const memmap_entry* h = m;
 					m->type = memmap_heap;
 					m->len = pages.heap.global.data->meta.size + heap.global.meta.size;
-					++count, ++m;
+					++v, ++m;
 
 					//	usable entry
 					m->base = h->base + h->len;
 					m->type = memmap_usable;
 					m->len = ent->base + ent->length - m->base;
 				} else {
-					printl("unaligned");
 					//	usable entry
 					m->type = memmap_usable;
 					m->len = pages.heap.global.data->meta.physical.start - ent->base;
-					++count, ++m;
+					++v, ++m;
 
 					//	heap entry
 					m->base = pages.heap.global.data->meta.physical.start;
 					m->len = pages.heap.global.data->meta.size + heap.global.meta.size;
 					m->type = memmap_heap;
-					++count, ++m;
+					++v, ++m;
 
 					//	rest of the usable entry
 					m->base = heap.global.meta.physical.end;
@@ -247,22 +237,22 @@ void memmap_parse() {
 		}
 
 		/*if ((tmp = ((ent->base == heap.global.meta.physical.start) | ((ent->base == pages.heap.init.physical) << 1))) != 0) {
-			memmap.data[count].type = memmap_heap;
-			memmap.data[count].base = ent->base;
+			memmap.data[v].type = memmap_heap;
+			memmap.data[v].base = ent->base;
 			if (tmp & 1) {
 				//	multipurpose heap
-				memmap.data[count].len = HEAP_GLOBAL_MINIMAL_SIZE * KB;
+				memmap.data[v].len = HEAP_GLOBAL_MINIMAL_SIZE * KB;
 			} else {
 				//	page heap
-				memmap.data[count].len = pages.heap.size;
+				memmap.data[v].len = pages.heap.size;
 			}
-			count++;
+			v++;
 		}*/
 
-		memmap.data[count].type = memmap_entry_type(last_type);
-		memmap.data[count].base = ent->base;
+		memmap.data[v].type = memmap_entry_type(last_type);
+		memmap.data[v].base = ent->base;
 		if (tmp != 0) {
-			memmap.data[count].base += memmap.data[count-1].len;
+			memmap.data[v].base += memmap.data[v - 1].len;
 		}
 
 
@@ -288,7 +278,7 @@ void memmap_parse() {
 
 
 	//	fill length entries
-	memmap.data[memmap.len-1].len = ent->base + ent->length - memmap.data[memmap.len-1].base;
+	memmap.data[memmap.len-1].len = ent->base + ent->length - memmap.data[memmap.len - 1].base;
 
 	for (size_t i = memmap.len-1; i > 0; i--) {
 		memmap.data[i-1].len = memmap.data[i].base - memmap.data[i-1].base;

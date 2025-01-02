@@ -1,6 +1,7 @@
 
 ## All changes since last push:
-
+- [x] implement table heap
+	- should be working well, not tested much
 
 
 ### misc.

@@ -18,7 +18,7 @@
 		allocator_t *alloc;\
 		u32 len;\
 	} type_name;\
-	type* name##_build(type_name* self, allocator_t* alloc, u32 count) {\
+	type* name##_alloc(type_name* self, allocator_t* alloc, u32 count) {\
 		if (count == 0) {\
 			self->data = null;\
 			self->alloc = alloc;\

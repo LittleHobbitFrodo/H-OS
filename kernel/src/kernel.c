@@ -15,10 +15,18 @@ void kernel() {
 	printl(KERNEL_NAME);
 	output.color = col.white;
 
-	print("nvm_capabilities_t size:\t"); printu(sizeof(nvm_capabilities_t)); endl();
+	pages.heap.global.data->bitmap[0] = 0b110000110101;
+	print("testing table allocation:\t"); printb(pages.heap.global.data->bitmap[0]); endl();
+	wait(2000);
 
-	print("memmap address:\t"); printp(memmap.data); endl();
-	print("heap start:\t"); printp(heap.global.meta.virtual.start); endl();
+	any_page_table* table = table_alloc(&pages.heap.global, 4);
+	print("table:\t"); printp(table); endl();
+
+	table_heap_debug(&pages.heap.global);
+
+	table_free(&pages.heap.global, table);
+	printl("\nfreed:");
+	table_heap_debug(&pages.heap.global);
 
 	shell();
 
