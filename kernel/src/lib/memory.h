@@ -10,10 +10,20 @@
 #define MB (1024 * 1024)
 #define GB (1024 * 1024 * 1024)
 
+static struct base {
+	void* virtual;
+	void* physical;
+	void* hhdm;
+} base;
+
+
+extern void* kernel_stack_ptr;
 
 static u8 KERNEL_STACK[32*KB];
 
 static u8 INTERRUPT_STACK[(8*7)*KB];
+
+void* kernel_stack_ptr = KERNEL_STACK;
 
 
 static bool kaslr = false;
@@ -68,9 +78,11 @@ typedef struct memmap_entry {
 
 static void memmap_parse();
 
-[[maybe_unused]] static void memmap_reclaim();
+//static void memmap_reclaim();
 
 static void memmap_analyze();
+
+[[maybe_unused]] static memmap_entry* memmap_find(enum memmap_types type);
 
 enum memmap_types memmap_entry_type(u64 constant);
 

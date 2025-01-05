@@ -6,24 +6,6 @@
 #pragma once
 #include "./integers.h"
 
-typedef struct int_stack_frame {
-	u64 cr2;
-
-	u64 r15, r14, r13, r12, r11, r10, r9, r8;
-
-	u64 rbp;
-
-	u64 rdi, rsi, rdx, rcx, rbx, rax;
-
-	u64 type;
-	u64 code;
-	u64 rip;
-	u64 cs;
-	u64 flags;
-	u64 rsp;
-	u64 ss;
-} __attribute__((packed)) int_stack_frame;
-
 typedef struct idt_entry {
 	u16 off1;
 	u16 cs;
@@ -79,3 +61,23 @@ __attribute__((aligned(16))) static idt_t idt;
 __attribute__((aligned(16))) static idt_ptr idt_pointer;
 
 static void interrupts_init();
+
+
+
+typedef struct int_stack_frame {
+	u64 cr2;
+
+	u64 r15, r14, r13, r12, r11, r10, r9, r8;
+
+	u64 rbp;
+
+	u64 rdi, rsi, rdx, rcx, rbx, rax;
+
+	u64 type;
+	u64 code;
+	u64 rip;
+	u64 cs;
+	u64 flags;
+	u64 rsp;
+	u64 ss;
+} __attribute__((packed)) int_stack_frame;

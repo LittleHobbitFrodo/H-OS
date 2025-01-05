@@ -21,24 +21,24 @@ void str_take_over(string *this, string *other) {
 void str_push(string *this, const char *str) {
 	if (this->data == null) {
 		this->size = strlen(str) - 1;
-		this->data = (char *) palloc(this->size);
+		this->data = (char *) alloc(this->size);
 		memcpy((void *) str, this->data, this->size);
 		return;
 	}
 	size_t osize = this->size;
 	this->size += strlen(str) - 1;
-	this->data = (char *) prealloca(this->data, this->size, string_realloc_add);
+	this->data = realloca(this->data, this->size, string_realloc_add);
 	memcpy((void *) str, (void *) ((size_t) this->data + osize), this->size - osize);
 }
 
 void str_pushs(string *this, const string *other) {
 	if (this->data == null) {
 		this->size = other->size;
-		this->data = (char *) palloc(this->size);
+		this->data = (char *) alloc(this->size);
 		memcpy(other->data, this->data, this->size);
 		return;
 	}
-	this->data = (char *) prealloca(this->data, this->size + other->size, string_realloc_add);
+	this->data = realloca(this->data, this->size + other->size, string_realloc_add);
 	memcpy(other->data, (void *) ((size_t) this->data + this->size), this->size + other->size);
 	this->size += other->size;
 }
@@ -46,11 +46,11 @@ void str_pushs(string *this, const string *other) {
 void str_pushc(string* this, const char c) {
 	if (this->data == null) {
 		this->size = 1;
-		this->data = (char*)palloc(4);
+		this->data = (char*)alloc(4);
 		this->data[0] = c;
 		return;
 	}
-	this->data = (char*)prealloca(this->data, ++this->size, string_realloc_add);
+	this->data = realloca(this->data, ++this->size, string_realloc_add);
 	this->data[this->size - 1] = c;
 }
 
@@ -70,44 +70,44 @@ void str_pop(string *this, size_t count) {
 void str_set(string *this, const char *str) {
 	if (this->data == null) {
 		this->size = strlen(str) - 1;
-		this->data = (char *) palloc(this->size);
+		this->data = (char *) alloc(this->size);
 		memcpy((void *) str, this->data, this->size);
 		return;
 	}
 	this->size = strlen(str) - 1;
-	this->data = (char *) prealloc(this->data, this->size);
+	this->data = (char *) realloc(this->data, this->size);
 	memcpy((void *) str, this->data, this->size);
 }
 
 void str_sets(string *this, const string *other) {
 	if (this->data == null) {
 		this->size = other->size;
-		this->data = (char *) palloc(this->size);
+		this->data = (char *) alloc(this->size);
 		memcpy(other->data, this->data, this->size);
 		return;
 	}
 	this->size = other->size;
-	this->data = (char *) prealloc(this->data, this->size);
+	this->data = (char *) realloc(this->data, this->size);
 	memcpy(other->data, this->data, this->size);
 }
 
 void str_setss(string *this, const char *str, size_t size) {
 	this->size = size;
 	if (this->data == null) {
-		this->data = (char *) palloc(this->size);
+		this->data = (char *) alloc(this->size);
 		memcpy((void *) str, this->data, this->size);
 		return;
 	}
-	this->data = (char *) prealloc(this->data, this->size);
+	this->data = (char *) realloc(this->data, this->size);
 	memcpy((void *) str, this->data, this->size);
 }
 
 void str_resize(string *this, size_t size) {
 	this->size = size;
 	if (this->data != null) {
-		this->data = (char *) prealloc(this->data, size);
+		this->data = (char *) realloc(this->data, size);
 	} else {
-		this->data = (char *) palloc(size);
+		this->data = (char *) alloc(size);
 	}
 }
 
@@ -169,10 +169,10 @@ bool str_cmpbs(const string *s1, const string *s2) {
 }
 
 
-void str_tokenize(const char* input, vector* output) {
+void str_tokenize(const char* input, strvec_t* output) {
 	string token;
 	str(&token);
-	vecs(output, sizeof(string));
+	strvec_construct(output, 0);
 
 	size_t cmdlen = strlen(input);
 	char* tstart = null;
@@ -186,7 +186,7 @@ void str_tokenize(const char* input, vector* output) {
 				//	push
 				if (likely(tlen > 0)) {
 					str_setss(&token, tstart, tlen); //	copy data from cmdline
-					string *nstr = vec_push(output, 1); //	push to strings
+					string *nstr = strvec_push(output, 1); //	push to strings
 					str(nstr); //	initialize string
 					str_take_over(nstr, &token); //	take over token string
 				}
@@ -210,7 +210,7 @@ void str_tokenize(const char* input, vector* output) {
 	//	push if last word is not pushed
 	if (likely(tlen > 0)) {
 		str_setss(&token, tstart, tlen); //	copy data from cmdline
-		string *nstr = vec_push(output, 1); //	push to strings
+		string *nstr = strvec_push(output, 1); //	push to strings
 		str(nstr); //	initialize string
 		str_take_over(nstr, &token); //	take over token string
 		nstr->size = tlen;

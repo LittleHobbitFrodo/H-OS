@@ -43,13 +43,11 @@ The whole project with all of its parts is under the GPL v3.0 licence
 **[Mtools](https://www.gnu.org/software/mtools/)** - tools used for disk image creation (together with parted)
   - Mtools is widely used, your distribution should provide a package for it
 
-**[Limine](https://limine-bootloader.org/)** - bootloader used to start the system
-- Arch Linux has an official package for limine
-- H-OS also provide **script for limine installation** (detailed below)
-
 **[NASM](https://www.nasm.us/)** - assembler (assembly compiler)
 - Nasm is widely used assembler, most distributions should provide a package for it.
 
+
+- NOTE: Limine bootloader is not required for building the OS
 
 ### **C compiler**
 - If you are on x86_64 system (run ```uname -m``` in terminal to check it), install ```gcc``` package.
@@ -88,6 +86,9 @@ This contains just few steps:
 - Start build ```./scripts/build mkimage```
 - If no error was reported **disk image** (H-OS.hdd file) should be created in project root directory
 
+### Building with docker
+To build the OS in docker run this command:
+```docker pull archlinux; ```
 
 You can upload it to a flash drive, **the upload will completely erase the drive so please check if there is any data you could miss on the drive**
 - Insert the drive, open file manager and copy the disk image (H-OS.hdd) into the disk
@@ -98,27 +99,31 @@ You can upload it to a flash drive, **the upload will completely erase the drive
  - Hardware Enumeration: gather information about connected hardware
  - Paging: I should really make it work
 
-## Main tasks
+## Tasks
   - [x] **Hello world!** - Create bootable disk that displays simple ```hello world``` message.
   - [x] **Set up environment** - Add basic functionalities like printing numbers.
   - [x] **CPUID** - Gather some information about processor.
-  - [ ] **Heap implementation**
+  - [x] **Heap implementation**
     - [x] Find place for kernel heap.
     - [x] Create simple allocator.
     - [x] Add other functionalities.
-    - [ ] Port the allocator for virtual addresses.
-  - [ ] **Memory initialization**
+    - [x] Port the allocator for virtual addresses (HHDM).
+  - [x] **Memory initialization**
     - [x] Parse and simplify memory map.
     - [x] Initialize GDT with TSS.
-    - [ ] Reinitialize paging.
+    - [x] Reinitialize paging.
   - [x] **Interrupts**
     - [x] Get exception handling to work.
     - [x] Initialize other interrupts.
     - [x] Time and timer interrupt
-  - [ ] **Initialize hardware**
-    - [x] Get keyboard input.
-    - [ ] Be able to read from disk.
-  - [ ] **Get into userspace**
-    - [ ] Initialize system calls.
-    - [ ] Make elf file parser.
-    - [ ] Run "Hello world" program.
+  - [x] **UEFI runtime services**
+  - [ ] **Power Management**
+    - [x] Shutdown (Emulator specific + UEFI runtime services)
+  - [ ] Hardware discovery
+    - [ ] PCI
+    - [ ] ACPI
+  - [ ] Disks
+    - [ ] AHCI
+    - [ ] Enumerate disks
+    - [ ] Write driver for SSD/NVME
+...

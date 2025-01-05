@@ -4,19 +4,22 @@
 //
 
 #pragma once
+
+#pragma once
 #include "./integers.h"
 
 
 i8 strcmp(const char *s1, const char *s2);
 
-[[nodiscard]] __attribute__((always_inline)) inline size_t strlen(const char *s) {
+[[nodiscard]] __attribute__((always_inline))
+inline size_t strlen(const char *s) {
 	size_t i = 0;
 	for (; s[i] != '\0'; i++);
 	++i;
 	return i;
 }
 
-__attribute__((always_inline)) inline bool strcmpb(const char *s1, const char *s2) {
+static inline bool strcmpb(const char *s1, const char *s2) {
 	size_t l = strlen(s1);
 	bool r = true;
 	if (l == strlen(s2)) {
@@ -32,29 +35,23 @@ __attribute__((always_inline)) inline bool strcmpb(const char *s1, const char *s
 	return r;
 }
 
-__attribute__((always_inline)) inline void memcpy(void *src, void *dest, size_t size) {
-	for (size_t i = 0; i < size; i++) {
-		((u8 *) dest)[i] = ((u8 *) src)[i];
-	}
-}
+__attribute__((nonnull(1, 2)))
+i8 strncmp(const char* s1, const char* s2, size_t n);
 
-__attribute__((always_inline)) inline void memset(void *ptr, size_t size, u8 val) {
+__attribute__((nonnull(1, 2)))
+bool strncmpb(const char* s1, const char* s2, size_t n);
+
+
+void memcpy(void *src, void *dest, size_t size);
+
+__attribute__((always_inline))
+inline void memset(void *ptr, size_t size, u8 val) {
 	for (size_t i = 0; i < size; i++) {
 		((u8 *) ptr)[i] = val;
 	}
 }
 
-__attribute__((always_inline)) inline void strrev(char *str, size_t len) {
-	size_t start = 0;
-	size_t end = len - 1;
-	char tmp;
-	for (; start < end; start++) {
-		tmp = str[start];
-		str[start] = str[end];
-		str[end] = tmp;
-		end--;
-	}
-}
+void strrev(char *str, size_t len);
 
 extern void hang();
 
@@ -65,18 +62,71 @@ extern void halt();
 #define enable_interrupts asm volatile("sti");
 #define disable_interrupts asm volatile("cli");
 
-static inline byte inb(u16 port) {
+__attribute__((always_inline))
+inline byte inb(u16 port) {
 	byte ret;
 	asm volatile("inb %0, %1" : "=a"(ret) : "Nd"(port));
 	return ret;
 }
 
-static inline void outb(u16 port, u8 data) {
+__attribute__((always_inline))
+inline void outb(u16 port, u8 data) {
 	asm volatile("outb %1, %0" :: "a"(data), "Nd"(port));
 }
 
-static inline void iowait() {
+__attribute__((always_inline))
+inline void outw(u16 port, u16 data) {
+	asm volatile("outw %1, %0" :: "a"(data), "Nd"(port));
+}
+
+__attribute__((always_inline))
+inline u16 inw(u16 port) {
+	u16 ret;
+	asm volatile("inw %0, %1" : "=a"(ret) : "Nd"(port));
+	return ret;
+}
+
+__attribute__((always_inline))
+inline void outd(u16 port, u32 data) {
+	asm volatile("outd %1, %0" :: "a"(data), "Nd"(port));
+}
+
+__attribute__((always_inline))
+inline u32 ind(u16 port) {
+	u32 ret;
+	asm volatile("ind %0, %1" : "=a"(ret) : "Nd"(port));
+	return ret;
+}
+
+__attribute__((always_inline))
+inline void outq(u16 port, u64 data) {
+	asm volatile("outq %1, %0" :: "a"(data), "Nd"(port));
+}
+
+__attribute__((always_inline))
+inline u64 inq(u16 port) {
+	u64 ret;
+	asm volatile("inq %0, %1" : "=a"(ret) : "Nd"(port));
+	return ret;
+}
+
+
+
+
+
+__attribute__((always_inline))
+inline void iowait() {
 	outb(0x80, 0);
 }
 
 static void memnull(void* ptr, size_t size);
+
+#define max(x, max_) ((x > max_)? max_ : x)
+#define min(x, min_) ((x < min_)? min_ : x)
+
+void countdown(const char* msg, u8 seconds);
+
+void wait(size_t milli);
+
+
+void memcpy_reverse(void* src, void* dest, size_t size);

@@ -6,6 +6,9 @@
 #pragma once
 
 void interrupts_init() {
+
+	kernel_status = k_state_init_interrupts;
+
 	//	set all idt entries to null
 	for (size_t i = 0; i < IDT_SIZE; i++) {
 		idt_null(&idt[i]);

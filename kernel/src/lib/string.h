@@ -5,11 +5,13 @@
 
 #pragma once
 #include "./integers.h"
+#include "./vector/vector.h"
 
 typedef struct string {
 	char *data;
 	size_t size;
 } string;
+
 
 static size_t string_realloc_add = 4;
 
@@ -21,13 +23,13 @@ __attribute__((always_inline, nonnull(1))) inline void str(string *this) {
 
 __attribute__((always_inline, nonnull(1, 2))) inline void stre(string *this, const char *eq) {
 	this->size = strlen(eq) - 1;
-	this->data = (char *) palloc(this->size);
-	memcpy((void *) eq, this->data, this->size);
+	this->data = alloc(this->size);
+	memcpy((void *) eq, this->data, this->size+1);
 }
 
 __attribute__((always_inline, nonnull(1, 2))) inline void stres(string *this, const string *other) {
 	this->size = other->size;
-	this->data = palloc(this->size);
+	this->data = alloc(this->size);
 	memcpy(other->data, this->data, this->size);
 }
 
@@ -57,13 +59,15 @@ bool str_cmpb(const string *s1, const char *s2);
 
 bool str_cmpbs(const string *s1, const string *s2);
 
-__attribute__((always_inline)) inline void str_clear(string *this) {
+__attribute__((always_inline)) inline
+void str_clear(string *this) {
 	if (this->data != null) {
 		free(this->data);
 	}
 	this->size = 0;
 }
 
-struct vector;
+//	vector_type_cd is defined in vector/vector.h
+vector_type_cd(strvec, string, strvec_t, str, str_clear);
 
-static void str_tokenize(const char* input, vector *output);
+static void str_tokenize(const char* input, strvec_t* output);

@@ -42,20 +42,13 @@ void time_init() {
 	}
 	timespec.date.months++;
 
-	#ifdef DEBUG
-	u32 c = output.color;
-	output.color = col.cyan;
-	report("system time:\t", report_debug);
-	printl(format_time((timespec_t*)&timespec, time_format_str));
-	output.color = c;
-	#endif
-
 }
 
 void time_update() {
 	timespec.time.seconds += tick / 1000;
 	timespec.time.milliseconds = tick %= 1000;	//	reset tick
 	timespec.time.minutes += timespec.time.seconds / 60;
+	timespec.time.seconds %= 60;
 	timespec.time.hours += timespec.time.minutes / 60;
 	timespec.date.days += timespec.time.hours / 24;
 

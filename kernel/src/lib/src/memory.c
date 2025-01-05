@@ -6,12 +6,24 @@
 #pragma once
 #include "../memory.h"
 
+#include "../vector/vector.h"
+
 void memory_init() {
+
+	kernel_status = k_state_init_memory;
+	if (req_k_address.response == null) {
+		report("unable to get virtual/physical base address\n", report_critical);
+		panic(panic_code_base_addresses_not_available);
+		__builtin_unreachable();
+	}
+
+	base.virtual = (void*)req_k_address.response->virtual_base;
+	base.physical = (void*)req_k_address.response->physical_base;
 
 	//	prepare stack structure
 	memset(&stack, sizeof(stack_holder), 0);
 
-	if (req_memmap.response->entries == null) {
+	if ((req_memmap.response == null) || (req_memmap.response->entries == null)) {
 		report("memory map not found", report_critical);
 		panic(panic_code_memmap_not_found);
 	}
@@ -24,18 +36,17 @@ void memory_init() {
 		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
 	}
 
-	//	initialize heap
+	//	initialize paging
+	page_init();
+
+	//	initialize regular heap
 	heap_init();
 
-	//	parse command line arguments
-	parse_cmd();
-	//	better parse cmd earlier
+	//	initialize heap for page table allocations
+	page_heap_init();
 
 	//	parse memory map
 	memmap_parse();
-
-	//	initialize paging
-	//page_init();
 
 	//	initialize task state segment (needed for GDT initialization)
 	tss_init();
@@ -48,34 +59,88 @@ void memory_init() {
 	}
 }
 
-void va_info(void *addr) {
-	printp(addr);
-	printl(":");
-	print("pml4\t[");
-	printu(va_index(addr, 3));
-	printl("]");
-	print("pdpt\t[");
-	printu(va_index(addr, 2));
-	printl("]");
-	print("pd\t\t[");
-	printu(va_index(addr, 1));
-	printl("]");
-	print("pt\t\t[");
-	printu(va_index(addr, 0));
-	printl("]");
-	print("offset:\t");
-	printu(va_offset(addr));
-	endl();
-}
+
 
 void memmap_parse() {
 	//	parse limine memory map and simplify it
 		//	join entries of same type ...
 
-	vecs(&memmap, sizeof(memmap_entry));
-	ssize_t msize = req_memmap.response->entry_count, heap_index = 0, stack_index = -1;
+
+	memmap_construct(1);
+	ssize_t msize = req_memmap.response->entry_count, heap_index = -1, page_heap_index = -1;
 	struct limine_memmap_entry **ents = req_memmap.response->entries;
-	memmap_entry *stck = null;
+	enum memmap_types tmp = memmap_undefined;
+
+	struct limine_memmap_entry *ent;
+	ssize_t i = 0;
+	{
+		//	prepare first entry
+		memmap_entry *first = memmap.data;
+		first->base = ents[0]->base;
+		first->type = memmap_entry_type(ents[i]->type);
+		for (++i; memmap_entry_type(ents[i]->type) == tmp; i++);
+		--i;
+		first->len = ents[i]->base + ents[i]->length - first->base;
+		++i;
+	}
+
+	for (; i < msize; i++) {
+		ent = ents[i];
+
+		if (ent->base == (size_t)heap.physical.start) {
+			//	initialize heap entry
+			memmap_entry *h = memmap_push(1);
+			h->base = ent->base;
+			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
+			h->type = memmap_heap;
+			heap_index = memmap.len - 1;
+		} else if (ent->base == (size_t)page_heap.physical.start) {
+			memmap_entry* h = memmap_push(1);
+			h->base = ent->base;
+			h->len = page_heap.size * PAGE_SIZE;
+			h->type = memmap_heap;
+			page_heap_index = memmap.len - 1;
+		}
+
+		tmp = memmap_entry_type(ent->type);
+		//	skip entries of same type
+		for (++i; (i < msize) && (memmap_entry_type(ents[i]->type) == tmp); i++);
+		--i;
+
+		memmap_entry *new = memmap_push(1);
+		new->base = ent->base;
+		new->type = tmp;
+		if (i + 1 < msize) {
+			new->len = ents[i + 1]->base - new->base;
+		} else {
+			new->len = ents[i]->base + ents[i]->length - new->base;
+		}
+	}
+
+	//	make heap entry not overlap other entries
+	memmap_entry* es = memmap.data;
+	es[heap_index + 1].base += es[heap_index].len;
+	es[heap_index + 1].len -= es[heap_index].len;
+	es[page_heap_index + 1].base += es[page_heap_index].len;
+	es[page_heap_index + 1].len -= es[page_heap_index].len;
+
+
+	//	gather info about memory usage
+	memmap_analyze();
+
+	//	apply stacks (stck != null)
+		//	paging is not initialized yet -> special allocated memory will be used for stacks (memory.h)
+	//stack.kernel = (void*)(stck->base + stck->len - 1);
+	stack.kernel = (void*)((size_t)&KERNEL_STACK + (32*KB) - 1);
+	for (i = 0; i < 7; i++) {
+		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
+		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
+	}
+
+
+	/*vecs(&memmap, sizeof(memmap_entry));
+	ssize_t msize = req_memmap.response->entry_count, heap_index = -1, page_heap_index = -1;
+	struct limine_memmap_entry **ents = req_memmap.response->entries;
 	enum memmap_types tmp = memmap_undefined;
 
 	struct limine_memmap_entry *ent;
@@ -91,37 +156,22 @@ void memmap_parse() {
 		++i;
 	}
 
-	{
-		//	find place for stack
-		ssize_t start = -1;
-		size_t len = 0;
-		for (ssize_t ii = msize - 1; ii >= 0; --ii) {
-			if (ents[ii]->type == LIMINE_MEMMAP_USABLE) {
-				if (start < 0) {
-					start = ii;
-				}
-				len += ents[ii]->length;
-				if (len >= ALL_STACK_SIZE) {
-					stack_index = start;
-					break;
-				}
-			} else {
-				start = -1;
-				len = 0;
-			}
-		}
-	}
-
 	for (; i < msize; i++) {
 		ent = ents[i];
 
-		if (ent->base == (size_t) heap_start) {
+		if (ent->base == (size_t)heap.physical.start) {
 			//	initialize heap entry
-			memmap_entry *h = (memmap_entry *) vec_push(&memmap, 1);
+			memmap_entry *h = vec_push(&memmap, 1);
 			h->base = ent->base;
 			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
 			h->type = memmap_heap;
 			heap_index = memmap.len - 1;
+		} else if (ent->base == (size_t)page_heap.physical.start) {
+			memmap_entry* h = vec_push(&memmap, 1);
+			h->base = ent->base;
+			h->len = page_heap.size * PAGE_SIZE;
+			h->type = memmap_heap;
+			page_heap_index = memmap.len - 1;
 		}
 
 		tmp = memmap_entry_type(ent->type);
@@ -137,25 +187,14 @@ void memmap_parse() {
 		} else {
 			new->len = ents[i]->base + ents[i]->length - new->base;
 		}
-
-		if ((i == stack_index) && (stck == null)) {
-			//	initialize stack entry (kernel + interrupts)
-			stck = vec_push(&memmap, 1);
-			stck->len = ALL_STACK_SIZE;
-			stck->base = new->base + new->len - stck->len;
-			stck->type = memmap_stack;
-			new->len -= stck->len;
-		}
-	}
-	if (stck == null) {
-		report("could not find stack memory entry\n", report_critical);
-		panic(panic_code_cannot_allocate_memory_for_stacks);
 	}
 
 	//	make heap entry not overlap other entries
 	memmap_entry* es = memmap.data;
 	es[heap_index + 1].base += es[heap_index].len;
 	es[heap_index + 1].len -= es[heap_index].len;
+	es[page_heap_index + 1].base += es[page_heap_index].len;
+	es[page_heap_index + 1].len -= es[page_heap_index].len;
 
 
 	//	gather info about memory usage
@@ -168,7 +207,7 @@ void memmap_parse() {
 	for (i = 0; i < 7; i++) {
 		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
 		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
-	}
+	}*/
 
 
 	if (vocality >= vocality_report_everything) {
@@ -259,7 +298,7 @@ void memmap_display() {
 				break;
 			}
 			case memmap_acpi: {
-				output.color = col.green;
+				output.color = col.yellow;
 				print("acpi:\t\t");
 				break;
 			}
@@ -291,6 +330,11 @@ void memmap_display_original() {
 	u32 c = output.color;
 	struct limine_memmap_entry **ents = req_memmap.response->entries;
 	size_t size = req_memmap.response->entry_count;
+
+	if (ents == null) {
+		report("original memmap does not exist\n", report_problem);
+		return;
+	}
 
 	if (ents == null) {
 		report("original memmap does not exist\n", report_problem);
@@ -410,7 +454,7 @@ void memmap_analyze() {
 	meminfo.total = es[memmap.len - 1].base + es[memmap.len - 1].len;
 }
 
-void memmap_reclaim() {
+/*void memmap_reclaim() {
 	//	reclaims reclaimable entries
 
 	if (memmap.data == null) {
@@ -427,7 +471,7 @@ void memmap_reclaim() {
 		}
 	}
 
-	vector old;
+	memmap_vector_t old;
 	vec_take_over(&old, &memmap);
 	vecs(&memmap, sizeof(memmap_entry));
 
@@ -473,4 +517,15 @@ void memmap_reclaim() {
 	if (vocality >= vocality_report_everything) {
 		report("memory reclaimed\n", report_note);
 	}
+}*/
+
+memmap_entry* memmap_find(enum memmap_types type) {
+	memmap_entry* ret;
+	for (size_t i = 0; i < memmap.len; i++) {
+		ret = memmap_at(i);
+		if (ret->type == type) {
+			return ret;
+		}
+	}
+	return null;
 }

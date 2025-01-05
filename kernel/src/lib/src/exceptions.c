@@ -8,7 +8,7 @@
 #include "../exceptions.h"
 
 void handle_exception(exception_stack_frame *frame) {
-	#ifdef DEBUG
+	#ifdef KERNEL_DEBUG
 	print("exception ");
 	printu(frame->type);
 	endl();
@@ -63,7 +63,7 @@ void handle_exception(exception_stack_frame *frame) {
 			break;
 		}
 		case exception_segment_not_present: {
-			#ifdef DEBUG
+			#ifdef KERNEL_DEBUG
 			report("segment not present\n", report_error);
 			print("rip:\t");
 			printp((void *) frame->rip);
@@ -95,7 +95,7 @@ void handle_exception(exception_stack_frame *frame) {
 		}
 		case exception_general_protection: {
 			report("general protection\n", report_error);
-			#ifdef DEBUG
+			#ifdef KERNEL_DEBUG
 			print("rip:\t");
 			printp((void *) frame->rip);
 			endl();

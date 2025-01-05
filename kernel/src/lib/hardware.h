@@ -7,4 +7,4 @@
 
 #pragma once
 
-	[[maybe_unused]] static void hardware_init();
+static void hardware_init();

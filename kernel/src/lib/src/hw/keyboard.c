@@ -10,10 +10,6 @@
 void keyboard_init() {
 	//	US (QWERTY) layout is used by default
 
-	//	initialize structures
-	memnull(&keyboard.keycodes, sizeof(keycode) * KEYCODE_COUNT);
-	memnull(&keyboard.scancodes, sizeof(void*) * SCANCODE_COUNT);
-
 	if (!keyboard_send_cmd_data(KEYBOARD_CMD_SET_LEDS, 0)) {
 		if (vocality >= vocality_vocal) {
 			report("failed to set leds\n", report_error);
@@ -90,7 +86,7 @@ u8 keyboard_get_scan_code() {
 	u8 status;
 	for (u8 i = 0; i < 8; i++) {
 		keyboard_send_byte(KEYBOARD_CMD_SCAN_CODE_SET);
-		status = keyboard_send(0);
+		(void)keyboard_send(0);
 		status = keyboard_receive_byte();
 		if (status != KEYBOARD_CMD_RESPONSE_RESEND) {
 			switch (status) {
@@ -137,8 +133,7 @@ string keyboard_getline(bool draw) {
 			case '\b': {
 				if (output.column > start) {
 					if ((draw) && (output.column > 0)) {
-						output.column--;
-						screen_flush_at(output.column, output.line);
+						screen_flush_at(output.line, --output.column);
 					}
 					str_pop(&input, 1);
 				}

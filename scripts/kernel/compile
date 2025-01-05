@@ -13,7 +13,6 @@ set ccompiler "none"
 set DEBUG "0"
 for i in $argv
   if test $i = "debug"
-    echo setting debug
     set DEBUG 1
   end
 end
@@ -90,7 +89,7 @@ if test $DEBUG = "0"
   -fno-lto -mno-mmx -mno-sse -mno-sse2 -mno-red-zone "./kernel/src/kernel.c" -o "./tmp/kernel/kernel.o" -O3
 
 else
-  $ccompiler $global_gcc_params -fno-inline -g -O0 -fno-omit-frame-pointer -DDEBUG \
+  $ccompiler $global_gcc_params -fno-inline -g -O0 -fno-omit-frame-pointer -DKERNEL_DEBUG \
   "./kernel/src/kernel.c" -o "./tmp/kernel/kernel.o"
 end
 

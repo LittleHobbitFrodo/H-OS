@@ -26,6 +26,7 @@ void screen_init() {
 	col.orange = 0xffa500;
 	col.cyan = 0x00ffff;
 	col.grey = 0xaaaaaa;
+	col.hint = col.grey;
 
 	if (req_fb.response == null) {
 		return;
@@ -54,9 +55,11 @@ void screen_flush() {
 	for (size_t i = 0; i < size; i++) {
 		screen.address[i] = 0;
 	}
+	output.column = 0;
+	output.line = 0;
 }
 
-void screen_flush_at(size_t column, size_t line) {
+void screen_flush_at(size_t line, size_t column) {
 	if ((column * font.size >= screen.w) || (line * font.size >= screen.h)) {
 		return;
 	}
@@ -124,8 +127,20 @@ void printp(void *p) {
 	print((const char *) &num);
 }
 
+void printh(size_t h) {
+	char num[HEXLEN];
+	to_hexs((char*)&num, h);
+	print((const char*)&num);
+}
+
 void printb(size_t bin) {
 	for (ssize_t i = (sizeof(size_t) * 8) - 1; i >= 0; i--) {
 		printc('0' + ((bin >> i) & 1));
+	}
+}
+
+void printn(const char* str, size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		printc(str[i]);
 	}
 }

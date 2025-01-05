@@ -54,7 +54,7 @@
 
 //	scancode to keycode resolution structures
 
-#define KEYCODE_COUNT 150
+#define KEYCODE_COUNT 160
 #define SCANCODE_COUNT 0x61
 
 typedef struct keycode {
@@ -72,7 +72,7 @@ typedef struct keyboard_t {
 	volatile bool hit;
 } keyboard_t;
 
-static keyboard_t keyboard;
+static keyboard_t keyboard = {0};
 
 __attribute__((always_inline)) static inline bool keyboard_shift() {
 	return keyboard.keycodes[keycode_lshift].state || keyboard.keycodes[keycode_rshift].state;
@@ -96,7 +96,7 @@ __attribute__((always_inline)) static inline char keyboard_char() {
 	return '\0';
 }
 
-static string keyboard_getline(bool draw);
+string keyboard_getline(bool draw);
 
 __attribute__((always_inline)) static inline bool keyboard_hit() {
 	return keyboard.hit;
@@ -118,13 +118,17 @@ __attribute__((always_inline)) static inline bool keyboard_writeready() {
 
 __attribute__((always_inline)) static inline u8 keyboard_receive_byte() {
 	//	receives byte from keyboard
-	while (!keyboard_readready());
+	while (!keyboard_readready()) {
+		iowait();	//	wait few nanoseconds
+	}
 	return inb(KEYBOARD_PORT_DATA);
 }
 
 __attribute__((always_inline)) static inline void keyboard_send_byte(u8 data) {
 	//	sends byte to keyboard
-	while (!keyboard_writeready());
+	while (!keyboard_writeready()) {
+		iowait();	//	wait few nanoseconds
+	}
 	outb(KEYBOARD_PORT_DATA, data);
 }
 

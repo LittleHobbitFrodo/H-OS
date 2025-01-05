@@ -13,7 +13,7 @@
 #define SECONDS_PER_YEAR (365 * SECONDS_PER_DAY)
 
 #ifndef TIME_FORMAT_DEFAULT
-	#define TIME_FORMAT_DEFAULT "{day}:{mon}:{year} | {hour}:{min}:{sec}.{ms}"
+	#define TIME_FORMAT_DEFAULT "{hour}:{min}:{sec} | {day}:{mon}:{year}"
 #endif
 
 
