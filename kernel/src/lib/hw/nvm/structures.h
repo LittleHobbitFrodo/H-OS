@@ -31,8 +31,8 @@ typedef struct nvm_capabilities_t {
 	u64 controller_memory_buffer_supported:		1;	//	1 = controller supports controller memory buffer
 	u64 subsystem_shutdown_supported:	1;	//	1 = controller supports NVM subsystem shutdown feature
 	//	rms = ready modes supported
-	u64 rms_meadia_mode:	1;			//	supports Controller ready with Media feature
-	u64 rms_independent_of_meadi_mode:		1;
+	u64 rms_media_mode:	1;			//	supports Controller ready with Media feature
+	u64 rms_independent_of_media_mode:		1;
 	u64 _reserved2:	2;
 
 } __attribute__((packed)) nvm_capabilities_t;

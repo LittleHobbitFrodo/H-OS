@@ -30,3 +30,7 @@ void table_shrink(table_allocator_t* alloc, any_page_table* table, u16 count);
 
 void table_heap_debug(const table_allocator_t* alloc);
 
+__attribute__((always_inline))
+inline size_t table_physical(table_allocator_t* alloc, any_page_table* table) {
+	return (size_t)table - (size_t)alloc->data->meta.virtual.start + alloc->data->meta.physical.start;
+}

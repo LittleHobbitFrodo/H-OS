@@ -203,10 +203,22 @@ typedef struct pages_t {
 			//	other page tables will be allocated in page heap
 		} table_heap;
 
+		struct {
+			size_t physical;
+			void* virtual;
+			__attribute__((aligned(4096))) unsized_page_table table;
+			//	for random allocations that may need less memory that 2mb
+		} pd;
+
 
 	} system;
 
 } pages_t;
+
+typedef struct table_holder_t {
+	void* virtual;
+	page_table* table;
+} table_holder_t;
 
 static pages_t pages = {0};
 
@@ -226,6 +238,9 @@ void page_flush();
 
 unsized_page_entry* page_find_empty_pdpt();
 	//	find empty pdpt entry
+
+__attribute__((nonnull(1, 2)))
+page_table* random_table_alloc(table_allocator_t* alloc, void** virtual, size_t physical);
 
 
 #include "./heap/table-heap/table-heap.h"

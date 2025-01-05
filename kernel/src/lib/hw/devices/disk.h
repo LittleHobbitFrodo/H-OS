@@ -56,4 +56,5 @@ inline void disk_destruct(disk_t* disk) {
 	}
 }
 
-vector_instance(disks, disk_t, disk_vector, disk_construct, disk_destruct);
+//vector_instance(disks, disk_t, disk_vector, disk_construct, disk_destruct);
+readonly_vector(disks, disk_t, disk_vector, disk_construct, disk_destruct);

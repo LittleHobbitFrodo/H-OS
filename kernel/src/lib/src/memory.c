@@ -49,9 +49,6 @@ void memory_init() {
 	heap_reserve_memory();
 		//	initializes table heap
 
-	print("\n\n\ntable heap physical:\t"); printp((void*)pages.heap.global.data->meta.physical.start); endl();
-	print("regular heap physical:\t"); printp((void*)heap.global.meta.physical.start); endl();
-
 	//	initialize regular heap
 	heap_init();
 
@@ -77,8 +74,6 @@ void memmap_parse() {
 	//	parse limine memory map and simplify it
 		//	join entries of same type ...
 	//	only global (multipurpose + page) heaps are in memory map
-
-	memmap_display_original();
 
 	u32 v = 0;		//	vector iterator
 	struct limine_memmap_entry *ent = null;

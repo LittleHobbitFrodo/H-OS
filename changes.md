@@ -9,3 +9,4 @@
 - [x] simplifying memory_init
 - [x] making printc function an pointer
 - [x] memmap_parse does now correctly work with new heap implementation (only one case tested)
+- [x] add checks in paging_init

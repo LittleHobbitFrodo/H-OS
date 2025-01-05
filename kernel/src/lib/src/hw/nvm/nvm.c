@@ -8,14 +8,43 @@
 
 void nvm_init() {
 
-	report("proceeding to initialize NVM controller\n", report_warning);
-	//wait(750);
+	size_t line = 0;
 
-	/*if (nvm.initialzed) {
+	if (vocality >= vocality_report_everything) {
+		line = report("proceeding to initialize NVM controller\n", report_note);
+	}
+	wait(750);
+
+	if (nvm.initialzed) {
 		return;
 	}
 
-	if (nvm.pci_address.enable == 0) {
+	if (nvm.address.pci.enable == 0) {
+		if (vocality >= vocality_report_everything) {
+			report_status("FAILURE", line, col.red);
+		}
+		report("cannot find PCI address\n", report_error);
+		return;
+	}
+
+	nvm.address.physical = (size_t)pci_read_bar(nvm.address.pci, 0);
+
+	nvm.table = random_table_alloc(&pages.heap.global, (void**)&nvm.address.base, nvm.address.physical);
+	if (nvm.table == null) {
+		report("could not allocate memory for NVM virtual address space\n", report_error);
+		return;
+	}
+
+	/*print("\n\nnvm virtual address:\t"); printp(nvm.address.base); endl();
+	wait(1500);
+
+	u32* tmp = (void*)nvm.address.base;
+	print("read:\t"); printu(*tmp); endl();
+
+	print("write:\t"); *tmp = 69; printu(*tmp); endl();*/
+
+
+	/*if (nvm.pci_address.enable == 0) {
 		report("NVM init: cannot find PCI address | initialization halted\n", report_error);
 		return;
 	}
@@ -56,8 +85,9 @@ void nvm_init() {
 	memmap_display_original();
 
 	print("NVM controller version:\t"); printu(nvm.base->version.major); printc('.'); printu(nvm.base->version.minor); endl();
+	*/
 
 	if (vocality >= vocality_report_everything) {
-		report("NVM controller initialization succeeded\n", report_note);
-	}*/
+		report_status("SUCCESS", line, col.green);
+	}
 }

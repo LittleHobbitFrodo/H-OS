@@ -26,6 +26,7 @@ u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset) {
 }
 
 void* pci_read_bar(pci_address address, u8 bar) {
+	//	returns physical address
 	if (bar >= 6) {
 		return null;
 	}
@@ -46,7 +47,7 @@ void* pci_read_bar(pci_address address, u8 bar) {
 		case 0: {
 			//	32-bit BAR
 			printl("read BAR: 1");
-			return (void*)(((size_t)base.base + pages.hhdm));
+			return (void*)((size_t)base.base);
 		}
 		case 1: {
 			//	reserved for PCI 3.0
@@ -57,7 +58,7 @@ void* pci_read_bar(pci_address address, u8 bar) {
 			address.offset++;
 			size_t higher = (size_t)pci_reada((union pci_address_u32)address);
 			a |= ((higher & ~0xf) << 32);
-			return (void *) (a + pages.hhdm);
+			return (void*)a;
 		}
 		default: return null;
 	}
@@ -223,8 +224,8 @@ void pci_scan() {
 							case pci_mass_storage_nvm_controller: {
 								switch (info.programming) {
 									case pci_nvm_controller_nvme: {
-										printl("found NVMe");
-										nvm.pci_address = pci_address_construct(i, ii, iii, 0, true);
+										//printl("found NVMe");
+										nvm.address.pci = pci_address_construct(i, ii, iii, 0, true);
 										nvm.used = true;
 
 										device_t* device = &pci.devices.data[v];

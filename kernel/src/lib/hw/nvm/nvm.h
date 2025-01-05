@@ -13,8 +13,13 @@ typedef struct nvm_t {
 	u8 used:		1;
 	u8 initialzed:	1;
 
-	pci_address pci_address;
-	nvm_base_register_t* base;
+	struct { ;
+		pci_address pci;
+		nvm_base_register_t *base;
+		size_t physical;
+	} address;
+
+	page_table* table;
 
 	disk_vector disks;
 

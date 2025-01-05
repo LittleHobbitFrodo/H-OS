@@ -113,7 +113,7 @@ void handle_exception(exception_stack_frame *frame) {
 			if (frame->cr2 == 0) {
 				print(" (NULL)");
 			} else {
-				printp((void*)frame->cr2); endl();
+				va_info((void*)frame->cr2);
 			}
 			endl();
 			heap_debug(&heap.global);

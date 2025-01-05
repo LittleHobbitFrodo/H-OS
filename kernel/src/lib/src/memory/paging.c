@@ -9,6 +9,16 @@
 
 #include "../../k_management.h"
 
+void _paging_init_critical_error(const char* msg, size_t line, enum panic_codes code) {
+	if (vocality >= vocality_report_everything) {
+		report_status("CRITICAL FAILURE", line, col.critical);
+	}
+	report(msg, report_critical);
+	if (code != ok) {
+		panic(code);
+	}
+}
+
 void paging_init() {
 
 	size_t line = 0;
@@ -21,17 +31,17 @@ void paging_init() {
 
 	//	check initial paging setup
 	if (req_page_mode.response == null) {
-		report("cannot retrieve paging mode\n", report_critical);
-		panic(panic_code_paging_initialization_failure);
+		_paging_init_critical_error("cannot retrieve paging mode\n", line, panic_code_paging_initialization_failure);
 		__builtin_unreachable();
 	}
 	if (req_page_mode.response->mode != LIMINE_PAGING_MODE_X86_64_4LVL) {
-		report("unsupported paging mode (", report_critical);
+		_paging_init_critical_error("unsupported paging mode (", line, ok);
 		if (req_page_mode.response->mode == LIMINE_PAGING_MODE_X86_64_5LVL) {
 			printl("5 level)");
 		} else {
 			printl("unknown)");
 		}
+		panic(panic_code_unsupported_paging_mode);
 	}
 	req_page_mode.response = null;
 
@@ -42,36 +52,34 @@ void paging_init() {
 
 	//	detect HHDM
 	if (req_page_hhdm.response == null) {
-		report("cannot get higher half direct map offset\n", report_critical);
-		panic(panic_code_paging_initialization_failure);
+		_paging_init_critical_error("cannot get higher half direct map offset\n", line, panic_code_paging_initialization_failure);
 		__builtin_unreachable();
 	}
 	if (req_page_hhdm.response->revision != 0) {
 		report("unsupported revision for higher half direct map => it can cause unexpected behaviour\n", report_warning);
 	}
+	pages.hhdm = req_page_hhdm.response->offset;
+	req_page_hhdm.response = null;
 
 
 	//	read the pml4 physical address
 	asm volatile("mov %0, cr3" : "=r"(pages.pml4));
 	if (pages.pml4 == null) {
-		report("cannot retrieve paging table address\n", report_critical);
-		panic(panic_code_unable_to_allocate_paging_table);
+		_paging_init_critical_error("cannot retrieve paging table address\n", line, panic_code_unable_to_allocate_paging_table);
 		__builtin_unreachable();
 	}
-	pages.hhdm = req_page_hhdm.response->offset;
-	req_page_hhdm.response = null;
 	tmp = (u64*)&pages.pml4;
 	*tmp += pages.hhdm;
 
 
 	//	retrieve kernel address
 	if (req_k_address.response == null) {
-		report("could not find kernel address\n", report_warning);
-	} else {
-		pages.kernel.virtual = (void*)req_k_address.response->virtual_base;
-		pages.kernel.physical = (void*)req_k_address.response->physical_base;
-		req_k_address.response = null;
+		_paging_init_critical_error("could not find kernel address\n", line, panic_code_base_addresses_not_available);
+		__builtin_unreachable();
 	}
+	pages.kernel.virtual = (void*)req_k_address.response->virtual_base;
+	pages.kernel.physical = (void*)req_k_address.response->physical_base;
+	req_k_address.response = null;
 
 
 
@@ -105,8 +113,7 @@ void paging_init() {
 		}
 	}
 	if (virt.virtual_address.pml4 == 0) {
-		report("could not find any free virtual memory in higher half\n", report_critical);
-		panic(panic_code_paging_initialization_failure);
+		_paging_init_critical_error("could not find any free virtual memory in higher half memory\n", line, panic_code_paging_initialization_failure);
 		__builtin_unreachable();
 	}
 
@@ -114,6 +121,7 @@ void paging_init() {
 	pages.system.pdpt.physical = (size_t)&pages.system.pdpt.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
 	pages.system.pdpt.virtual = virt.voidptr;
 
+	//	dunno what this code actually does but im not touching it
 	ssize_t pml4 = -1;
 	for (ssize_t i = 511; i >= 0; i--) {
 		//	find empty pml4 entry
@@ -123,8 +131,8 @@ void paging_init() {
 		}
 	}
 	if (pml4 == -1) {
-		report("could not find empty pml4 entry\n", report_critical);
-		panic(panic_code_paging_initialization_failure);
+		_paging_init_critical_error("failed to locate empty pml4 entry\n", line, panic_code_paging_initialization_failure);
+		__builtin_unreachable();
 	}
 
 	pages.system.quick.physical = (size_t)&pages.system.quick.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
@@ -140,9 +148,8 @@ void paging_init() {
 	}
 
 	{	//	connect quick to pdpt
-		//	NOTE:	quick is sized
+		//	NOTE:	quick is sized (and deprecated)
 		unsized_page_entry* ent = &pages.system.pdpt.table[511];
-		//ent->address = pages.system.quick.physical >> PAGE_SHIFT;
 		unsized_page_set_address(*ent, pages.system.quick.physical);
 		ent->present = true;
 		ent->write = true;
@@ -168,6 +175,12 @@ void paging_init() {
 				break;
 			}
 		}
+
+		if (pages.system.pdpt.virtual == null) {
+			_paging_init_critical_error("failed to create system heap virtual address space\n", line, panic_code_paging_initialization_failure);
+			__builtin_unreachable();
+		}
+
 	}
 
 	{	//	table heap (2mb)
@@ -187,6 +200,38 @@ void paging_init() {
 				pages.system.table_heap.virtual = address.voidptr;
 				break;
 			}
+		}
+
+		if (pages.system.table_heap.virtual == null) {
+			_paging_init_critical_error("failed to create system table heap virtual address space\n", line, panic_code_paging_initialization_failure);
+			__builtin_unreachable();
+		}
+
+	}
+
+	{	//	pd
+		unsized_page_table* table = &pages.system.pd.table;
+		const unsized_page_entry e = {.present = true, .write = true, .exec_disable = true};
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			(*table)[i] = e;
+		}
+
+		pages.system.pd.physical = (size_t)&pages.system.pd.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
+
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			if (pages.system.pdpt.table[i].address == 0) {
+				unsized_page_set_address(pages.system.pdpt.table[i], pages.system.pd.physical);
+
+				union virtual_address address = {.voidptr = pages.system.pdpt.virtual};
+				address.virtual_address.pdpt = i;
+				pages.system.pd.virtual = address.voidptr;
+				break;
+			}
+		}
+
+		if (pages.system.pd.virtual == null) {
+			_paging_init_critical_error("failed to connect pd layer to pdpt\n", line, panic_code_paging_initialization_failure);
+			__builtin_unreachable();
 		}
 
 	}
@@ -286,3 +331,40 @@ unsized_page_entry* page_find_empty_pdpt() {
 	return null;
 }
 
+page_table* random_table_alloc(table_allocator_t* alloc, void** virtual, size_t physical) {
+
+	ssize_t pd = -1;
+	*virtual = null;
+
+	{	//	find pd entry
+		for (size_t i = 0; i < PAGE_COUNT; i++) {
+			if (pages.system.pd.table[i].address == 0) {
+				pd = (ssize_t)i;
+				union virtual_address address = {.voidptr = pages.system.pd.virtual};
+				address.virtual_address.pd = i;
+				*virtual = address.voidptr;
+				break;
+			}
+		}
+		if (pd < 0) {
+			return null;
+		}
+	}
+
+
+	page_table* table = (page_table*)table_alloc(alloc, 1);
+	if (table == null) {
+		return null;
+	}
+
+	//	initialize table
+	for (size_t i = 0; i < PAGE_COUNT; i++) {
+		(*table)[i] = (page_table_entry){.present = true, .write = true, .exec_disable = true};
+	}
+
+	unsized_page_set_address(pages.system.pd.table[pd], table_physical(alloc, (void*)table));
+
+	unsized_page_set_address((*table)[0], physical);
+
+	return table;
+}
