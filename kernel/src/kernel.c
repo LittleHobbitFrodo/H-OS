@@ -15,6 +15,7 @@ void kernel() {
 	printl(KERNEL_NAME);
 	output.color = col.white;
 
+
 	shell();
 
 }

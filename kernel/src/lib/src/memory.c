@@ -17,7 +17,7 @@ void memory_init() {
 
 	if (vocality >= vocality_report_everything) {
 		endl();
-		line = report("proceeding with memory initialization\n", report_note);
+		line = report("preparing memory\n", report_note);
 	}
 
 
@@ -34,12 +34,11 @@ void memory_init() {
 
 	base.virtual = (void*)req_k_address.response->virtual_base;
 	base.physical = (void*)req_k_address.response->physical_base;
-
-	if ((req_memmap.response == null) || (req_memmap.response->entries == null)) {
+	 if ((req_memmap.response == null) || (req_memmap.response->entries == null)) {
 		if (vocality >= vocality_report_everything) {
 			report_status("CRITICAL FAILURE", line, col.critical);
 		}
-		report("memory map not found", report_critical);
+		report("memory map was not found", report_critical);
 		panic(panic_code_memmap_not_found);
 	}
 
@@ -270,10 +269,10 @@ void memmap_parse() {
 	}
 
 
-
-
 	//	fill length entries
 	memmap.data[memmap.len-1].len = ent->base + ent->length - memmap.data[memmap.len - 1].base;
+
+	memmap_analyze();
 
 	for (size_t i = memmap.len-1; i > 0; i--) {
 		memmap.data[i-1].len = memmap.data[i].base - memmap.data[i-1].base;
@@ -463,122 +462,48 @@ void memmap_display_original() {
 void memmap_analyze() {
 	//	gather info about memory usage
 
-	meminfo.total = 0;
-	meminfo.usable = 0;
-	meminfo.used = 0;
-	meminfo.reserved = 0;
-	meminfo.ring0 = 0;
-	meminfo.unmapped = 0;
+	memmap_entry* e = memmap.data;
 
-	memmap_entry *es = memmap.data;
+	if (e == null) {
+		if (vocality >= vocality_report_everything) {
+			report_status("CRITICAL FAILURE", *init_phase_status_line, col.critical);
+		}
+		report("no memory map found\n", report_critical);
+		panic(panic_code_memmap_not_found);
+		__builtin_unreachable();
+	}
 
 	for (size_t i = 0; i < memmap.len; i++) {
-		switch (es[i].type) {
-			case memmap_usable: {
-				//	usable memory
-				meminfo.usable += es[i].len;
+		switch (e[i].type) {
+			case memmap_usable: case memmap_reclaimable: {
+				meminfo.usable += e[i].len;
 				break;
 			}
-			case memmap_heap:
-			case memmap_stack: {
-				//	used + ring0
-				meminfo.ring0 += es[i].len;
-				meminfo.used += es[i].len;
+			case memmap_paging: case memmap_kernel: case memmap_heap: {
+				meminfo.system += e[i].len;
+				meminfo.used += e[i].len;
 				break;
 			}
-			case memmap_reserved: {
-				//	reserved memory
-				meminfo.reserved += es[i].len;
-				break;
-			}
-			case memmap_kernel:
-			case memmap_acpi:
-			case memmap_other: {
-				//	ring 0
-				meminfo.ring0 += es[i].len;
+			case memmap_acpi: case memmap_other: case memmap_reserved: {
+				meminfo.reserved += e[i].len;
 				break;
 			}
 			case memmap_bad: {
-				meminfo.unmapped += es[i].len;
+				meminfo.unmapped += e[i].len;
 				break;
 			}
-			case memmap_undefined: {
-				report("memory map entry index ", report_error);
-				printu(i);
-				printl(" has undefined type");
+			default: {
+				report("memory map entry ", report_error);
+				printu(i+1); printl(" is unknown");
 				break;
 			}
-			default: break;
 		}
 	}
 
-	meminfo.total = es[memmap.len - 1].base + es[memmap.len - 1].len;
+	meminfo.total = e[memmap.len-1].base + e[memmap.len-1].len - e[0].base;
+
 }
 
-/*void memmap_reclaim() {
-	//	reclaims reclaimable entries
-
-	if (memmap.data == null) {
-		report("memmap_reclaim: memory map does not exist\n", report_critical);
-		panic(panic_code_memmap_not_found);
-	}
-
-	memmap_entry* olds = memmap.data;
-
-	//	change all reclaimable entries to usable
-	for (size_t i = 0; i < memmap.len; i++) {
-		if (olds[i].type == memmap_reclaimable) {
-			olds[i].type = memmap_usable;
-		}
-	}
-
-	memmap_vector_t old;
-	vec_take_over(&old, &memmap);
-	vecs(&memmap, sizeof(memmap_entry));
-
-	enum memmap_types tmp = memmap_undefined;
-
-	ssize_t i = 0;
-	{
-		//	prepare first entry
-		memmap_entry *first = (memmap_entry *) vec_push(&memmap, 1);
-		first->base = olds[0].base;
-		first->type = olds[0].type;
-		tmp = first->type;
-		for (++i; (i < (ssize_t)old.len) && (olds[i].type == tmp); i++);
-		--i;
-		first->len = olds[i].base + olds[i].len - first->base;
-		++i;
-	}
-
-	memmap_entry* ent;
-	for (; i < (ssize_t)old.len; i++) {
-		ent = &olds[i];
-
-		tmp = ent->type;
-		for (++i; (i < (ssize_t)old.len) && (olds[i].type == tmp); i++);
-		--i;
-
-		memmap_entry *new = (memmap_entry *) vec_push(&memmap, 1);
-		new->base = ent->base;
-		new->type = tmp;
-		if (i + 1 < (ssize_t)old.len) {
-			new->len = olds[i + 1].base - new->base;
-		} else {
-			new->len = olds[i].base + olds[i].len - new->base;
-		}
-
-	}
-
-	vec_free(&old);
-
-	//	gather info about memory usage
-	memmap_analyze();
-
-	if (vocality >= vocality_report_everything) {
-		report("memory reclaimed\n", report_note);
-	}
-}*/
 
 memmap_entry* memmap_find(enum memmap_types type) {
 	memmap_entry *ret;

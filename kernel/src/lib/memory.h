@@ -10,11 +10,13 @@
 #define MB (1024 * 1024)
 #define GB (1024 * 1024 * 1024)
 
-static struct base {
+typedef struct membase_t {
 	void* virtual;
 	void* physical;
 	void* hhdm;
-} base;
+} membase_t;
+
+static membase_t base = {0};
 
 
 static u8 stack[7][8*KB];
@@ -23,16 +25,20 @@ static void memory_init();
 
 #define align(val, algn) (((size_t)(val) + (algn) - 1) & ~((algn) - 1))
 
-static struct meminfo {
+
+
+typedef struct meminfo_t {
 	size_t total;
 	size_t usable;
 	size_t used;
 
 	size_t reserved; //	reserved memory
-	size_t ring0; //	ring 0 memory (kheap, stacks, acpi, fb, ...)
+	size_t system; //	ring 0 memory (kheap, stacks, acpi, fb, ...)
 
 	size_t unmapped; //	bad memory
-} meminfo;
+} meminfo_t;
+
+static meminfo_t meminfo = {0};
 
 
 enum memmap_types {

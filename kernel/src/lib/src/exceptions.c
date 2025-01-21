@@ -116,9 +116,8 @@ void handle_exception(exception_stack_frame *frame) {
 				va_info((void*)frame->cr2);
 			}
 			endl();
-			heap_debug(&heap.global);
 			hang();
-			break;
+			__builtin_unreachable();
 		}
 		case exception_floating_point: {
 			report("floating point exception\n", report_error);

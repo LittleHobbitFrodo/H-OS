@@ -7,20 +7,9 @@
 #include "../k_management.h"
 
 void init() {
-	//	gather information about framebuffer
-	screen_init();
-	//	flush screen
-	screen_flush();
-
-	//	initialize font (bad implementation)
-	font_init();
 
 	//	initialize output structure
 	output_init();
-
-	#ifdef KERNEL_DEBUG
-		report("starting in DEBUG mode\n", report_debug);
-	#endif
 
 	//	parse command line arguments
 	parse_cmd();
@@ -102,6 +91,14 @@ void panic(enum panic_codes code) {
 			printl("ACPI data structure validation failed");
 			break;
 		}
+		case panic_code_unsupported_firmware: {
+			printl("unsupported firmware platform");
+			break;
+		}
+		case panic_code_efi_systable_not_found: {
+			printl("EFI system table cannot be found");
+			break;
+		}
 		default: {
 			printl("unknown critical error");
 			break;
@@ -123,7 +120,10 @@ void panic(enum panic_codes code) {
 			printl("FAILED TO INITIALIZE HARDWARE");
 			break;
 		}
-		default: break;
+		default: {
+			printl("CRITICAL FAILURE DURING RUNTIME");
+			break;
+		}
 	}
 
 	output.color = col.white;
@@ -254,7 +254,6 @@ void parse_cmd() {
 	char token[CMD_MAX_TOKEN_LEN];
 
 	if ((req_kernel_file.response == null) || (req_kernel_file.response->kernel_file == null)) {
-		report("unable to find kernel command line arguments -> using default values\n", report_warning);
 		return;
 	}
 	const char* cmd = req_kernel_file.response->kernel_file->cmdline;
@@ -285,7 +284,8 @@ void parse_cmd() {
 				__parse_cmd_report("unknown word \"", report_problem);
 				print(token); printl("\" for switch \"-vocality\"");
 			}
-		} else if (strcmpb(token, "kaslr")) {
+
+		}/* else if (strcmpb(token, "kaslr")) {
 
 			i += __parse_cmd_next_token(cmd, len, token, i);
 			if (strcmpb(token, "disable")) {
@@ -297,7 +297,6 @@ void parse_cmd() {
 				print(token); printl("\" for switch \"-kaslr\"");
 			}
 
-		}
-
+		}*/
 	}
 }

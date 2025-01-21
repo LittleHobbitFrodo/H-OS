@@ -368,6 +368,22 @@ void shell() {
 				}
 			}
 
+		} else if (str_cmpb(str, "timezone")) {
+			if ((tokens.len >= 1) && (strcmpb(tokens.data[1].data, "set"))) {
+
+			} else {
+				print("timezone:\t");
+				if (timezone == 0) {
+					printc('0'); endl();
+				} else {
+					if (timezone < 0) {
+						printc('-'); printu((u64)(-timezone));
+					} else {
+						printc('+'); printu((u64)timezone);
+					}
+					endl();
+				}
+			}
 		} else {
 			report("unknown command \"", report_error);
 			print(str->data);

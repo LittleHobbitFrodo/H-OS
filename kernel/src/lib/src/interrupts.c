@@ -10,7 +10,7 @@ void interrupts_init() {
 	size_t line = 0;
 
 	if (vocality >= vocality_report_everything) {
-		line = report("proceeding with interrupt initialization\n", report_note);
+		line = report("initializing interrupts\n", report_note);
 	}
 
 	kernel_status = k_state_init_interrupts;

@@ -32,7 +32,7 @@ typedef struct screen_t {
 	u32 *address;
 } screen_t;
 
-static screen_t screen;
+static screen_t screen = {0};
 
 void screen_init();
 
@@ -40,22 +40,35 @@ static void screen_flush();
 
 static void screen_flush_at(size_t line, size_t column);
 
+typedef u32 color;
 
-static struct col {
-	u32 white;
-	u32 green;
-	u32 red;
-	u32 blue;
-	u32 critical;
+typedef struct output_colors {
+	color white;
+	color green;
+	color red;
+	color blue;
+	color critical;
 
-	u32 yellow;
-	u32 orange;
-	u32 cyan;
+	color yellow;
+	color orange;
+	color cyan;
 
-	u32 grey;
+	color grey;
 
-	u32 hint;
-} col;
+	color hint;
+} output_colors;
+
+static output_colors col = {.white = 0xffffff,
+	.green = 0x88ff88,
+	.red = 0xff8888,
+	.blue = 0x8888ff,
+	.critical = 0xff0000,
+	.yellow = 0xffff00,
+	.orange = 0xffa500,
+	.cyan = 0x00ffff,
+	.grey = 0xaaaaaa,
+	.hint = 0xaaaaaa};
+
 
 static struct output {
 	volatile size_t line;
@@ -64,7 +77,7 @@ static struct output {
 	u8 space_between_lines;
 	size_t fb;
 
-	u32 color;
+	color color;
 
 	volatile bool lock;
 } output;

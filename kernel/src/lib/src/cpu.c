@@ -83,19 +83,25 @@ void cpu_init() {
 	memcpy((void *) &txt, (void *) ((size_t) &cpu.model + sizeof(u32) * 8), 4 * sizeof(u32));
 	cpu.model[48] = '\0';
 
-	if ((vocality >= vocality_normal) && (cpu.vendor->environment != environment_hardware)) {
-		report("The OS is running under ", report_note);
-		print(cpu.vendor->name);
-		switch (cpu.vendor->environment) {
-			case environment_vm: {
-				printl(" hypervisor");
-				break;
+
+	if (vocality >= vocality_report_everything) {
+		if (cpu.vendor->environment != environment_hardware) {
+			report("the OS is running under ", report_note);
+			print(cpu.vendor->name);
+			switch (cpu.vendor->environment) {
+				case environment_vm: {
+					printl(" hypervisor");
+					break;
+				}
+				case environment_emulator: {
+					printl(" emulator");
+					break;
+				}
+				default:
+					break;
 			}
-			case environment_emulator: {
-				printl(" emulator");
-				break;
-			}
-			default: break;
+		} else {
+			report("real hardware detected\n", report_note);
 		}
 	}
 

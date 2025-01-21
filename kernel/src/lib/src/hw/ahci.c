@@ -23,7 +23,7 @@ void ahci_init() {
 	}
 
 	//	gather address from PCI base address register 5
-	ahci.base = pci_read_bar(ahci.pci_address, 5);
+	ahci.base = (void*)pci_read_bar(ahci.pci_address, 5, null);
 
 	if (ahci.base == null) {
 		report("AHCI: could not find ahci base address\n", report_error);

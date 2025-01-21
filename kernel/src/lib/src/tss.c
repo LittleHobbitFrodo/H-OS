@@ -12,8 +12,6 @@
 
 		//NOTE: INTERRUPT_STACKS is defined in memory.h
 
-		memnull(&tss, sizeof(tss_t));
-
 		for (size_t i = 0; i < 7; i++) {
 			tss.tss.ist[i] = (size_t)(&stack[i][(8*KB)-1]);
 		}

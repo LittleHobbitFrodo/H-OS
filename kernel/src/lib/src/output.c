@@ -8,25 +8,6 @@
 
 //	initialization functions
 void screen_init() {
-	//	initialize screen structure
-	screen.count = 0;
-	screen.address = null;
-	screen.bpp = 0;
-	screen.h = 0;
-	screen.w = 0;
-
-	//	initialize colors
-	col.white = 0xffffff;
-	col.green = 0x88ff88;
-	col.red = 0xff8888;
-	col.blue = 0x8888ff;
-	col.critical = 0xff0000;
-
-	col.yellow = 0xffff00;
-	col.orange = 0xffa500;
-	col.cyan = 0x00ffff;
-	col.grey = 0xaaaaaa;
-	col.hint = col.grey;
 
 	if (req_fb.response == null) {
 		return;
@@ -74,6 +55,13 @@ void screen_flush_at(size_t line, size_t column) {
 
 
 void output_init() {
+
+	screen_init();
+
+	screen_flush();
+
+	font_init();
+
 	output.line = (output.column = 0);
 	output.space_between_lines = SPACE_BETWEEN_LINES_DEFAULT;
 	output.fb = 0;

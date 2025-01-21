@@ -12,7 +12,7 @@ void keyboard_init() {
 
 	size_t line = 0;
 	if (vocality >= vocality_report_everything) {
-		line = report("keyboard driver initialization\n", report_note);
+		line = report("initialing the goofy driver for PS2 keyboard\n", report_note);
 	}
 
 	if (!keyboard_send_cmd_data(KEYBOARD_CMD_SET_LEDS, 0)) {

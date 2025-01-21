@@ -8,15 +8,14 @@
 
 void nvm_init() {
 
+	if (nvm.initialzed) {
+		return;
+	}
+
 	size_t line = 0;
 
 	if (vocality >= vocality_report_everything) {
 		line = report("proceeding to initialize NVM controller\n", report_note);
-	}
-	wait(750);
-
-	if (nvm.initialzed) {
-		return;
 	}
 
 	if (nvm.address.pci.enable == 0) {
@@ -27,67 +26,97 @@ void nvm_init() {
 		return;
 	}
 
-	nvm.address.physical = (size_t)pci_read_bar(nvm.address.pci, 0);
-
-	nvm.table = random_table_alloc(&pages.heap.global, (void**)&nvm.address.base, nvm.address.physical);
-	if (nvm.table == null) {
-		report("could not allocate memory for NVM virtual address space\n", report_error);
-		return;
-	}
-
-	/*print("\n\nnvm virtual address:\t"); printp(nvm.address.base); endl();
-	wait(1500);
-
-	u32* tmp = (void*)nvm.address.base;
-	print("read:\t"); printu(*tmp); endl();
-
-	print("write:\t"); *tmp = 69; printu(*tmp); endl();*/
-
-
-	/*if (nvm.pci_address.enable == 0) {
-		report("NVM init: cannot find PCI address | initialization halted\n", report_error);
-		return;
-	}
-
-	//	read PCI base memory register 0
-	nvm.base = pci_read_bar(nvm.pci_address, 0);
-
-	//	map 2mb page
-	nvm.table = page_alloc(1);
-	print("nvm.table:\t"); printp(nvm.table); endl();
-	wait(1500);
-	{
-		u64* specific = (u64*)nvm.table;
-		for (size_t i = 0; i < 512; i++) {
-			*specific++ = 1;	//	present bit is on
+	if (!nvm_memory_init()) {
+		if (vocality >= vocality_report_everything) {
+			report_status("FAILURE", line, col.red);
 		}
-	}
-	//	map it to itself
-	(*nvm.table)[0].address = ((size_t)nvm.table - pages.hhdm) >> PAGE_SHIFT;
-
-	//	map second entry to nvm config space
-	(*nvm.table)[1].address = ((size_t)nvm.base - pages.hhdm) >> PAGE_SHIFT;
-
-	//	find unused pml4 page
-	for (size_t i = 511; i > 255; i--) {
-		if ((*pages.pml4)[i].address == 0) {
-			(*pages.pml4)[i].address = ((size_t)nvm.table - pages.hhdm) >> PAGE_SHIFT;
-		}
-	}
-
-	if (nvm.base == null) {
-		report("NVM controller initialization: cannot get memory-mapped IO (null)\n", report_error);
+		report("failed to initialize virtual address space for NVM configuration\n", report_error);
 		return;
 	}
 
-	print("nvm base:\t\t"); printp((void*)((size_t)nvm.base - (size_t)pages.hhdm)); endl();
-	memmap_display();
-	memmap_display_original();
+	if (!nvm_version_supported()) {
+		if (vocality >= vocality_report_everything) {
+			report_status("FAILURE", line, col.red);
+		}
+		report("NVm controller version is not supported", report_error);
+		return;
+	}
 
-	print("NVM controller version:\t"); printu(nvm.base->version.major); printc('.'); printu(nvm.base->version.minor); endl();
-	*/
+	//	check capabilities for command setW
+
+	//	check for support of host page size
+
+	//	reset controller
+
+	//	set controller config, admin queues
+
+	//	start da controller
+
+	//	interrupts + register handler
+
+	//	send identify command
+		//	check for IO controller
+
+	//	reset software progress marker
+
+	//	create IO completion and submission queue
+
+	//	identify namespace IDs
+		//	then individual namespaces
+		//	check block size, and if its read only
+
+
+	nvm.initialzed = true;
+	nvm.used = true;
 
 	if (vocality >= vocality_report_everything) {
 		report_status("SUCCESS", line, col.green);
 	}
+}
+
+
+bool nvm_version_supported() {
+	nvm_base_register_t* reg = nvm.address.base;
+	print("NVM version:\t"); printu(reg->version.major); printc('.'); printu(reg->version.minor); printc('.'); printu(reg->version.tertiary); endl();
+	return true;
+}
+
+bool nvm_memory_init() {
+
+	bool is_io;
+	u64 bar = pci_read_bar(nvm.address.pci, 0, &is_io);
+	if (is_io) {
+		return false;
+	}
+	print("NVM BASE:\t"); printp((void*)bar); endl();
+	union virtual_address address = {.voidptr = pages.system.pdpt.virtual};
+
+	for (size_t i = 0; i < PAGE_COUNT; i++) {
+		if (pages.system.pdpt.table[i].address == 0) {
+			address.virtual_address.pdpt = i;
+			goto pdpt_found;
+		}
+	}
+
+	return false;
+
+	pdpt_found:
+
+	nvm.table = (sized_page_table*)table_alloc(&pages.heap.global, 1);
+	if (nvm.table == null) {
+		return false;
+	}
+
+	nvm.address.physical = align(bar, 2*MB);
+
+	for (size_t i = 0; i < PAGE_COUNT; i++) {
+		(*nvm.table)[i] = (sized_page_entry){.present = true, .write = true, .exec_disable = true, .page_size = true};
+	}
+	unsized_page_set_address(pages.system.pdpt.table[address.virtual_address.pdpt], table_physical(&pages.heap.global, (void*)nvm.table));
+
+	sized_page_set_address((*nvm.table)[0], nvm.address.physical);
+	sized_page_set_address((*nvm.table)[1], nvm.address.physical + (2*MB));
+	nvm.address.base = (nvm.address.virtual = address.voidptr);
+
+	return true;
 }

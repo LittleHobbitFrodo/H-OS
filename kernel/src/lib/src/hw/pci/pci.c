@@ -25,42 +25,39 @@ u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset) {
 	return ind(PCI_CONFIG_DATA);
 }
 
-void* pci_read_bar(pci_address address, u8 bar) {
-	//	returns physical address
+u64 pci_read_bar(pci_address address, u8 bar, bool* is_io) {
+	//	returns PCI BAR X
+		//	writes 1 if BAR is registered as IO
+
 	if (bar >= 6) {
-		return null;
+		return 0;
 	}
-	address.offset = 1;
-	u32 tmp = pci_reada((union pci_address_u32)address);
-	tmp |= 0b11;
-	pci_writea((union pci_address_u32)address, tmp);
-	pci_memory_base base;
-	{
-		u32* ptr = (u32*)&base;
-		address.offset = (sizeof(pci_device_header)/sizeof(u32)) + bar;
-		*ptr = pci_reada((union pci_address_u32)address);
+
+	address.offset = sizeof(pci_device_header)/sizeof(u32) + bar;
+	union pci_base_reg_u32 reg = {.u32 = pci_reada((union pci_address_u32)address)};
+
+	if (is_io != null) {
+		*is_io = reg.reg.io_reg;
 	}
-	if (base.always_zero != 0) {
-		return null;
-	}
-	switch (base.type) {
+
+	switch (reg.reg.type) {
 		case 0: {
-			//	32-bit BAR
-			printl("read BAR: 1");
-			return (void*)((size_t)base.base);
+			//	32 bit
+			return reg.reg.base << 4;
 		}
-		case 1: {
-			//	reserved for PCI 3.0
-			return null;
+		case 1: default: {
+			//	reserved
+			return 0;
 		}
 		case 2: {
-			size_t a = base.base;
 			address.offset++;
-			size_t higher = (size_t)pci_reada((union pci_address_u32)address);
-			a |= ((higher & ~0xf) << 32);
-			return (void*)a;
+			size_t a = (u64)(reg.reg.base << 4);
+			print("BAR0:\t\t"); printp((void*)((size_t)reg.reg.base << 4)); endl();
+			a &= 0xffffffff;
+			print("BAR1:\t\t"); printp((void*)((size_t)pci_reada((union pci_address_u32)address))); endl();
+			a |= (u64)((u64)pci_reada((union pci_address_u32)address) << 32);
+			return a;
 		}
-		default: return null;
 	}
 }
 
@@ -70,7 +67,7 @@ void pci_init() {
 	size_t line = 0;
 
 	if (vocality >= vocality_report_everything) {
-		line = report("proceeding with PCI initialization\n", report_note);
+		line = report("initializing system peripherals (PCI)\n", report_note);
 	}
 
 	u32 count = pci_enumerate();

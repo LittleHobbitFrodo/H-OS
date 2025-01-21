@@ -11,8 +11,6 @@ void gdt_init() {
 
 	tss_init();
 
-	memnull(&gdt, sizeof(gdt));
-
 	gdt.kernel_code.flags = (gdt.user_code.flags = 0xA0);
 	gdt.kernel_data.flags = (gdt.user_data.flags = 0xA0);
 

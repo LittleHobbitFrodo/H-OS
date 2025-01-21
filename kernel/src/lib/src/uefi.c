@@ -61,9 +61,6 @@ void uefi_init() {
 		#endif
 	}
 
-	//	prepare uefi structure
-	memnull(&uefi, sizeof(uefi_t));
-
 	uefi.supported = (req_efi_system_table.response != null) && (req_efi_system_table.response->address != null);
 
 	if (!uefi.supported) {
@@ -75,6 +72,14 @@ void uefi_init() {
 	}
 
 	uefi.system_table = (EFI_SYSTEM_TABLE*)req_efi_system_table.response->address;
+	if (uefi.system_table == null) {
+		if (vocality >= vocality_report_everything) {
+			report_status("CRITICAL FAILURE", line, col.critical);
+		}
+		report("EFI system table is not present\n", report_error);
+		panic(panic_code_efi_systable_not_found);
+		__builtin_unreachable();
+	}
 	uefi.runtime = uefi.system_table->RuntimeServices;
 
 	if (vocality >= vocality_report_everything) {

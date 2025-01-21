@@ -27,7 +27,7 @@ void pci_scan_bus(u8 bus);	//	scan one bus
 
 
 
-void* pci_read_bar(pci_address address, u8 bar);
+u64 pci_read_bar(pci_address address, u8 bar, bool* is_io);
 
 u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset);
 __attribute__((always_inline))

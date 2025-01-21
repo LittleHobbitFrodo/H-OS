@@ -13,7 +13,7 @@
 #define SECONDS_PER_YEAR (365 * SECONDS_PER_DAY)
 
 #ifndef TIME_FORMAT_DEFAULT
-	#define TIME_FORMAT_DEFAULT "{hour}:{min}:{sec} | {day}:{mon}:{year}"
+	#define TIME_FORMAT_DEFAULT "{hour}:{min}:{sec} | {day}. {mon}. {year}"
 #endif
 
 
@@ -22,7 +22,7 @@ extern volatile size_t tick;
 volatile size_t tick = 0;
 //	incrementing the variable every millisecond can keep the system running for over 500 years
 
-static const u16 days_in_month[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+static const u8 days_in_month[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 typedef struct time_t {
 	//	daytime specification
@@ -58,9 +58,11 @@ __attribute__((always_inline)) static inline bool is_leap_year(ssize_t year) {
 }
 
 
-static volatile timespec_t timespec;
+static /*volatile*/ timespec_t timespec = {0};
 
-[[maybe_unused]] static char* time_format_str = TIME_FORMAT_DEFAULT;
+static i8 timezone = 0;
+
+static char* time_format_str = TIME_FORMAT_DEFAULT;
 
 
 

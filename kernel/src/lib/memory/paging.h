@@ -242,5 +242,24 @@ unsized_page_entry* page_find_empty_pdpt();
 __attribute__((nonnull(1, 2)))
 page_table* random_table_alloc(table_allocator_t* alloc, void** virtual, size_t physical);
 
+__attribute__((always_inline))
+inline unsized_page_entry* unsized_table_find_empty(unsized_page_table* table, size_t* index) {
+	for (size_t i = 0; i < PAGE_COUNT; i++) {
+		if ((*table)[i].address == 0) {
+			if (index != null) {
+				*index = (ssize_t)i;
+			}
+			return &((*table)[i]);
+		}
+	}
+	if (index != null) {
+		*index = 0;
+	}
+	return null;
+}
+
+void* kmem_map_sized(size_t physical, size_t size, sized_page_table** table);
+	//	returns virtual address
+
 
 #include "./heap/table-heap/table-heap.h"

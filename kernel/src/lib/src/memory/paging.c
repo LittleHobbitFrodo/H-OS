@@ -24,7 +24,7 @@ void paging_init() {
 	size_t line = 0;
 
 	if (vocality >= vocality_report_everything) {
-		line = report("proceeding with memory protection initialization\n", report_note);
+		line = report("working on memory protection\n", report_note);
 	}
 
 	u64* tmp = null;
@@ -56,7 +56,7 @@ void paging_init() {
 		__builtin_unreachable();
 	}
 	if (req_page_hhdm.response->revision != 0) {
-		report("unsupported revision for higher half direct map => it can cause unexpected behaviour\n", report_warning);
+		report("detected unsupported revision for HHDM, this may cause some troubles\n", report_warning);
 	}
 	pages.hhdm = req_page_hhdm.response->offset;
 	req_page_hhdm.response = null;
@@ -74,7 +74,7 @@ void paging_init() {
 
 	//	retrieve kernel address
 	if (req_k_address.response == null) {
-		_paging_init_critical_error("could not find kernel address\n", line, panic_code_base_addresses_not_available);
+		_paging_init_critical_error("kernel addresses cannot be found\n", line, panic_code_base_addresses_not_available);
 		__builtin_unreachable();
 	}
 	pages.kernel.virtual = (void*)req_k_address.response->virtual_base;
@@ -121,22 +121,9 @@ void paging_init() {
 	pages.system.pdpt.physical = (size_t)&pages.system.pdpt.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
 	pages.system.pdpt.virtual = virt.voidptr;
 
-	//	dunno what this code actually does but im not touching it
-	ssize_t pml4 = -1;
-	for (ssize_t i = 511; i >= 0; i--) {
-		//	find empty pml4 entry
-		if ((*pages.pml4)[i].address == 0) {
-			pml4 = i;
-			break;
-		}
-	}
-	if (pml4 == -1) {
-		_paging_init_critical_error("failed to locate empty pml4 entry\n", line, panic_code_paging_initialization_failure);
-		__builtin_unreachable();
-	}
-
+		//	prepare quick
 	pages.system.quick.physical = (size_t)&pages.system.quick.table - (size_t)pages.kernel.virtual + (size_t)pages.kernel.physical;
-	virt.virtual_address.pdpt = pml4;
+	virt.virtual_address.pdpt = virt.virtual_address.pml4;
 	pages.system.quick.virtual = virt.voidptr;
 
 	{	//	connect pdpt to pml4
@@ -157,6 +144,7 @@ void paging_init() {
 	}
 
 	sized_page_entry ent = {.present = true, .write = true, .exec_disable = true, .page_size = true};
+
 	{	//	heap pages (2mb) -> make them null
 		sized_page_table* table = (sized_page_table*)&pages.system.heap.table;
 		for (size_t i = 0; i < PAGE_COUNT; i++) {
@@ -333,6 +321,8 @@ unsized_page_entry* page_find_empty_pdpt() {
 
 page_table* random_table_alloc(table_allocator_t* alloc, void** virtual, size_t physical) {
 
+	//	allocates one pt and connects it to pd
+
 	ssize_t pd = -1;
 	*virtual = null;
 
@@ -367,4 +357,49 @@ page_table* random_table_alloc(table_allocator_t* alloc, void** virtual, size_t 
 	unsized_page_set_address((*table)[0], physical);
 
 	return table;
+}
+
+
+void* kmem_map_sized(size_t physical, size_t size, sized_page_table** table) {
+
+	union virtual_address address = {.voidptr = pages.system.pdpt.virtual};
+	sized_page_table* tab;
+
+	for (size_t i = 0; i < PAGE_COUNT; i++) {
+		if (pages.system.pdpt.table[i].address == 0) {
+			address.virtual_address.pdpt = i;
+			goto pdpt_found;
+		}
+	}
+
+	if (table != null) {
+		*table = null;
+	}
+	return null;
+
+	pdpt_found:
+
+	tab = (sized_page_table*)table_alloc(&pages.heap.global, 1);
+	if (tab == null) {
+		if (table != null) {
+			*table = null;
+		}
+		return null;
+	}
+
+	physical = align(physical, 2*MB);
+
+	for (size_t i = 0; i < PAGE_COUNT; i++) {
+		(*tab)[i] = (sized_page_entry){.present = true, .write = true, .exec_disable = true, .page_size = true};
+	}
+	unsized_page_set_address(pages.system.pdpt.table[address.virtual_address.pdpt], table_physical(&pages.heap.global, (void*)tab));
+	for (size_t i = 0; (i < PAGE_COUNT) && ((i*(2*MB)) < size); i++) {
+		sized_page_set_address((*tab)[i], physical + (i*(2*MB)));
+	}
+
+	if (table != null) {
+		*table = tab;
+	}
+
+	return address.voidptr;
 }

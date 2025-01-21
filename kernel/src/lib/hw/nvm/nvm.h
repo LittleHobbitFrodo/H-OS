@@ -15,11 +15,16 @@ typedef struct nvm_t {
 
 	struct { ;
 		pci_address pci;
-		nvm_base_register_t *base;
-		size_t physical;
+		nvm_base_register_t *base;	//	base register virtual address
+
+		size_t physical;		//	start of the physical address space
+		void* virtual;			//	start of virtual address space
+
+		size_t size;	//	address space size
+
 	} address;
 
-	page_table* table;
+	sized_page_table* table;
 
 	disk_vector disks;
 
@@ -31,43 +36,23 @@ typedef struct nvm_t {
 
 } nvm_t;
 
-static nvm_t nvm = {0};
+nvm_t nvm = {0};
 
-static void nvm_init();
+void nvm_init();
+
+static bool nvm_version_supported();
+
+static bool nvm_memory_init();
 
 
-//	reading dwords is neccesary
-__attribute__((always_inline))
-inline u32 nvm_read(const void* const address) {
-	return *((u32*)address);
-}
 
-__attribute__((always_inline))
-inline u64 nvm_read64(const void* const address) {
-	return (u64)(*((u32*)address)) | (((u64)((u32*)((size_t)address + sizeof(u32)))) << 32);
-}
 
-static inline void nvm_fill(void* structure, void* address, size_t size) {
-	size /= sizeof(u32);
-	for (size_t i = 0; i < size; i++) {
-		*((u32*)structure + i) = *((u32*)address + i);
-	}
-}
+//	admin commands
+#define NVM_CMD_ADMIN_CREATE_SUBMISSION_QUEUE 0x01
+#define NVM_CMD_ADMIN_CREATE_COMPLETION_QUEUE 0x05
+#define NVM_CMD_ADMIN_IDENTIFY 0x06
 
-__attribute__((always_inline))
-inline void nvm_write(void* const address, const u32 val) {
-	*((u32*)address) = val;
-}
+//	IO commands
+#define NVM_CMD_IO_READ 0x02
+#define NVM_CMD_IO_WRITE 0x01
 
-__attribute__((always_inline))
-inline void nvm_write64(void* const address, const u64 val) {
-	*((u32*)address) = (u32)val;
-	*((u32*)address+1) = (u32)(val >> 32);
-}
-
-static inline void nvm_flush(void* structure, void* address, size_t size) {
-	size /= sizeof(u32);
-	for (size_t i = 0; i < size; i++) {
-		*((u32*)address + i) = *((u32*)structure + i);
-	}
-}

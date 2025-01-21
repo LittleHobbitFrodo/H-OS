@@ -169,7 +169,7 @@ typedef struct gdt_ptr {
 	u64 entries;
 } __attribute__((packed)) gdt_ptr;
 
-static struct gdt {
+typedef struct gdt_t {
 	gdt_entry _null;
 	gdt_entry kernel_code;
 	gdt_entry kernel_data;
@@ -179,7 +179,9 @@ static struct gdt {
 		//	I have no idea why, but cs register is set to 0x28 (index 5) at some point so this segment is additional to actually make it work
 
 	gdt_tss_entry tss;
-} __attribute((packed, aligned(8))) gdt;
+} __attribute__((packed, aligned(8))) gdt_t;
+
+static gdt_t gdt = {0};
 
 static gdt_ptr gdt_pointer;
 

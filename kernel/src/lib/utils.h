@@ -194,3 +194,5 @@ inline void bitmap_set(u64* map, size_t start, size_t bits) {
 }
 
 ssize_t bitmap_find_cleared(const u64* bitmap, size_t size, size_t n);
+
+#define is_in_range(min, val, max) ((val >= min) && (val < max))

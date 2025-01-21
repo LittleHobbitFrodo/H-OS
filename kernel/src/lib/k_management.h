@@ -36,10 +36,8 @@ enum panic_codes {
 	panic_code_unsupported_paging_mode,
 	panic_code_cannot_allocate_memory_for_kernel_heap,
 	panic_code_cannot_locate_kernel_entry,
-	panic_code_cannot_allocate_memory_for_stacks,
 	panic_code_unable_to_allocate_paging_table,
 	panic_code_base_addresses_not_available,
-	panic_code_cpu_vendor_not_found,
 	panic_code_cannot_locate_kernel_stack,
 	panic_code_paging_initialization_failure,
 	panic_code_gdt_initialization_failure,
@@ -65,6 +63,8 @@ enum report_seriousness {
 
 extern void panic(enum panic_codes code);
 
+//static void stack_backtrace();
+
 size_t report(const char *msg, enum report_seriousness seriousness);
 void report_status(const char* msg, size_t line, u32 color);
 	//	in pair with report()
@@ -76,3 +76,8 @@ static size_t* init_phase_status_line = null;
 static enum vocal vocality = vocality_normal;
 
 static enum kernel_states kernel_status = k_state_init_memory;
+
+/*typedef struct stack_frame {
+	u64 rsp;
+	u64 rbp;
+} stack_frame;*/
