@@ -60,7 +60,7 @@ void panic(enum panic_codes code) {
 			break;
 		}
 		case panic_code_base_addresses_not_available: {
-			printl("base addressed (physical and virtual) are not available");
+			printl("controller addressed (physical and virtual) are not available");
 			break;
 		}
 		case panic_code_cannot_locate_kernel_stack: {

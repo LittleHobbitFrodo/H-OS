@@ -38,17 +38,29 @@ void nvm_init() {
 		if (vocality >= vocality_report_everything) {
 			report_status("FAILURE", line, col.red);
 		}
-		report("NVm controller version is not supported", report_error);
+		report("NVM version ", report_error);
+		const nvm_version_t version = nvm.controller->version;
+		printu(version.major); printc('.'); printu(version.minor); printc('.'); printu(version.tertiary);
+		printl(" is not supported");
 		return;
 	}
 
 	//	check capabilities for command setW
-
-	//	check for support of host page size
+	if (!nvm_check_capabilities()) {
+		if (vocality >= vocality_report_everything) {
+			report_status("FAILURE", line, col.red);
+		}
+		report("NVM controller does not support command set\n", report_error);
+		return;
+	}
 
 	//	reset controller
+	nvm_reset(nvm.controller);
 
 	//	set controller config, admin queues
+	nvm_create_admin_submission_queue();
+	nvm_create_admin_completion_queue();
+
 
 	//	start da controller
 
@@ -59,7 +71,7 @@ void nvm_init() {
 
 	//	reset software progress marker
 
-	//	create IO completion and submission queue
+	//	create IO completion_ptr and submission_ptr queue
 
 	//	identify namespace IDs
 		//	then individual namespaces
@@ -76,9 +88,8 @@ void nvm_init() {
 
 
 bool nvm_version_supported() {
-	nvm_base_register_t* reg = nvm.address.base;
-	print("NVM version:\t"); printu(reg->version.major); printc('.'); printu(reg->version.minor); printc('.'); printu(reg->version.tertiary); endl();
-	return true;
+	nvm_version_t version = nvm.controller->version;
+	return ((version.major == 1) || (version.minor == 4));
 }
 
 bool nvm_memory_init() {
@@ -116,7 +127,58 @@ bool nvm_memory_init() {
 
 	sized_page_set_address((*nvm.table)[0], nvm.address.physical);
 	sized_page_set_address((*nvm.table)[1], nvm.address.physical + (2*MB));
-	nvm.address.base = (nvm.address.virtual = address.voidptr);
+	nvm.controller = (nvm.address.virtual = address.voidptr);
+
+
+
+	nvm.queue.io.doorbell = (void*)((size_t)nvm.controller + NVM_DOORBELL_OFFSET);
 
 	return true;
 }
+
+bool nvm_check_capabilities() {
+	const nvm_capabilities_t cap = nvm.controller->capabilities;
+
+	nvm.meta.max_entries = cap.maximum_queue_entries;
+	nvm.meta.stride = cap.stride;
+	nvm.meta.page_size_min = 1u << (12 + cap.page_size_minimum);
+	nvm.meta.page_size_max = 1u << (12 + cap.maximum_queue_entries);
+	nvm.meta.continuous_queues = cap.continuous_queues_required;
+	nvm.meta.boot_partition_supported = cap.boot_partition_supported;
+	nvm.meta.shutdown_supported = cap.subsystem_shutdown_supported;
+	nvm.meta.timeout = cap.timeout;
+
+	return cap.cmd_sets_supported_cmd_set;
+}
+
+
+void nvm_create_admin_submission_queue() {
+	nvm.controller->admin_submission_queue.ptr = ((size_t)&nvm.queue.admin.submission - pages.kernel.virtual + pages.kernel.physical) >> 12;
+	if (nvm.meta.max_entries < 255) {
+		nvm.controller->admin_queue_attributes.completion_size = nvm.meta.max_entries;
+	} else {
+		nvm.controller->admin_queue_attributes.completion_size = 255;
+	}
+}
+
+void nvm_create_admin_completion_queue() {
+	nvm.controller->admin_completion_queue.ptr = ((size_t)&nvm.queue.admin.completion - pages.kernel.virtual + pages.kernel.physical) >> 12;
+	if (nvm.meta.max_entries < 63) {
+		nvm.controller->admin_queue_attributes.submission_size = nvm.meta.max_entries;
+	} else {
+		nvm.controller->admin_queue_attributes.submission_size = 63;
+	}
+}
+
+/*void nvm_send(nvm_completion_entry* queue, u8 opcode, u32 namespace, void* data, size_t datalen) {
+
+}
+
+
+void nvm_send_admin(u8 opcode, u32 namespace, void* data) {
+	//	sends command
+}
+
+bool nvm_send_admin_wait(u8 opcode, u32 namespace, void* data) {
+	//	sends command and waits for completion
+}*/

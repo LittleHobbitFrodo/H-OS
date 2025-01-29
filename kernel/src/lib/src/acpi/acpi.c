@@ -45,7 +45,7 @@ void acpi_init() {
 			if ((ents[i].type == memmap_acpi)) {
 				found = true;
 				break;
-			} else if (((acpi.rsdp->rsdt_address >= ents[i].base) && (acpi.rsdp->rsdt_address < ents[i].base + ents[i].len))) {
+			} else if (((acpi.rsdp->rsdt_address >= ents[i].controller) && (acpi.rsdp->rsdt_address < ents[i].controller + ents[i].len))) {
 				ents[i].type = memmap_acpi;
 				found = true;
 			}

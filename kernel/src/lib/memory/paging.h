@@ -154,12 +154,12 @@ static inline void page_cpy(const u64* src, u64* dest, size_t table_count) {
 typedef struct pages_t {
 	unsized_page_table* pml4;		//	virtual address of the pml4 table
 
-	size_t hhdm;		//	virtual base address of hhdm
+	size_t hhdm;		//	virtual controller address of hhdm
 		//	0 => any memory map region (<= 4GB)
 
 	struct kernel {
-		void* physical;
-		void* virtual;
+		size_t physical;
+		size_t virtual;
 	} kernel;
 
 	struct {
@@ -169,7 +169,7 @@ typedef struct pages_t {
 		size_t size;		//	size of allocated space
 		struct {
 			//	initialization purposes only
-			size_t physical;    //	physical base
+			size_t physical;    //	physical controller
 			void *virtual;
 			any_page_table* table;
 		} init;

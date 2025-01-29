@@ -7,7 +7,7 @@
 #include "../gdt.h"
 
 void gdt_init() {
-	//	flat memory model:	base must be 0, limit is ignored
+	//	flat memory model:	controller must be 0, limit is ignored
 
 	tss_init();
 

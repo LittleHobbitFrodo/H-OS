@@ -94,7 +94,7 @@ typedef struct pci_device_header {
 } __attribute__((packed)) pci_device_header;
 
 typedef struct pci_base_register {
-	u32 io_reg:			1;		//	1 = IO base address, 0 = memory_base
+	u32 io_reg:			1;		//	1 = IO controller address, 0 = memory_base
 	u32 type:			2;		//	0 = 32 bit, 2 = 64 bit, 1 = reserved for PCI 3.0
 	u32 prefetchable:	1;
 	u32 base:			28;
@@ -110,7 +110,7 @@ union pci_base_reg_u32 {
 	u32 always_zero:	1;
 	u32 type:			2;
 	u32 prefetchable:	1;
-	u32 base:			28;
+	u32 controller:			28;
 
 } __attribute__((packed)) pci_memory_base;
 
@@ -118,7 +118,7 @@ typedef struct pci_io_base {
 
 	u32 always_one:		1;
 	u32 reserved:		1;
-	u32 base:			30;
+	u32 controller:			30;
 
 } __attribute__((packed)) pci_io_base;*/
 

@@ -27,7 +27,7 @@ void memory_init() {
 		if (vocality >= vocality_report_everything) {
 			report_status("CRITICAL FAILURE", line, col.critical);
 		}
-		report("unable to get virtual/physical base address\n", report_critical);
+		report("unable to get virtual/physical controller address\n", report_critical);
 		panic(panic_code_base_addresses_not_available);
 		__builtin_unreachable();
 	}
@@ -107,8 +107,8 @@ void memmap_parse() {
 	u8 tmp;
 
 
-	//	fill base address and type fields
-		//	each entry base may not be perfectly aligned with previous entry length, so length field is skipped yet
+	//	fill controller address and type fields
+		//	each entry controller may not be perfectly aligned with previous entry length, so length field is skipped yet
 		//	if heaps are right next to each other they will be in one heap entry
 	for (size_t i = 0; i < original_size; v++,i++) {
 		//	i iterates the original memmap
@@ -232,7 +232,7 @@ void memmap_parse() {
 
 		/*if ((tmp = ((ent->base == heap.global.meta.physical.start) | ((ent->base == pages.heap.init.physical) << 1))) != 0) {
 			memmap.data[v].type = memmap_heap;
-			memmap.data[v].base = ent->base;
+			memmap.data[v].controller = ent->base;
 			if (tmp & 1) {
 				//	multipurpose heap
 				memmap.data[v].len = HEAP_GLOBAL_MINIMAL_SIZE * KB;

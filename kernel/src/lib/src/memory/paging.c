@@ -77,8 +77,8 @@ void paging_init() {
 		_paging_init_critical_error("kernel addresses cannot be found\n", line, panic_code_base_addresses_not_available);
 		__builtin_unreachable();
 	}
-	pages.kernel.virtual = (void*)req_k_address.response->virtual_base;
-	pages.kernel.physical = (void*)req_k_address.response->physical_base;
+	pages.kernel.virtual = req_k_address.response->virtual_base;
+	pages.kernel.physical = req_k_address.response->physical_base;
 	req_k_address.response = null;
 
 
