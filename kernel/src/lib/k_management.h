@@ -77,6 +77,14 @@ static enum vocal vocality = vocality_normal;
 
 static enum kernel_states kernel_status = k_state_init_memory;
 
+
+void report_err(const char* msg, enum report_seriousness ser, const char* status_msg, size_t status_line, u32 status_color, enum vocal _vocality) {
+	if ((vocality >= _vocality) && (status_msg != null)) {
+		report_status(status_msg, status_line, status_color);
+	}
+	report(msg, ser);
+}
+
 /*typedef struct stack_frame {
 	u64 rsp;
 	u64 rbp;

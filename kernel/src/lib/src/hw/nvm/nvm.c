@@ -19,10 +19,8 @@ void nvm_init() {
 	}
 
 	if (nvm.address.pci.enable == 0) {
-		if (vocality >= vocality_report_everything) {
-			report_status("FAILURE", line, col.red);
-		}
-		report("cannot find PCI address\n", report_error);
+		report_err("cannot find PCI address\n", report_error, "FAILURE"
+				   , line, col.red, vocality_report_everything);
 		return;
 	}
 
@@ -35,10 +33,9 @@ void nvm_init() {
 	}
 
 	if (!nvm_version_supported()) {
-		if (vocality >= vocality_report_everything) {
-			report_status("FAILURE", line, col.red);
-		}
-		report("NVM version ", report_error);
+		report_err("NVM version ", report_error, "FAILURE"
+				, line, col.red, vocality_report_everything);
+
 		const nvm_version_t version = nvm.controller->version;
 		printu(version.major); printc('.'); printu(version.minor); printc('.'); printu(version.tertiary);
 		printl(" is not supported");
@@ -47,22 +44,27 @@ void nvm_init() {
 
 	//	check capabilities for command setW
 	if (!nvm_check_capabilities()) {
-		if (vocality >= vocality_report_everything) {
-			report_status("FAILURE", line, col.red);
-		}
-		report("NVM controller does not support command set\n", report_error);
+		report_err("NVM controller does not support IO command set\n", report_error, "FAILURE"
+				, line, col.red, vocality_report_everything);
 		return;
 	}
 
 	//	reset controller
 	nvm_reset(nvm.controller);
 
-	//	set controller config, admin queues
-	nvm_create_admin_submission_queue();
-	nvm_create_admin_completion_queue();
+	//	interrupts
+	if (!nvm_init_interrupts()) {
+		report_err("failed to initialize interrupts for NVM\n", report_error, "FAILURE"
+				, line, col.red, vocality_report_everything);
+		return;
+	}
 
+	//	set controller config, admin queues
+	nvm_create_admin_queue();
+	nvm_create_io_queue();
 
 	//	start da controller
+
 
 	//	interrupts + register handler
 
@@ -129,10 +131,6 @@ bool nvm_memory_init() {
 	sized_page_set_address((*nvm.table)[1], nvm.address.physical + (2*MB));
 	nvm.controller = (nvm.address.virtual = address.voidptr);
 
-
-
-	nvm.queue.io.doorbell = (void*)((size_t)nvm.controller + NVM_DOORBELL_OFFSET);
-
 	return true;
 }
 
@@ -152,23 +150,43 @@ bool nvm_check_capabilities() {
 }
 
 
-void nvm_create_admin_submission_queue() {
-	nvm.controller->admin_submission_queue.ptr = ((size_t)&nvm.queue.admin.submission - pages.kernel.virtual + pages.kernel.physical) >> 12;
+void nvm_create_admin_queue() {
+	nvm_queue* const q = &nvm.queue.admin.queue;
+	q->submission = (nvm_submission_entry*)&nvm.queue.admin.submission;
+	q->completion = (nvm_completion_entry*)&nvm.queue.admin.completion;
+	q->doorbell = (volatile void*)((size_t)nvm.controller + NVM_DOORBELL_OFFSET);
+
+	nvm.controller->admin_submission_queue = (void*)((size_t)&nvm.queue.admin.submission - pages.kernel.virtual + pages.kernel.physical);
+	nvm.controller->admin_completion_queue = (void*)((size_t)&nvm.queue.admin.completion - pages.kernel.virtual + pages.kernel.physical);
+
 	if (nvm.meta.max_entries < 255) {
 		nvm.controller->admin_queue_attributes.completion_size = nvm.meta.max_entries;
 	} else {
 		nvm.controller->admin_queue_attributes.completion_size = 255;
 	}
-}
 
-void nvm_create_admin_completion_queue() {
-	nvm.controller->admin_completion_queue.ptr = ((size_t)&nvm.queue.admin.completion - pages.kernel.virtual + pages.kernel.physical) >> 12;
 	if (nvm.meta.max_entries < 63) {
 		nvm.controller->admin_queue_attributes.submission_size = nvm.meta.max_entries;
 	} else {
 		nvm.controller->admin_queue_attributes.submission_size = 63;
 	}
 }
+
+void nvm_create_io_queue() {
+	nvm_queue* const q = &nvm.queue.io.queue;
+	q->submission = (nvm_submission_entry*)&nvm.queue.io.submission;
+	q->completion = (nvm_completion_entry*)&nvm.queue.io.completion;
+
+	const u32 doorbell_offset = 2 * (1 << (2 + nvm.controller->capabilities.stride));
+	q->doorbell = (void*)((size_t)nvm.controller + doorbell_offset);
+
+}
+
+bool nvm_init_interrupts() {
+	pci_header_general_device_t
+}
+
+
 
 /*void nvm_send(nvm_completion_entry* queue, u8 opcode, u32 namespace, void* data, size_t datalen) {
 

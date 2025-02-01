@@ -70,6 +70,10 @@ inline pci_device_info_t pci_read_info(u8 bus, u8 slot, u8 function) {
 			.programming = pci_read_programming(bus, slot, function)};
 }
 
+void pci_set_interrupt(pci_address address, u8 interrupt);
+
+i16 pci_find_and_set_interrupt(pci_address address, void (*interrupt)(void));
+
 
 typedef struct pci_connection_data {
 	u16 vendor;

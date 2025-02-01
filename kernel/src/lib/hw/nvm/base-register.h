@@ -76,8 +76,8 @@ typedef struct nvm_base_register_t {
 	nvm_controller_status_t status;
 	u32 subsystem_reset;		//	write 0x4E564D65 to initialize reset
 	nvm_queue_attributes_t admin_queue_attributes;
-	nvm_queue_ptr admin_submission_queue;
-	nvm_queue_ptr admin_completion_queue;
+	nvm_submission_entry* admin_submission_queue;
+	nvm_completion_entry* admin_completion_queue;
 	u32 _memory_buffer_location;
 	u32 _memory_buffer_size;
 	u32 _boot_part_info;

@@ -19,13 +19,8 @@ typedef struct nvm_queue_ptr {
 
 
 typedef struct nvm_queue {
-	struct {
-		nvm_submission_entry* queue;
-		nvm_doorbell_registers* doorbell;
-	} submission;
-	struct {
-		nvm_completion_entry* queue;
-		nvm_doorbell_registers* doorbell;
-	} completion;
+	nvm_submission_entry* submission;
+	nvm_completion_entry* completion;
+	volatile nvm_doorbell_registers* doorbell;
 } nvm_queue;
 

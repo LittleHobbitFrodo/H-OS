@@ -65,16 +65,17 @@ typedef struct nvm_t {
 	struct {
 		//	space for admin queues is statically allocated
 		struct {
-			__attribute__((aligned(4096))) u8 completion[4096];
-			__attribute__((aligned(4096))) u8 submission[4096];
+			__attribute__((aligned(4096))) u8 submission[4096];	//	64 elements
+			__attribute__((aligned(4096))) u8 completion[4096];	//	255 elements
 
-			u64* completion_tail;
-			u64* submission_tail;
+			nvm_queue queue;
+
 		} admin;
 		struct {
-			u8* completion;
-			u8* submission;
-			nvm_doorbell_registers* doorbell;
+
+			__attribute__((aligned(4096))) u8 submission[4096];
+			__attribute__((aligned(4096))) u8 completion[4096];
+			nvm_queue queue;
 		} io;
 	} queue;
 
@@ -102,9 +103,9 @@ nvm_t nvm = {0};
 void nvm_init();
 
 u16 nvm_get_cmdid(nvm_t* controller) {
-	if (controller->cmdid == MAX_U16) {
+	if (controller->cmdid == (MAX_U16-1)) {
 		controller->cmdid = 0;
-		return MAX_U16;
+		return MAX_U16-1;
 	}
 	return controller->cmdid++;
 }
@@ -116,9 +117,10 @@ static bool nvm_memory_init();
 static bool nvm_check_capabilities();
 	//	returns false if
 
-static void nvm_create_admin_submission_queue();
-static void nvm_create_admin_completion_queue();
-	//	both allocates one page for queue
+static void nvm_create_admin_queue();
+static void nvm_create_io_queue();
+
+static bool nvm_init_interrupts();
 
 /*void nvm_send(nvm_completion_entry* queue, u8 opcode, u32 namespace, void* data, size_t datalen);
 bool nvm_send_wait(nvm_completion_entry* queue, u8 opcode, u32 namespace, void* data, size_t datalen);

@@ -105,26 +105,10 @@ union pci_base_reg_u32 {
 	pci_base_register reg;
 };
 
-/*typedef struct pci_memory_base {
-
-	u32 always_zero:	1;
-	u32 type:			2;
-	u32 prefetchable:	1;
-	u32 controller:			28;
-
-} __attribute__((packed)) pci_memory_base;
-
-typedef struct pci_io_base {
-
-	u32 always_one:		1;
-	u32 reserved:		1;
-	u32 controller:			30;
-
-} __attribute__((packed)) pci_io_base;*/
-
 
 typedef struct pci_header_general_device_t {
 	//	code: 0x0
+	//	https://wiki.osdev.org/PCI#PCI_Device_Structure
 
 	pci_device_header header;
 	pci_base_register base_address[6];
