@@ -183,7 +183,7 @@ void nvm_create_io_queue() {
 }
 
 bool nvm_init_interrupts() {
-	pci_header_general_device_t
+	return false;
 }
 
 

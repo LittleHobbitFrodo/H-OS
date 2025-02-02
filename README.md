@@ -26,6 +26,9 @@ The whole project with all of its parts is under the GPL v3.0 licence
 
 # Building
 **NOTE**: using the `./scritps/test` scripts may create an image with different compiler options then used normally. Please use `./scripts/build mkimage` command to build the OS
+
+**NOTE**: the `scripts` directory is being deprecated and new build system is being created
+ - linux operating system is still required
 ### Requirements
 **Linux** operating system or virtual machine (BSD may be option, but it's not tested)
 
