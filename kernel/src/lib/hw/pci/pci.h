@@ -19,13 +19,26 @@
 //	initializes PCI
 static void pci_init();
 
-static bool pci_initialized = false;
+static u32 pci_enumerate();		//	checks how many supported devices are connected
+static void pci_scan();			//	scan and initialize device structures
+
+void pci_scan_bus(u8 bus);	//	scan one bus
+
+
+
+
+u64 pci_read_bar(pci_address address, u8 bar, bool* is_io);
 
 u32 pci_read(u8 bus, u8 slot, u8 function, u8 offset);
-
-u8 pci_enumerate();
-
-void pci_scan_bus(u8 bus);
+__attribute__((always_inline))
+inline u32 pci_reada(union pci_address_u32 address) {
+	outd(PCI_CONFIG_ADDRESS, address.u32);
+	return ind(PCI_CONFIG_DATA);
+}
+inline void pci_writea(union pci_address_u32 address, u32 data) {
+	outd(PCI_CONFIG_ADDRESS, address.u32);
+	outd(PCI_CONFIG_DATA, data);
+}
 
 __attribute__((always_inline))
 inline bool pci_exists(u8 bus, u8 slot, u8 function) {
@@ -50,9 +63,19 @@ inline pci_address pci_address_construct(u8 bus, u8 slot, u8 func, u8 offset, bo
 	return (pci_address){.zero = 0, .bus = bus, .slot = slot, .function = func, .offset = offset, .reserved = 0, .enable = enable};
 }
 
+__attribute__((always_inline))
+inline pci_device_info_t pci_read_info(u8 bus, u8 slot, u8 function) {
+	return (pci_device_info_t){.class = pci_read_class(bus, slot, function),
+			.subclass = pci_read_subclass(bus, slot, function),
+			.programming = pci_read_programming(bus, slot, function)};
+}
+
+void pci_set_interrupt(pci_address address, u8 interrupt);
+
+i16 pci_find_and_set_interrupt(pci_address address, void (*interrupt)(void));
+
 
 typedef struct pci_connection_data {
-	pci_address address;
 	u16 vendor;
 	u16 device_id;
 	u8 class;
@@ -62,6 +85,7 @@ typedef struct pci_connection_data {
 	u8 latency;
 	pci_header_type header_type;
 	pci_bist_t test;
+	pci_address address;
 } pci_connection_data;
 
 typedef struct pci_discovery_data {
@@ -71,3 +95,24 @@ typedef struct pci_discovery_data {
 	u8 programming;
 	pci_bist_t test;
 } pci_discovery_data;
+
+typedef struct pci_t {
+	device_rvec_t devices;
+
+	u8 initialized:		1;
+	u8 used:			1;
+
+} pci_t;
+
+static pci_t pci = {0};
+
+#define _pci_dev_info(cls, scls, prg) (pci_device_info_t){.class = cls, .subclass = scls, .programming = prg}
+
+const size_t pci_supported_devices_count = 5;
+const pci_device_info_t pci_supported_devices[] = {
+	_pci_dev_info(pci_device_class_mass_storage_controller, pci_mass_storage_serial_ata, pci_serial_ata_ahci),
+	_pci_dev_info(pci_device_class_mass_storage_controller, pci_mass_storage_nvm_controller, pci_nvm_controller_nvme),
+	_pci_dev_info(pci_device_class_display_controller, pci_device_info_any, pci_device_info_any),
+	_pci_dev_info(pci_device_class_processor, pci_device_info_any, pci_device_info_any),
+	_pci_dev_info(pci_device_class_base_system_peripheral, pci_device_info_any, pci_device_info_any)
+};

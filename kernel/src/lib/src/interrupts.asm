@@ -56,11 +56,8 @@ section .text
 
 
 isr_int_timer_pit:
-	;   increase tick
 	push rax
-	mov rax, [rel tick]
-	inc rax
-	mov [rel tick], rax
+	inc qword [rel tick]
 
 	;   end interrupt
 	mov ax, 0x20

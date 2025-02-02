@@ -22,20 +22,39 @@ enum disk_types {
 typedef struct disk_t {
 
 	//  header
-	DEVICE_HEADER;
+	device_header_t header;
+	enum disk_types type;
+	u128 guid;
+
+	char index[2];
 
 	//  mountpoint/index specific
 	//  read/write function pointers
 
-} __attribute__((packed)) disk_t;
+} disk_t;
 
 __attribute__((always_inline, nonnull(1)))
 inline void disk_construct(disk_t* disk) {
+	disk->header.type = device_type_disk;
+	disk->header.connect.type = device_connect_unknown;
+	disk->header.connect.specific = null;
+
 	disk->type = disk_type_undefined;
-	disk->connect.type = device_connect_unknown;
-	disk->connect.ptr = null;
+	disk->index[0] = '0';
+	disk->index[0] = '0';
+	disk->guid = 0;
 }
 __attribute__((always_inline))
-inline void disk_destruct([[maybe_unused]] disk_t* disk) {}
+inline void disk_destruct(disk_t* disk) {
+	if (disk->header.connect.allocated) {
+		device_connect_destruct(disk->header.connect.specific);
+		heap.global.free(&heap.global, disk->header.connect.specific);
+	}
+	if (disk->header.discovery.allocated) {
+		device_discovery_destruct(disk->header.discovery.specific);
+		heap.global.free(&heap.global, disk->header.discovery.specific);
+	}
+}
 
-vector_instance_cd(disks, disk_t, disk_vector, disk_construct, disk_destruct);
+//vector_instance(disks, disk_t, disk_vector, disk_construct, disk_destruct);
+readonly_vector(disks, disk_t, disk_vector, disk_construct, disk_destruct);

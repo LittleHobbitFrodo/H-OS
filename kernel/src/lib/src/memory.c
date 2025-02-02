@@ -10,52 +10,60 @@
 
 void memory_init() {
 
+	size_t line = 0;
+	init_phase_status_line = &line;
+		//	in case of panic
 	kernel_status = k_state_init_memory;
+
+	if (vocality >= vocality_report_everything) {
+		endl();
+		line = report("preparing memory\n", report_note);
+	}
+
+
+	//	check response for kernel address request
 	if (req_k_address.response == null) {
-		report("unable to get virtual/physical base address\n", report_critical);
+		//	needed for address calculations (paging_init)
+		if (vocality >= vocality_report_everything) {
+			report_status("CRITICAL FAILURE", line, col.critical);
+		}
+		report("unable to get virtual/physical controller address\n", report_critical);
 		panic(panic_code_base_addresses_not_available);
 		__builtin_unreachable();
 	}
 
 	base.virtual = (void*)req_k_address.response->virtual_base;
 	base.physical = (void*)req_k_address.response->physical_base;
-
-	//	prepare stack structure
-	memset(&stack, sizeof(stack_holder), 0);
-
-	if ((req_memmap.response == null) || (req_memmap.response->entries == null)) {
-		report("memory map not found", report_critical);
+	 if ((req_memmap.response == null) || (req_memmap.response->entries == null)) {
+		if (vocality >= vocality_report_everything) {
+			report_status("CRITICAL FAILURE", line, col.critical);
+		}
+		report("memory map was not found", report_critical);
 		panic(panic_code_memmap_not_found);
 	}
 
-	//	reserves memory for heap
-	if (!heap_reserve_memory(false)) {
-		//	initialize (maybe) temporary heap
-		//	once the kernel will deal with all reclaimable entries heap will be (maybe) reinitialized
-		//	maybe = if any reclaimable entry is in place where we want the kernel heap
-		panic(panic_code_cannot_allocate_memory_for_kernel_heap);
-	}
-
 	//	initialize paging
-	page_init();
+	paging_init();
+
+	heap_reserve_memory();
+		//	initializes table heap
 
 	//	initialize regular heap
 	heap_init();
 
-	//	initialize heap for page table allocations
-	page_heap_init();
-
 	//	parse memory map
 	memmap_parse();
-
-	//	initialize task state segment (needed for GDT initialization)
-	tss_init();
 
 	//	initialize global descriptor table
 	gdt_init();
 
-	if (vocality >= vocality_vocal) {
-		report("memory initialization completed\n", report_note);
+	init_phase_status_line = null;
+
+
+	//	make all bl reclaimable entries usable
+
+	if (vocality >= vocality_report_everything) {
+		report_status("SUCCESS", line, col.green);
 	}
 }
 
@@ -64,154 +72,210 @@ void memory_init() {
 void memmap_parse() {
 	//	parse limine memory map and simplify it
 		//	join entries of same type ...
+	//	only global (multipurpose + page) heaps are in memory map
 
+	u32 v = 0;		//	vector iterator
+	struct limine_memmap_entry *ent = null;
+	u64 last_type = MAX_U64;
+	size_t original_size = req_memmap.response->entry_count;
 
-	memmap_construct(1);
-	ssize_t msize = req_memmap.response->entry_count, heap_index = -1, page_heap_index = -1;
-	struct limine_memmap_entry **ents = req_memmap.response->entries;
-	enum memmap_types tmp = memmap_undefined;
-
-	struct limine_memmap_entry *ent;
-	ssize_t i = 0;
-	{
-		//	prepare first entry
-		memmap_entry *first = memmap.data;
-		first->base = ents[0]->base;
-		first->type = memmap_entry_type(ents[i]->type);
-		for (++i; memmap_entry_type(ents[i]->type) == tmp; i++);
-		--i;
-		first->len = ents[i]->base + ents[i]->length - first->base;
-		++i;
-	}
-
-	for (; i < msize; i++) {
-		ent = ents[i];
-
-		if (ent->base == (size_t)heap.physical.start) {
-			//	initialize heap entry
-			memmap_entry *h = memmap_push(1);
-			h->base = ent->base;
-			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
-			h->type = memmap_heap;
-			heap_index = memmap.len - 1;
-		} else if (ent->base == (size_t)page_heap.physical.start) {
-			memmap_entry* h = memmap_push(1);
-			h->base = ent->base;
-			h->len = page_heap.size * PAGE_SIZE;
-			h->type = memmap_heap;
-			page_heap_index = memmap.len - 1;
-		}
-
-		tmp = memmap_entry_type(ent->type);
-		//	skip entries of same type
-		for (++i; (i < msize) && (memmap_entry_type(ents[i]->type) == tmp); i++);
-		--i;
-
-		memmap_entry *new = memmap_push(1);
-		new->base = ent->base;
-		new->type = tmp;
-		if (i + 1 < msize) {
-			new->len = ents[i + 1]->base - new->base;
-		} else {
-			new->len = ents[i]->base + ents[i]->length - new->base;
+	//	set all reclaimable entries to usable
+	for (size_t i = 0; i < original_size; i++) {
+		ent = req_memmap.response->entries[i];
+		if (ent->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE) {
+			ent->type = LIMINE_MEMMAP_USABLE;
 		}
 	}
 
-	//	make heap entry not overlap other entries
-	memmap_entry* es = memmap.data;
-	es[heap_index + 1].base += es[heap_index].len;
-	es[heap_index + 1].len -= es[heap_index].len;
-	es[page_heap_index + 1].base += es[page_heap_index].len;
-	es[page_heap_index + 1].len -= es[page_heap_index].len;
+	//	calculate entry count of the new vector
+	for (size_t i = 0; i < original_size; i++) {
+		ent = req_memmap.response->entries[i];
+		last_type = ent->type;
+
+		while (ent->type == last_type) {
+			if (++i >= original_size) {
+				break;
+			}
+			ent = req_memmap.response->entries[i];
+		}
+		v++,i--;
+	}
+	v += 2;		//	include heaps
+
+	memmap_alloc(&memmap, &heap.global, v);
+	v = 0;		//	used as iterator for new memmap
+	u8 tmp;
 
 
-	//	gather info about memory usage
+	//	fill controller address and type fields
+		//	each entry controller may not be perfectly aligned with previous entry length, so length field is skipped yet
+		//	if heaps are right next to each other they will be in one heap entry
+	for (size_t i = 0; i < original_size; v++,i++) {
+		//	i iterates the original memmap
+		ent = req_memmap.response->entries[i];
+		last_type = ent->type;
+
+		tmp = (ent->base <= heap.global.meta.physical.start) && (ent->base + ent->length >= heap.global.meta.physical.end);
+		tmp |= (((ent->base <= pages.heap.global.data->meta.physical.start) && (ent->base + ent->length >= pages.heap.global.data->meta.physical.end)) << 1);
+
+		//	check if any heap is in current entry
+		switch (tmp) {
+			case 0: default: {
+				break;
+			}
+			case 0b1: {		//	multipurpose heap only
+
+				memmap_entry* m = &memmap.data[v];
+				m->base = ent->base;
+				if (ent->base == heap.global.meta.physical.start) {
+					//	heap entry
+					m->type = memmap_heap;
+					m->len = heap.global.meta.size;
+					++v, ++m;
+
+					//	rest of usable entry
+					m->base = heap.global.meta.physical.end;
+					m->type = memmap_usable;
+					m->len = ent->base + ent->length - m->base;
+				} else {
+					//	start of the entry
+					m->type = memmap_usable;
+					m->len = heap.global.meta.physical.start - ent->base;
+
+					//	the actual heap entry
+					++v, ++m;
+					m->base = heap.global.meta.physical.start;
+					m->len = heap.global.meta.size;
+					m->type = memmap_heap;
+
+					//	rest of the entry
+					++v, ++m;
+					m->base = heap.global.meta.physical.end;
+					m->type = memmap_usable;
+					m->len = ent->base + ent->length - m->base;
+				}
+				continue;	//	for loop
+			}
+			case 0b10: {	//	table heap only
+
+				memmap_entry* m = &memmap.data[v];
+
+				m->base = ent->base;
+				if (pages.heap.global.data->meta.physical.start == ent->base) {
+					//	heap entry
+					m->type = memmap_heap;
+					m->len = pages.heap.global.data->meta.size;
+					++v,++m;
+
+					//	rest of the entry
+					m->base = pages.heap.global.data->meta.physical.end;
+					m->type = memmap_usable;
+					m->len = ent->base + ent->length - m->base;
+				} else {
+					//	start of the entry
+					m->type = memmap_usable;
+					m->len = pages.heap.global.data->meta.physical.start - ent->base;
+					++v,++m;
+
+					//	the actual heap entry
+					m->type = memmap_heap;
+					m->len = pages.heap.global.data->meta.size;
+					m->base = pages.heap.global.data->meta.physical.start;
+					++v, ++m;
+
+					//	rest of the entry
+					m->base = pages.heap.global.data->meta.physical.start;
+					m->type = memmap_usable;
+					m->len = ent->base + ent->length - pages.heap.global.data->meta.physical.end;
+				}
+
+				continue;	//	for loop
+			}
+			case 0b11: {
+				//	both in one entry (linear)
+					//	page heap is first and multipurpose heap is right next to it
+				memmap_entry* m = &memmap.data[v];
+				m->base = ent->base;
+
+				if (ent->base == pages.heap.global.data->meta.physical.start) {
+					//	heap entry
+					const memmap_entry* h = m;
+					m->type = memmap_heap;
+					m->len = pages.heap.global.data->meta.size + heap.global.meta.size;
+					++v, ++m;
+
+					//	usable entry
+					m->base = h->base + h->len;
+					m->type = memmap_usable;
+					m->len = ent->base + ent->length - m->base;
+				} else {
+					//	usable entry
+					m->type = memmap_usable;
+					m->len = pages.heap.global.data->meta.physical.start - ent->base;
+					++v, ++m;
+
+					//	heap entry
+					m->base = pages.heap.global.data->meta.physical.start;
+					m->len = pages.heap.global.data->meta.size + heap.global.meta.size;
+					m->type = memmap_heap;
+					++v, ++m;
+
+					//	rest of the usable entry
+					m->base = heap.global.meta.physical.end;
+					m->len = ent->base + ent->length - m->base;
+					m->type = memmap_usable;
+				}
+
+				continue;		//	for loop
+			}
+		}
+
+		/*if ((tmp = ((ent->base == heap.global.meta.physical.start) | ((ent->base == pages.heap.init.physical) << 1))) != 0) {
+			memmap.data[v].type = memmap_heap;
+			memmap.data[v].controller = ent->base;
+			if (tmp & 1) {
+				//	multipurpose heap
+				memmap.data[v].len = HEAP_GLOBAL_MINIMAL_SIZE * KB;
+			} else {
+				//	page heap
+				memmap.data[v].len = pages.heap.size;
+			}
+			v++;
+		}*/
+
+		memmap.data[v].type = memmap_entry_type(last_type);
+		memmap.data[v].base = ent->base;
+		if (tmp != 0) {
+			memmap.data[v].base += memmap.data[v - 1].len;
+		}
+
+
+		while (ent->type == last_type) {
+
+			if (++i >= original_size) {
+				break;
+			}
+			ent = req_memmap.response->entries[i];
+		}
+
+		i--;
+
+	}
+
+	{	//	delete unused entries
+		ssize_t i = memmap.len - 1;
+		for (; (memmap.data[i].base == 0) && (i >= 0); i--);
+		memmap.len = (size_t)(++i);
+	}
+
+
+	//	fill length entries
+	memmap.data[memmap.len-1].len = ent->base + ent->length - memmap.data[memmap.len - 1].base;
+
 	memmap_analyze();
 
-	//	apply stacks (stck != null)
-		//	paging is not initialized yet -> special allocated memory will be used for stacks (memory.h)
-	//stack.kernel = (void*)(stck->base + stck->len - 1);
-	stack.kernel = (void*)((size_t)&KERNEL_STACK + (32*KB) - 1);
-	for (i = 0; i < 7; i++) {
-		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
-		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
-	}
-
-
-	/*vecs(&memmap, sizeof(memmap_entry));
-	ssize_t msize = req_memmap.response->entry_count, heap_index = -1, page_heap_index = -1;
-	struct limine_memmap_entry **ents = req_memmap.response->entries;
-	enum memmap_types tmp = memmap_undefined;
-
-	struct limine_memmap_entry *ent;
-	ssize_t i = 0;
-	{
-		//	prepare first entry
-		memmap_entry *first = (memmap_entry *) vec_push(&memmap, 1);
-		first->base = ents[0]->base;
-		first->type = memmap_entry_type(ents[i]->type);
-		for (++i; memmap_entry_type(ents[i]->type) == tmp; i++);
-		--i;
-		first->len = ents[i]->base + ents[i]->length - first->base;
-		++i;
-	}
-
-	for (; i < msize; i++) {
-		ent = ents[i];
-
-		if (ent->base == (size_t)heap.physical.start) {
-			//	initialize heap entry
-			memmap_entry *h = vec_push(&memmap, 1);
-			h->base = ent->base;
-			h->len = HEAP_MINIMAL_ENTRY_SIZE * KB;
-			h->type = memmap_heap;
-			heap_index = memmap.len - 1;
-		} else if (ent->base == (size_t)page_heap.physical.start) {
-			memmap_entry* h = vec_push(&memmap, 1);
-			h->base = ent->base;
-			h->len = page_heap.size * PAGE_SIZE;
-			h->type = memmap_heap;
-			page_heap_index = memmap.len - 1;
-		}
-
-		tmp = memmap_entry_type(ent->type);
-		//	skip entries of same type
-		for (++i; (i < msize) && (memmap_entry_type(ents[i]->type) == tmp); i++);
-		--i;
-
-		memmap_entry *new = (memmap_entry *) vec_push(&memmap, 1);
-		new->base = ent->base;
-		new->type = tmp;
-		if (i + 1 < msize) {
-			new->len = ents[i + 1]->base - new->base;
-		} else {
-			new->len = ents[i]->base + ents[i]->length - new->base;
-		}
-	}
-
-	//	make heap entry not overlap other entries
-	memmap_entry* es = memmap.data;
-	es[heap_index + 1].base += es[heap_index].len;
-	es[heap_index + 1].len -= es[heap_index].len;
-	es[page_heap_index + 1].base += es[page_heap_index].len;
-	es[page_heap_index + 1].len -= es[page_heap_index].len;
-
-
-	//	gather info about memory usage
-	memmap_analyze();
-
-	//	apply stacks (stck != null)
-		//	paging is not initialized yet -> special allocated memory will be used for stacks (memory.h)
-	//stack.kernel = (void*)(stck->base + stck->len - 1);
-	stack.kernel = (void*)((size_t)&KERNEL_STACK + (32*KB) - 1);
-	for (i = 0; i < 7; i++) {
-		//stack.interrupt[i] = (void*)(stck->base + ((INTERRUPT_STACK_SIZE * KB) * (i+1)) - 1);
-		stack.interrupt[i] = (void*)((size_t)&INTERRUPT_STACK + ((i+1) * (8*KB)) - 1);
-	}*/
-
-
-	if (vocality >= vocality_report_everything) {
-		report("memory map parsed successfully\n", report_note);
+	for (size_t i = memmap.len-1; i > 0; i--) {
+		memmap.data[i-1].len = memmap.data[i].base - memmap.data[i-1].base;
 	}
 }
 
@@ -336,11 +400,6 @@ void memmap_display_original() {
 		return;
 	}
 
-	if (ents == null) {
-		report("original memmap does not exist\n", report_problem);
-		return;
-	}
-
 	printl("original memory map:");
 	struct limine_memmap_entry *ent;
 	for (size_t i = 0; i < size; i++) {
@@ -393,7 +452,8 @@ void memmap_display_original() {
 		}
 		printp((void *) ent->base);
 		print("\tto\t");
-		printp((void *) (ent->base + ent->length));
+		printp((void *) (ent->base + ent->length)); tab();
+		printu(ent->length);
 		endl();
 	}
 	output.color = c;
@@ -402,130 +462,62 @@ void memmap_display_original() {
 void memmap_analyze() {
 	//	gather info about memory usage
 
-	meminfo.total = 0;
-	meminfo.usable = 0;
-	meminfo.used = 0;
-	meminfo.reserved = 0;
-	meminfo.ring0 = 0;
-	meminfo.unmapped = 0;
+	memmap_entry* e = memmap.data;
 
-	memmap_entry *es = memmap.data;
+	if (e == null) {
+		if (vocality >= vocality_report_everything) {
+			report_status("CRITICAL FAILURE", *init_phase_status_line, col.critical);
+		}
+		report("no memory map found\n", report_critical);
+		panic(panic_code_memmap_not_found);
+		__builtin_unreachable();
+	}
 
 	for (size_t i = 0; i < memmap.len; i++) {
-		switch (es[i].type) {
-			case memmap_usable: {
-				//	usable memory
-				meminfo.usable += es[i].len;
+		switch (e[i].type) {
+			case memmap_usable: case memmap_reclaimable: {
+				meminfo.usable += e[i].len;
 				break;
 			}
-			case memmap_heap:
-			case memmap_stack: {
-				//	used + ring0
-				meminfo.ring0 += es[i].len;
-				meminfo.used += es[i].len;
+			case memmap_paging: case memmap_kernel: case memmap_heap: {
+				meminfo.system += e[i].len;
+				meminfo.used += e[i].len;
 				break;
 			}
-			case memmap_reserved: {
-				//	reserved memory
-				meminfo.reserved += es[i].len;
-				break;
-			}
-			case memmap_kernel:
-			case memmap_acpi:
-			case memmap_other: {
-				//	ring 0
-				meminfo.ring0 += es[i].len;
+			case memmap_acpi: case memmap_other: case memmap_reserved: {
+				meminfo.reserved += e[i].len;
 				break;
 			}
 			case memmap_bad: {
-				meminfo.unmapped += es[i].len;
+				meminfo.unmapped += e[i].len;
 				break;
 			}
-			case memmap_undefined: {
-				report("memory map entry index ", report_error);
-				printu(i);
-				printl(" has undefined type");
+			default: {
+				report("memory map entry ", report_error);
+				printu(i+1); printl(" is unknown");
 				break;
 			}
-			default: break;
 		}
 	}
 
-	meminfo.total = es[memmap.len - 1].base + es[memmap.len - 1].len;
+	meminfo.total = e[memmap.len-1].base + e[memmap.len-1].len - e[0].base;
+
 }
 
-/*void memmap_reclaim() {
-	//	reclaims reclaimable entries
-
-	if (memmap.data == null) {
-		report("memmap_reclaim: memory map does not exist\n", report_critical);
-		panic(panic_code_memmap_not_found);
-	}
-
-	memmap_entry* olds = memmap.data;
-
-	//	change all reclaimable entries to usable
-	for (size_t i = 0; i < memmap.len; i++) {
-		if (olds[i].type == memmap_reclaimable) {
-			olds[i].type = memmap_usable;
-		}
-	}
-
-	memmap_vector_t old;
-	vec_take_over(&old, &memmap);
-	vecs(&memmap, sizeof(memmap_entry));
-
-	enum memmap_types tmp = memmap_undefined;
-
-	ssize_t i = 0;
-	{
-		//	prepare first entry
-		memmap_entry *first = (memmap_entry *) vec_push(&memmap, 1);
-		first->base = olds[0].base;
-		first->type = olds[0].type;
-		tmp = first->type;
-		for (++i; (i < (ssize_t)old.len) && (olds[i].type == tmp); i++);
-		--i;
-		first->len = olds[i].base + olds[i].len - first->base;
-		++i;
-	}
-
-	memmap_entry* ent;
-	for (; i < (ssize_t)old.len; i++) {
-		ent = &olds[i];
-
-		tmp = ent->type;
-		for (++i; (i < (ssize_t)old.len) && (olds[i].type == tmp); i++);
-		--i;
-
-		memmap_entry *new = (memmap_entry *) vec_push(&memmap, 1);
-		new->base = ent->base;
-		new->type = tmp;
-		if (i + 1 < (ssize_t)old.len) {
-			new->len = olds[i + 1].base - new->base;
-		} else {
-			new->len = olds[i].base + olds[i].len - new->base;
-		}
-
-	}
-
-	vec_free(&old);
-
-	//	gather info about memory usage
-	memmap_analyze();
-
-	if (vocality >= vocality_report_everything) {
-		report("memory reclaimed\n", report_note);
-	}
-}*/
 
 memmap_entry* memmap_find(enum memmap_types type) {
-	memmap_entry* ret;
-	for (size_t i = 0; i < memmap.len; i++) {
-		ret = memmap_at(i);
+	memmap_entry *ret;
+	for (u32 i = 0; i < memmap.len; i++) {
+		ret = memmap_at(&memmap, i);
 		if (ret->type == type) {
 			return ret;
 		}
 	}
 	return null;
+}
+
+void memmap_ent_construct(memmap_entry* ent) {
+	ent->len = 0;
+	ent->base = 0;
+	ent->type = memmap_undefined;
 }

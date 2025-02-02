@@ -32,7 +32,7 @@ typedef volatile struct ahci_generic_host_control {
 	u32 interrupt_status;
 	u32 ports_implemented;		//	each bit is one port
 	u32 version;
-	u32 ccc_control;	//	command completion coalescing control
+	u32 ccc_control;	//	command completion_ptr coalescing control
 	u32 ccc_ports;
 	u32 enclosure_location;
 	u32 enclosure_control;
@@ -73,8 +73,8 @@ typedef struct ahci_generic_host_control_t {
 	u32 interrupt_status;
 	u32 port_implemented;
 	u32 version;
-	u32 ccc_control;		//	command completion coalescing control
-	u32 ccc_port;			//	command completion coalescing port
+	u32 ccc_control;		//	command completion_ptr coalescing control
+	u32 ccc_port;			//	command completion_ptr coalescing port
 	u32 em_location;		//	enclosure management location
 	u32 em_control;			//	enclosure management control
 	u32 capabilities_ext;	//	capabilities extended

@@ -40,7 +40,7 @@ typedef unsigned long long int u128;
 //  16bit
 #define MIN_I16 (i16)-32768
 #define MAX_I16 (i16)32767
-#define MAX_U16 (u16)65535
+#define MAX_U16 (u16)0xffff
 
 //  32bit
 #define MIN_I32 (i32)-2147483648
@@ -73,7 +73,6 @@ typedef i64 qwordi;
 #define false 0
 #define NULL (void*)0
 #define null (void*)0
-#define nullptr (void*)0
 
 typedef u8 bool;
 

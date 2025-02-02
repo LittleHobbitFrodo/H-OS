@@ -7,107 +7,107 @@
 
 #include "../string.h"
 
-void str_take_over(string *this, string *other) {
-	if (this->data != null) {
-		free(this->data);
+void str_take_over(string *self, string *other) {
+	if (self->data != null) {
+		self->alloc->free(self->alloc, self->data);
 	}
-	this->data = other->data;
-	this->size = other->size;
+	self->data = other->data;
+	self->size = other->size;
 
 	other->data = null;
 	other->size = 0;
 }
 
-void str_push(string *this, const char *str) {
-	if (this->data == null) {
-		this->size = strlen(str) - 1;
-		this->data = (char *) alloc(this->size);
-		memcpy((void *) str, this->data, this->size);
+void str_push(string *self, const char *str) {
+	if (self->data == null) {
+		self->size = strlen(str) - 1;
+		self->data = (char *) self->alloc->alloc(self->alloc, self->size + STRING_PUSH_ADD);
+		memcpy((void *) str, self->data, self->size);
 		return;
 	}
-	size_t osize = this->size;
-	this->size += strlen(str) - 1;
-	this->data = realloca(this->data, this->size, string_realloc_add);
-	memcpy((void *) str, (void *) ((size_t) this->data + osize), this->size - osize);
+	size_t osize = self->size;
+	self->size += strlen(str) - 1;
+	self->data = self->alloc->realloca(self->alloc, self->data, self->size, string_realloc_add);
+	memcpy((void *) str, (void *) ((size_t) self->data + osize), self->size - osize);
 }
 
-void str_pushs(string *this, const string *other) {
-	if (this->data == null) {
-		this->size = other->size;
-		this->data = (char *) alloc(this->size);
-		memcpy(other->data, this->data, this->size);
+void str_pushs(string *self, const string *other) {
+	if (self->data == null) {
+		self->size = other->size;
+		self->data = (char *) self->alloc->alloc(self->alloc, self->size);
+		memcpy(other->data, self->data, self->size);
 		return;
 	}
-	this->data = realloca(this->data, this->size + other->size, string_realloc_add);
-	memcpy(other->data, (void *) ((size_t) this->data + this->size), this->size + other->size);
-	this->size += other->size;
+	self->data = self->alloc->realloca(self->alloc, self->data, self->size + other->size, string_realloc_add);
+	memcpy(other->data, (void *) ((size_t) self->data + self->size), self->size + other->size);
+	self->size += other->size;
 }
 
-void str_pushc(string* this, const char c) {
-	if (this->data == null) {
-		this->size = 1;
-		this->data = (char*)alloc(4);
-		this->data[0] = c;
+void str_pushc(string* self, const char c) {
+	if (self->data == null) {
+		self->size = 1;
+		self->data = (char*)self->alloc->alloc(self->alloc, 4);
+		self->data[0] = c;
 		return;
 	}
-	this->data = realloca(this->data, ++this->size, string_realloc_add);
-	this->data[this->size - 1] = c;
+	self->data = self->alloc->realloca(self->alloc, self->data, ++self->size, string_realloc_add);
+	self->data[self->size - 1] = c;
 }
 
-void str_pop(string *this, size_t count) {
-	if (this->data == null) {
+void str_pop(string *self, size_t count) {
+	if (self->data == null) {
 		return;
 	}
-	if (this->size <= count) {
-		free(this->data);
-		this->data = null;
-		this->size = 0;
+	if (self->size <= count) {
+		self->alloc->free(self->alloc, self->data);
+		self->data = null;
+		self->size = 0;
 	} else {
-		this->size -= count;
+		self->size -= count;
 	}
 }
 
-void str_set(string *this, const char *str) {
-	if (this->data == null) {
-		this->size = strlen(str) - 1;
-		this->data = (char *) alloc(this->size);
-		memcpy((void *) str, this->data, this->size);
+void str_set(string *self, const char *str) {
+	if (self->data == null) {
+		self->size = strlen(str) - 1;
+		self->data = (char *) self->alloc->alloc(self->alloc, self->size);
+		memcpy((void *) str, self->data, self->size);
 		return;
 	}
-	this->size = strlen(str) - 1;
-	this->data = (char *) realloc(this->data, this->size);
-	memcpy((void *) str, this->data, this->size);
+	self->size = strlen(str) - 1;
+	self->data = (char *) self->alloc->realloc(self->alloc, self->data, self->size);
+	memcpy((void *) str, self->data, self->size);
 }
 
-void str_sets(string *this, const string *other) {
-	if (this->data == null) {
-		this->size = other->size;
-		this->data = (char *) alloc(this->size);
-		memcpy(other->data, this->data, this->size);
+void str_sets(string *self, const string *other) {
+	if (self->data == null) {
+		self->size = other->size;
+		self->data = (char *) self->alloc->alloc(self->alloc, self->size);
+		memcpy(other->data, self->data, self->size);
 		return;
 	}
-	this->size = other->size;
-	this->data = (char *) realloc(this->data, this->size);
-	memcpy(other->data, this->data, this->size);
+	self->size = other->size;
+	self->data = (char *) self->alloc->realloc(self->alloc, self->data, self->size);
+	memcpy(other->data, self->data, self->size);
 }
 
-void str_setss(string *this, const char *str, size_t size) {
-	this->size = size;
-	if (this->data == null) {
-		this->data = (char *) alloc(this->size);
-		memcpy((void *) str, this->data, this->size);
+void str_setss(string *self, const char *str, size_t size) {
+	self->size = size;
+	if (self->data == null) {
+		self->data = (char *) self->alloc->alloc(self->alloc, self->size);
+		memcpy((void *) str, self->data, self->size);
 		return;
 	}
-	this->data = (char *) realloc(this->data, this->size);
-	memcpy((void *) str, this->data, this->size);
+	self->data = (char *) self->alloc->realloc(self->alloc, self->data, self->size);
+	memcpy((void *) str, self->data, self->size);
 }
 
-void str_resize(string *this, size_t size) {
-	this->size = size;
-	if (this->data != null) {
-		this->data = (char *) realloc(this->data, size);
+void str_resize(string *self, size_t size) {
+	self->size = size;
+	if (self->data != null) {
+		self->data = (char *) self->alloc->realloc(self->alloc, self->data, size);
 	} else {
-		this->data = (char *) alloc(size);
+		self->data = (char *) self->alloc->alloc(self->alloc, size);
 	}
 }
 
@@ -169,10 +169,10 @@ bool str_cmpbs(const string *s1, const string *s2) {
 }
 
 
-void str_tokenize(const char* input, strvec_t* output) {
+void str_tokenize(const char* input, strvec_t* output, allocator_t* allocator) {
 	string token;
-	str(&token);
-	strvec_construct(output, 0);
+	str(&token, allocator);
+	strvec_construct(output, 0, allocator);
 
 	size_t cmdlen = strlen(input);
 	char* tstart = null;
@@ -187,7 +187,7 @@ void str_tokenize(const char* input, strvec_t* output) {
 				if (likely(tlen > 0)) {
 					str_setss(&token, tstart, tlen); //	copy data from cmdline
 					string *nstr = strvec_push(output, 1); //	push to strings
-					str(nstr); //	initialize string
+					str(nstr, allocator); //	initialize string
 					str_take_over(nstr, &token); //	take over token string
 				}
 				tlen = 0;
@@ -211,7 +211,7 @@ void str_tokenize(const char* input, strvec_t* output) {
 	if (likely(tlen > 0)) {
 		str_setss(&token, tstart, tlen); //	copy data from cmdline
 		string *nstr = strvec_push(output, 1); //	push to strings
-		str(nstr); //	initialize string
+		str(nstr, allocator); //	initialize string
 		str_take_over(nstr, &token); //	take over token string
 		nstr->size = tlen;
 	}

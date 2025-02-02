@@ -22,11 +22,11 @@ void ahci_init() {
 		return;
 	}
 
-	//	gather base address from pci config space (offset 0x24)
-	ahci_find();
+	//	gather address from PCI controller address register 5
+	ahci.base = (void*)pci_read_bar(ahci.pci_address, 5, null);
 
 	if (ahci.base == null) {
-		report("AHCI: could not find ahci base address\n", report_error);
+		report("AHCI: could not find ahci controller address\n", report_error);
 		return;
 	}
 
@@ -43,38 +43,38 @@ void ahci_init() {
 	}
 }
 
-void ahci_find() {
-	pci_memory_base base;
+/*void ahci_find() {
+	pci_memory_base controller;
 	u8 offset = (sizeof(pci_device_header) / sizeof(u32)) + 5;
 	{
-		u32 *ptr = (u32 *) &base;
-		*ptr = pci_read(ahci.pci_address.bus, ahci.pci_address.slot, ahci.pci_address.function, offset);
+		u32 *specific = (u32 *) &controller;
+		*specific = pci_read(ahci.pci_address.bus, ahci.pci_address.slot, ahci.pci_address.function, offset);
 	}
-	if (base.always_zero != 0) {
-		//	check if the base address is memory base address
-		report("base.always_zero != 0\n", report_error);
+	if (controller.always_zero != 0) {
+		//	check if the controller address is memory controller address
+		report("AHCI find: invalid controller address\n", report_error);
 		return;
 	}
 
-	switch (base.type) {
+	switch (controller.type) {
 		case 0: {
 			//	memory layout is 32-bit
-			ahci.base = (void *) ((((size_t) base.base << 4) + pages.hhdm));
+			ahci.controller = (void *) ((((size_t) controller.controller << 4) + pages.hhdm));
 			break;
 		}
 		case 1: {
 			//	reserved for PCI 3.0
-			report("AHCI base address is PCI 3.0\n", report_warning);
+			report("AHCI controller address is PCI 3.0\n", report_warning);
 			break;
 		}
 		case 2: {
 			//	64-bit address
-			size_t a = base.base << 4;
+			size_t a = controller.controller << 4;
 			a |= pci_read(ahci.pci_address.bus, ahci.pci_address.slot, ahci.pci_address.function, ++offset);
-			ahci.base = (void *) (a + pages.hhdm);
+			ahci.controller = (void *) (a + pages.hhdm);
 			break;
 		}
 		default: break;
 	}
-}
+}*/
 

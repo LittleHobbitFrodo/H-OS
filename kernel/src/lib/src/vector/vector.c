@@ -7,121 +7,121 @@
 
 #include "../../vector/vector.h"
 
-void vec_resize(multipurpose_vector *this, vec_len_t len) {
+void vec_resize(multipurpose_vector *self, u32 len) {
 	//	destruction of each popped element must be done manually
-	if (this->data == null) {
-		this->len = len;
-		this->data = alloc(this->len * this->bsize);
+	if (self->data == null) {
+		self->len = len;
+		self->data = self->alloc->alloc(self->alloc, self->len * self->bsize);
 		return;
-	} else if (this->len == len) {
+	} else if (self->len == len) {
 		return;
 	}
-	this->data = realloc(this->data, len * this->bsize);
-	this->len = len;
+	self->data = self->alloc->realloc(self->alloc, self->data, len * self->bsize);
+	self->len = len;
 }
 
-void vec_resizecd(multipurpose_vector *this, vec_len_t len, void (*construct)(void *), void (*destruct)(void *)) {
-	if (this->data == null) {
-		this->len = len;
-		this->data = alloc(this->len * this->bsize);
+void vec_resizecd(multipurpose_vector *self, u32 len, void (*construct)(void *), void (*destruct)(void *)) {
+	if (self->data == null) {
+		self->len = len;
+		self->data = self->alloc->alloc(self->alloc, self->len * self->bsize);
 		if (construct != null) {
-			for (size_t i = 0; i < this->len; i++) {
-				construct((void*)((size_t)this->data + (i * this->bsize)));
+			for (size_t i = 0; i < self->len; i++) {
+				construct((void*)((size_t)self->data + (i * self->bsize)));
 			}
 		}
 		return;
 	}
 
-	if (this->len == len) {
+	if (self->len == len) {
 		return;
 	}
 
-	if (this->len < len) {
+	if (self->len < len) {
 		if (destruct != null) {
 			//	destruct elements
-			for (size_t i = this->len - 1; i >= len; i--) {
-				destruct((void *) ((size_t) this->data + (i * this->bsize)));
+			for (size_t i = self->len - 1; i >= len; i--) {
+				destruct((void *) ((size_t) self->data + (i * self->bsize)));
 			}
 		}
-		this->data = realloc(this->data, len * this->bsize);
+		self->data = self->alloc->realloc(self->alloc, self->data, len * self->bsize);
 	} else {
-		this->data = realloc(this->data, len * this->bsize);
+		self->data = self->alloc->realloc(self->alloc, self->data, len * self->bsize);
 		if (construct != null) {
 			//	construct elements
-			for (size_t i = this->len; i < len; i++) {
-				construct((void *) ((size_t) this->data + (i * this->bsize)));
+			for (size_t i = self->len; i < len; i++) {
+				construct((void *) ((size_t) self->data + (i * self->bsize)));
 			}
 		}
 	}
-	this->len = len;
+	self->len = len;
 }
 
-void *vec_push(multipurpose_vector *this, vec_len_t count) {
-	if (this->data == null) {
-		this->len = count;
-		this->data = alloc(this->len * this->bsize);
-		return this->data;
+void *vec_push(multipurpose_vector *self, u32 count) {
+	if (self->data == null) {
+		self->len = count;
+		self->data = self->alloc->alloc(self->alloc, self->len * self->bsize);
+		return self->data;
 	}
-	size_t olen = this->len;
-	this->len += count;
-	this->data = realloca(this->data, this->len * this->bsize, VECTOR_REALLOC_ADD);
-	return (void *) ((size_t) this->data + (this->bsize * olen));
+	size_t olen = self->len;
+	self->len += count;
+	self->data = self->alloc->realloca(self->alloc, self->data, self->len * self->bsize, VECTOR_REALLOC_ADD);
+	return (void *) ((size_t) self->data + (self->bsize * olen));
 }
 
-void *vec_pushc(multipurpose_vector *this, vec_len_t count, void (*construct)(void *)) {
-	if (this->data == null) {
-		this->len = count;
-		this->data = alloc(this->len * this->bsize);
-		for (size_t i = 0; i < this->len; i++) {
-			construct((void *) ((size_t) this->data + (i * this->bsize)));
+void *vec_pushc(multipurpose_vector *self, u32 count, void (*construct)(void *)) {
+	if (self->data == null) {
+		self->len = count;
+		self->data = self->alloc->alloc(self->alloc, self->len * self->bsize);
+		for (size_t i = 0; i < self->len; i++) {
+			construct((void *) ((size_t) self->data + (i * self->bsize)));
 		}
-		return this->data;
+		return self->data;
 	}
-	size_t olen = this->len;
-	this->len += count;
-	this->data = realloca(this->data, this->len * this->bsize, VECTOR_REALLOC_ADD);
-	for (size_t i = olen; i < this->len; i++) {
-		construct((void *) ((size_t) this->data + (i * this->bsize)));
+	size_t olen = self->len;
+	self->len += count;
+	self->data = self->alloc->realloca(self->alloc, self->data, self->len * self->bsize, VECTOR_REALLOC_ADD);
+	for (size_t i = olen; i < self->len; i++) {
+		construct((void *) ((size_t) self->data + (i * self->bsize)));
 	}
-	return (void *) ((size_t) this->data + (this->bsize * olen));
+	return (void *) ((size_t) self->data + (self->bsize * olen));
 }
 
-void vec_pop(multipurpose_vector *this, vec_len_t count) {
-	if (this->data != null) {
-		if (this->len <= count) {
-			free(this->data);
-			this->data = null;
-			this->len = 0;
+void vec_pop(multipurpose_vector *self, u32 count) {
+	if (self->data != null) {
+		if (self->len <= count) {
+			self->alloc->free(self->alloc, self->data);
+			self->data = null;
+			self->len = 0;
 		} else {
-			this->len -= count;
-			this->data = realloc(this->data, this->len * this->bsize);
+			self->len -= count;
+			self->data = self->alloc->realloc(self->alloc, self->data, self->len * self->bsize);
 		}
 	}
 }
 
-void vec_popd(multipurpose_vector *this, vec_len_t count, void (*destruct)(void *)) {
-	if (this->data != null) {
-		if (this->len <= count) {
-			for (size_t i = 0; i < this->len; i++) {
-				destruct((void *) ((size_t) this->data + (i * this->bsize)));
+void vec_popd(multipurpose_vector *self, u32 count, void (*destruct)(void *)) {
+	if (self->data != null) {
+		if (self->len <= count) {
+			for (size_t i = 0; i < self->len; i++) {
+				destruct((void *) ((size_t) self->data + (i * self->bsize)));
 			}
-			free(this->data);
-			this->data = null;
-			this->len = 0;
+			self->alloc->free(self->alloc, self->data);
+			self->data = null;
+			self->len = 0;
 		} else {
-			for (size_t i = this->len - count; i < this->len; i++) {
-				destruct((void *) ((size_t) this->data + (i * this->bsize)));
+			for (size_t i = self->len - count; i < self->len; i++) {
+				destruct((void *) ((size_t) self->data + (i * self->bsize)));
 			}
-			this->len -= count;
-			this->data = realloc(this->data, this->len * this->bsize);
+			self->len -= count;
+			self->data = self->alloc->realloc(self->alloc, self->data, self->len * self->bsize);
 		}
 	}
 }
 
-void vec_take_over(multipurpose_vector* this, multipurpose_vector* other) {
-	this->data = other->data;
-	this->bsize = other->bsize;
-	this->len = other->len;
+void vec_take_over(multipurpose_vector* self, multipurpose_vector* other) {
+	self->data = other->data;
+	self->bsize = other->bsize;
+	self->len = other->len;
 
 	other->data = null;
 	other->bsize = 0;
@@ -129,14 +129,14 @@ void vec_take_over(multipurpose_vector* this, multipurpose_vector* other) {
 }
 
 
-void* vec_insert(multipurpose_vector* this, vec_len_t index, vec_len_t count) {
+void* vec_insert(multipurpose_vector* self, u32 index, u32 count) {
 	//	returns pointer to the inserted entry
-	if (this->data != null) {
-		vec_push(this, count);
-		for (ssize_t i = this->len - 1; (i+1 > (ssize_t)index) && (i > 0); i--) {
-			memcpy(vec_at(this, i-1), vec_at(this, i), this->bsize);
+	if (self->data != null) {
+		vec_push(self, count);
+		for (ssize_t i = self->len - 1; (i+1 > (ssize_t)index) && (i > 0); i--) {
+			memcpy(vec_at(self, i-1), vec_at(self, i), self->bsize);
 		}
-		return vec_at(this, ++index);
+		return vec_at(self, ++index);
 	}
 	return null;
 }

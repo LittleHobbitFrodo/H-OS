@@ -5,6 +5,8 @@
 
 #pragma once
 
+//	TODO: add limine multiprocessor feature
+
 #include "../cpu.h"
 
 void cpu_info() {
@@ -32,6 +34,12 @@ void cpu_info() {
 
 void cpu_init() {
 
+	size_t line = 0;
+
+	if (vocality >= vocality_report_everything) {
+		line = report("gathering information about CPU\n", report_note);
+	}
+
 	memnull(&cpu, sizeof(cpu_t));
 
 	cpu.vendor = null;
@@ -52,8 +60,10 @@ void cpu_init() {
 	}
 
 	if (cpu.vendor == null) {
-		report("could not find CPU vendor", report_critical);
-		panic(panic_code_cpu_vendor_not_found);
+		if (vocality >= vocality_report_everything) {
+			report_status("PARTIAL FAILURE", line, col.yellow);
+		}
+		report("could not find CPU vendor", report_warning);
 	}
 
 	//	detect cpu model name
@@ -73,23 +83,29 @@ void cpu_init() {
 	memcpy((void *) &txt, (void *) ((size_t) &cpu.model + sizeof(u32) * 8), 4 * sizeof(u32));
 	cpu.model[48] = '\0';
 
-	if ((vocality >= vocality_normal) && (cpu.vendor->environment != environment_hardware)) {
-		report("The OS is running under ", report_note);
-		print(cpu.vendor->name);
-		switch (cpu.vendor->environment) {
-			case environment_vm: {
-				printl(" hypervisor");
-				break;
+
+	if (vocality >= vocality_report_everything) {
+		if (cpu.vendor->environment != environment_hardware) {
+			report("the OS is running under ", report_note);
+			print(cpu.vendor->name);
+			switch (cpu.vendor->environment) {
+				case environment_vm: {
+					printl(" hypervisor");
+					break;
+				}
+				case environment_emulator: {
+					printl(" emulator");
+					break;
+				}
+				default:
+					break;
 			}
-			case environment_emulator: {
-				printl(" emulator");
-				break;
-			}
-			default: break;
+		} else {
+			report("real hardware detected\n", report_note);
 		}
 	}
 
 	if (vocality >= vocality_report_everything) {
-		report("CPU initialization completed\n", report_note);
+		report_status("SUCCESS", line, col.green);
 	}
 }

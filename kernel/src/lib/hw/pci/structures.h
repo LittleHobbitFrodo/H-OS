@@ -93,29 +93,25 @@ typedef struct pci_device_header {
 
 } __attribute__((packed)) pci_device_header;
 
-typedef struct pci_memory_base {
-
-	u32 always_zero:	1;
-	u32 type:			2;
+typedef struct pci_base_register {
+	u32 io_reg:			1;		//	1 = IO controller address, 0 = memory_base
+	u32 type:			2;		//	0 = 32 bit, 2 = 64 bit, 1 = reserved for PCI 3.0
 	u32 prefetchable:	1;
 	u32 base:			28;
+} __attribute__((packed)) pci_base_register;
 
-} __attribute__((packed)) pci_memory_base;
-
-typedef struct pci_io_base {
-
-	u32 always_one:		1;
-	u32 reserved:		1;
-	u32 base:			30;
-
-} __attribute__((packed)) pci_io_base;
+union pci_base_reg_u32 {
+	u32 u32;
+	pci_base_register reg;
+};
 
 
 typedef struct pci_header_general_device_t {
 	//	code: 0x0
+	//	https://wiki.osdev.org/PCI#PCI_Device_Structure
 
 	pci_device_header header;
-	pci_memory_base base_address[6];
+	pci_base_register base_address[6];
 
 	u32 cardbus_CIS_pointer;
 
@@ -138,7 +134,7 @@ typedef struct pci_header_pci_to_pci_t {
 	//	code: 0x1
 
 	pci_device_header header;
-	pci_memory_base base_address[2];
+	pci_base_register base_address[2];
 
 	u8 primary_bus_number;
 	u8 secondary_bus_number;
@@ -224,6 +220,7 @@ enum pci_device_classes {
 	pci_device_class_wireless_controller = 0xD,
 } pci_device_classes;
 
+
 enum pci_controller_mass_storage {
 	pci_mass_storage_scsi_bus = 0x0,
 	pci_mass_storage_ide = 0x1,
@@ -236,6 +233,11 @@ enum pci_controller_mass_storage {
 	pci_mass_storage_nvm_controller = 0x8,
 	pci_mass_storage_other = 0x80,
 } pci_controller_mass_storage;
+
+enum pci_nvm_controller {
+	pci_nvm_controller_nvme = 0x2,
+	pci_nvm_controller_nvmhci = 0x1
+};
 
 enum pci_serial_ata_programming {
 	pci_serial_ata_vendor_specific = 0x0,
@@ -250,3 +252,12 @@ enum pci_controller_base_peripheral {
 	pci_base_peripheral_rtc_controller = 0x3,
 	pci_base_peripheral_other = 0x80,
 } pci_controller_base_peripheral;
+
+#define pci_device_info_any 0xff
+
+typedef struct pci_device_info_t {
+	//	code for supported device or -1 for any
+	u8 class;
+	u8 subclass;
+	u8 programming;
+} pci_device_info_t;

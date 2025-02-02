@@ -36,10 +36,8 @@ enum panic_codes {
 	panic_code_unsupported_paging_mode,
 	panic_code_cannot_allocate_memory_for_kernel_heap,
 	panic_code_cannot_locate_kernel_entry,
-	panic_code_cannot_allocate_memory_for_stacks,
 	panic_code_unable_to_allocate_paging_table,
 	panic_code_base_addresses_not_available,
-	panic_code_cpu_vendor_not_found,
 	panic_code_cannot_locate_kernel_stack,
 	panic_code_paging_initialization_failure,
 	panic_code_gdt_initialization_failure,
@@ -48,6 +46,7 @@ enum panic_codes {
 	panic_code_failed_to_initialize_acpi,
 	panic_code_acpi_validation_failed,
 	panic_code_efi_systable_not_found,
+	panic_code_unsupported_firmware,
 } panic_codes;
 
 enum report_seriousness {
@@ -64,9 +63,29 @@ enum report_seriousness {
 
 extern void panic(enum panic_codes code);
 
-void report(const char *msg, enum report_seriousness seriousness);
+//static void stack_backtrace();
+
+size_t report(const char *msg, enum report_seriousness seriousness);
+void report_status(const char* msg, size_t line, u32 color);
+	//	in pair with report()
+	//	writes text at the end of the line
+
+static size_t* init_phase_status_line = null;
 
 
 static enum vocal vocality = vocality_normal;
 
 static enum kernel_states kernel_status = k_state_init_memory;
+
+
+void report_err(const char* msg, enum report_seriousness ser, const char* status_msg, size_t status_line, u32 status_color, enum vocal _vocality) {
+	if ((vocality >= _vocality) && (status_msg != null)) {
+		report_status(status_msg, status_line, status_color);
+	}
+	report(msg, ser);
+}
+
+/*typedef struct stack_frame {
+	u64 rsp;
+	u64 rbp;
+} stack_frame;*/

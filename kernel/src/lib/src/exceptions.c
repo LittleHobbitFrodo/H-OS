@@ -109,13 +109,15 @@ void handle_exception(exception_stack_frame *frame) {
 			break;
 		}
 		case exception_page_fault: {
-			report("page fault", report_critical);
+			report("page fault: ", report_critical);
 			if (frame->cr2 == 0) {
 				print(" (NULL)");
+			} else {
+				va_info((void*)frame->cr2);
 			}
 			endl();
 			hang();
-			break;
+			__builtin_unreachable();
 		}
 		case exception_floating_point: {
 			report("floating point exception\n", report_error);

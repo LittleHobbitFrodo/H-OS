@@ -18,7 +18,7 @@ _start:
 	cli
 
 	;   initialize kernel stack
-	mov rsp, [rel kernel_stack_ptr]
+	;mov rsp, [rel kernel_stack_ptr]
 
 	;   initialize machine
 	call init   ;   returns pointer to kernel stack

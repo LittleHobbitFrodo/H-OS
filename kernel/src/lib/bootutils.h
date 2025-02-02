@@ -50,7 +50,8 @@ static volatile struct limine_paging_mode_request req_page_mode = {
 
 static volatile struct limine_hhdm_request req_page_hhdm = {
 	.id = LIMINE_HHDM_REQUEST,
-	.revision = 2,
+	.revision = 0,
+	//	revision 0 maps memory <= 4Gig
 };
 
 static volatile struct limine_kernel_file_request req_kernel_file = {
@@ -79,7 +80,13 @@ static volatile struct limine_smbios_request req_smbios = {
 	.revision = 0
 };
 
+static volatile struct limine_firmware_type_request req_firmware_type = {
+	.id = LIMINE_FIRMWARE_TYPE_REQUEST,
+	.revision = 0
+};
+
 static volatile struct limine_efi_system_table_request req_efi_system_table = {
 	.id = LIMINE_EFI_SYSTEM_TABLE_REQUEST,
 	.revision = 0,
 };
+

@@ -8,19 +8,26 @@ end
 
 set include /usr/include
 
+set compiler_arguments ""
+
 set ccompiler "none"
+set cppcompiler "none"
 
 set DEBUG "0"
+
 for i in $argv
-  if test $i = "debug"
-    set DEBUG 1
+  switch $i
+    case "debug"
+      set DEBUG 1
+    case "-ignore-firmware-type"
+      set compiler_arguments $compiler_arguments -DIGNORE_FIRMWARE_TYPE=true
   end
 end
 
 for i in $PATH
 	if test -e "$i/x86_64-elf-gcc"
 		set ccompiler "$i/x86_64-elf-gcc"
-		echo using $ccompiler as c++ compiler
+		echo using $ccompiler as C compiler
 		break
 	end
 end
@@ -48,6 +55,7 @@ set acompiler "none"
 for i in $PATH
   if test -e "$i/nasm"
     set acompiler "$i/nasm"
+    echo using $acompiler as assembly compiler
   end
 end
 
@@ -58,15 +66,10 @@ if test $acompiler = "none"
   end
 end
 
-echo;echo;echo;echo
-echo compiling asm files ...
-
 for i in (find ./kernel/src/ -name "*.asm")
 
 	set bname (basename $i)
 	set bname (string replace ".asm" ".o" -- $bname)
-
-	echo compiling file $i
 
   if test $DEBUG = "0"
 	  $acompiler -f elf64 -o "./tmp/kernel/$bname" $i
@@ -81,16 +84,13 @@ set global_gcc_params -I$stdpath -ffreestanding -fPIE -nostdlib -nostartfiles \
 "-DKERNEL_NAME=\"H-OS CORE-$(cat ./kernel/version)\"" "-DKERNEL_BUILD_GUID=\"$(uuidgen)\"" -masm=intel \
 -fno-exceptions -fPIE -m64 -c
 
-echo;echo;echo;echo		#	endl
-echo compiling kernel ...
-
 if test $DEBUG = "0"
   $ccompiler $global_gcc_params -finline-functions -finline-limit=1000 -fno-stack-protector -fno-stack-check \
-  -fno-lto -mno-mmx -mno-sse -mno-sse2 -mno-red-zone "./kernel/src/kernel.c" -o "./tmp/kernel/kernel.o" -O3
+  -fno-lto -mno-mmx -mno-sse -mno-sse2 -mno-red-zone "./kernel/src/kernel.c" -o "./tmp/kernel/kernel.o" -O3 $compiler_arguments
 
 else
   $ccompiler $global_gcc_params -fno-inline -g -O0 -fno-omit-frame-pointer -DKERNEL_DEBUG \
-  "./kernel/src/kernel.c" -o "./tmp/kernel/kernel.o"
+  "./kernel/src/kernel.c" -o "./tmp/kernel/kernel.o" $compiler_arguments
 end
 
 if test ! -e "./tmp/kernel/kernel.o"

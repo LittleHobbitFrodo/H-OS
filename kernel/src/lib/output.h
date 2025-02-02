@@ -32,7 +32,7 @@ typedef struct screen_t {
 	u32 *address;
 } screen_t;
 
-static screen_t screen;
+static screen_t screen = {0};
 
 void screen_init();
 
@@ -40,22 +40,35 @@ static void screen_flush();
 
 static void screen_flush_at(size_t line, size_t column);
 
+typedef u32 color;
 
-static struct col {
-	u32 white;
-	u32 green;
-	u32 red;
-	u32 blue;
-	u32 critical;
+typedef struct output_colors {
+	color white;
+	color green;
+	color red;
+	color blue;
+	color critical;
 
-	u32 yellow;
-	u32 orange;
-	u32 cyan;
+	color yellow;
+	color orange;
+	color cyan;
 
-	u32 grey;
+	color grey;
 
-	u32 hint;
-} col;
+	color hint;
+} output_colors;
+
+static output_colors col = {.white = 0xffffff,
+	.green = 0x88ff88,
+	.red = 0xff8888,
+	.blue = 0x8888ff,
+	.critical = 0xff0000,
+	.yellow = 0xffff00,
+	.orange = 0xffa500,
+	.cyan = 0x00ffff,
+	.grey = 0xaaaaaa,
+	.hint = 0xaaaaaa};
+
 
 static struct output {
 	volatile size_t line;
@@ -64,7 +77,7 @@ static struct output {
 	u8 space_between_lines;
 	size_t fb;
 
-	u32 color;
+	color color;
 
 	volatile bool lock;
 } output;
@@ -89,10 +102,6 @@ void print(const char *s);
 
 void printl(const char *s);
 
-void prints(const string *s);
-
-void printsl(const string *s);
-
 void printi(const i64 i);
 
 void printu(const u64 u);
@@ -104,79 +113,9 @@ void printb(size_t bin);
 
 void printn(const char* str, size_t n);
 
+void _printc_8(const char c);
+void _printc_16(const char c);
+void _printc_32(const char c);
+void _printc_64(const char c);
 
-__attribute__((target("general-regs-only"))) static inline void printc(const char c) {
-	if (((c >= ' ') && (c <= '~')) || ((c == '\t') || (c == '\n'))) {
-		switch (c) {
-			case '\n': {
-				endl();
-				break;
-			}
-			case ' ': {
-				output.column++;
-				if (output.column >= screen.w) {
-					endl();
-				}
-				break;
-			}
-			case '\t': {
-				tab();
-				break;
-			}
-			default: {
-				u8 actual = c * (c > FONT_PLACE_SUB) - (FONT_PLACE_SUB * (c > FONT_PLACE_SUB));
-				u32 *ptr = screen.address + ((output.line * screen.w * (font.size + output.space_between_lines))) + (output.column * font.size);
-
-				switch (font.size) {
-					case 8: {
-						u8 *fnt;
-						for (u16 i = 0; i < font.size; i++) {
-							fnt = font.table[actual];
-							for (u16 ii = 0; ii < font.size; ii++) {
-								*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
-							}
-						}
-						break;
-					}
-					case 16: {
-						u16 *fnt;
-						for (u16 i = 0; i < font.size; i++) {
-							fnt = font.table[actual];
-							for (u16 ii = 0; ii < font.size; ii++) {
-								*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
-							}
-						}
-						break;
-					}
-					case 32: {
-						u32 *fnt;
-						for (u16 i = 0; i < font.size; i++) {
-							fnt = font.table[actual];
-							for (u16 ii = 0; ii < font.size; ii++) {
-								*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
-							}
-						}
-						break;
-					}
-					case 64: {
-						u64 *fnt;
-						for (u16 i = 0; i < font.size; i++) {
-							fnt = font.table[actual];
-							for (u16 ii = 0; ii < font.size; ii++) {
-								*(ptr + (i * screen.w) + (font.size - ii)) = output.color * ((fnt[i] >> ii) & 1);
-							}
-						}
-						break;
-					}
-					default: break;
-				}
-
-
-				output.column++;
-				if ((output.column * font.size) >= screen.w) {
-					endl();
-				}
-			}
-		}
-	}
-}
+static void (*printc)(const char) __attribute__((nonnull)) = _printc_8;

@@ -254,7 +254,7 @@ typedef struct {
 #define CHAR_CARRIAGE_RETURN            0x000D
 
 //
-// Scan codes for base line keys
+// Scan codes for controller line keys
 //
 
 #define SCAN_NULL                       0x0000

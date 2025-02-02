@@ -29,4 +29,4 @@ static void tss_init();
 	asm volatile("ltr %0" :: "r"(seg));
 }
 
-static tss_t tss;
+static tss_t tss = {0};

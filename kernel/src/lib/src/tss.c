@@ -12,10 +12,8 @@
 
 		//NOTE: INTERRUPT_STACKS is defined in memory.h
 
-		memset(&tss, sizeof(tss_t), 0);
-
 		for (size_t i = 0; i < 7; i++) {
-			tss.tss.ist[i] = (size_t)stack.interrupt[i];
+			tss.tss.ist[i] = (size_t)(&stack[i][(8*KB)-1]);
 		}
 		tss.tss.perms_offset = sizeof(tss_base_t);
 

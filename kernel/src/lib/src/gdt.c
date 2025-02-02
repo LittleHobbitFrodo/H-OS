@@ -7,9 +7,9 @@
 #include "../gdt.h"
 
 void gdt_init() {
-	//	flat memory model:	base must be 0, limit is ignored
+	//	flat memory model:	controller must be 0, limit is ignored
 
-	memset(&gdt, sizeof(gdt), 0);
+	tss_init();
 
 	gdt.kernel_code.flags = (gdt.user_code.flags = 0xA0);
 	gdt.kernel_data.flags = (gdt.user_data.flags = 0xA0);
@@ -31,6 +31,13 @@ void gdt_init() {
 }
 
 void gdt_update() {
+
+	size_t line = 0;
+
+	if (vocality >= vocality_report_everything) {
+		line = report("configuring legacy memory protection\n", report_note);
+	}
+
 	//	interrupts are disabled in init.asm
 
 	//	prepare gdt pointer
@@ -50,6 +57,7 @@ void gdt_update() {
 	tss_update(tsss);
 
 	if (vocality >= vocality_report_everything) {
-		report("legacy memory protection intialized\n", report_note);
+		report_status("SUCCESS", line, col.green);
 	}
+
 }

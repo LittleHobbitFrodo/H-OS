@@ -6,17 +6,33 @@ if test ! (basename (pwd)) = "H-OS"
 end
 
 set DEBUG "0"
+set IFT "0"
 for i in $argv
   switch $i
     case "debug"
       set DEBUG "1"
       echo debug mode
+    case "-ignore-firmware-type"
+      set IFT "1"
   end
 end
 
+set build_args ""
+
 if test $DEBUG = "1"
-  ./scripts/build mkimage debug
-else
-  ./scripts/build mkimage
+  set build_args "$build_args debug"
 end
+
+if test $IFT = "1"
+  set build_args $build_args -ignore-firmware-type
+end
+
+./scripts/build $build_args mkimage
+
+#if test $DEBUG = "1"
+#  ./scripts/build mkimage debug
+#else
+#  ./scripts/build mkimage
+#end
+
 ./scripts/emulate

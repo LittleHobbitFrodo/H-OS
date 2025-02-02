@@ -55,7 +55,7 @@ bool strncmpb(const char* s1, const char* s2, size_t n) {
 	return true;
 }
 
-void memcpy(void* src, void* dest, size_t size) {
+void memcpy(const void* src, void* dest, size_t size) {
 	for (size_t i = 0; i < size; i++) {
 		((u8 *) dest)[i] = ((u8 *) src)[i];
 	}
@@ -95,4 +95,32 @@ void memcpy_reverse(void* src, void* dest, size_t size) {
 	for (size_t i = size; i > 0; i--) {
 		((u8*)dest)[i-1] = ((u8*)src)[i-1];
 	}
+}
+
+ssize_t bitmap_find_cleared(const u64* bitmap, size_t size, size_t n) {
+	u64 chunk, mask = set_bits(n), max = 64-n;
+	size--;
+	for (size_t i = 0; i < size; i++) {
+		chunk = bitmap[i];
+		if (chunk == MAX_U64) {
+			continue;
+		}
+		//	in one chunk
+		for (size_t ii = 0; ii < max; ii++) {
+			if (((chunk >> ii) & mask) == 0) {
+				return (ssize_t)((i*64) + ii);
+			}
+		}
+		//	two qwords
+		const u64 tmp = bitmap[i+1];
+		u64 combined;
+		for (size_t ii = 0; ii < n; ii++) {
+			combined = (chunk >> (max + ii)) | (tmp << ii);
+			if ((combined & mask) == 0) {
+				return (ssize_t)((i*64) + ii + max);
+			}
+		}
+
+	}
+	return -1;
 }

@@ -10,50 +10,35 @@
 #define MB (1024 * 1024)
 #define GB (1024 * 1024 * 1024)
 
-static struct base {
+typedef struct membase_t {
 	void* virtual;
 	void* physical;
 	void* hhdm;
-} base;
+} membase_t;
+
+static membase_t base = {0};
 
 
-extern void* kernel_stack_ptr;
-
-static u8 KERNEL_STACK[32*KB];
-
-static u8 INTERRUPT_STACK[(8*7)*KB];
-
-void* kernel_stack_ptr = KERNEL_STACK;
-
-
-static bool kaslr = false;
-//	enable/disable kaslr
-//		enabled: places kernel stack and heap to "random" place
-//		disabled: always places stack and heap to the same location
-
-typedef struct stack_holder {
-	void* kernel;
-	void* interrupt[7];
-} stack_holder;
-
-static stack_holder stack;
+static u8 stack[7][8*KB];
 
 static void memory_init();
 
-__attribute__((always_inline)) inline void *align(void *ptr, size_t align) {
-	return (void *) (((u64) ptr + align - 1) & ~(align - 1));
-}
+#define align(val, algn) (((size_t)(val) + (algn) - 1) & ~((algn) - 1))
 
-static struct meminfo {
+
+
+typedef struct meminfo_t {
 	size_t total;
 	size_t usable;
 	size_t used;
 
 	size_t reserved; //	reserved memory
-	size_t ring0; //	ring 0 memory (kheap, stacks, acpi, fb, ...)
+	size_t system; //	ring 0 memory (kheap, stacks, acpi, fb, ...)
 
 	size_t unmapped; //	bad memory
-} meminfo;
+} meminfo_t;
+
+static meminfo_t meminfo = {0};
 
 
 enum memmap_types {
@@ -78,9 +63,7 @@ typedef struct memmap_entry {
 
 static void memmap_parse();
 
-//static void memmap_reclaim();
-
-static void memmap_analyze();
+[[maybe_unused]] static void memmap_analyze();
 
 [[maybe_unused]] static memmap_entry* memmap_find(enum memmap_types type);
 
@@ -90,5 +73,4 @@ enum memmap_types memmap_entry_type(u64 constant);
 [[maybe_unused]] static void memmap_display();
 [[maybe_unused]] static void memmap_display_original();
 
-
-//	memmap vector is declared in vector.h
+void memmap_ent_construct(memmap_entry* ent);

@@ -21,7 +21,7 @@ typedef struct uefi_t {
 	EFI_RUNTIME_SERVICES* runtime;
 } uefi_t;
 
-static uefi_t uefi;
+static uefi_t uefi = {0};
 
 enum uefi_reset_mode {
 	uefi__shutdown = (u8)((EFI_RESET_TYPE)EfiResetShutdown),

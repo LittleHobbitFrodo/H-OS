@@ -41,8 +41,8 @@ void shell() {
 	string input;
 	strvec_t tokens;
 
-	str(&input);
-	strvec_construct(&tokens, 0);
+	str(&input, &heap.global);
+	strvec_construct(&tokens, 0, &heap.global);
 
 	output.color = col.green;
 
@@ -175,7 +175,7 @@ void shell() {
 
 		str_pushc(&input, '\0');
 
-		str_tokenize(input.data, &tokens);
+		str_tokenize(input.data, &tokens, &heap.global);
 		str_clear(&input);
 
 		string* str = strvec_at(&tokens, 0);
@@ -199,20 +199,23 @@ void shell() {
 			time_update();
 			char* out = format_time((timespec_t*)&timespec, time_format_str);
 			print("time:\t"); printl(out);
-			free(out);
+			heap.global.free(&heap.global, out);
 		} else if (str_cmpb(str, "echo")) {		//	echo
 			if (tokens.len < 2) {
 				strvec_destruct(&tokens);
 				continue;
 			}
+			string* at;
 			if (str_cmpb((strvec_at(&tokens, 1)), "-no-linebreak")) {
 				for (size_t ii = 2; ii < tokens.len; ii++) {
-					prints((strvec_at(&tokens, ii))); printc(' ');
+					at = strvec_at(&tokens, ii);
+					printn(at->data, at->size); printc(' ');
 				}
 				endl();
 			} else {
 				for (size_t ii = 1; ii < tokens.len; ii++) {
-					printsl((strvec_at(&tokens, ii)));
+					at = strvec_at(&tokens, ii);
+					printn(at->data, at->size); endl();
 				}
 			}
 		} else if (str_cmpb(str, "exit")) {		//	exit
@@ -233,7 +236,7 @@ void shell() {
 			time_update();
 			char* tm = format_time((timespec_t*)&timespec, time_format_str);
 			output.color = col.blue; print(__shell_os_logo[2]); output.color = col.white; print("\t\ttime:\t"); printl(tm);
-			free(tm);
+			heap.global.free(&heap.global, tm);
 			output.color = col.blue; print(__shell_os_logo[3]); output.color = col.white; print("\t\tmemory:\t");
 			size_t mul, mem;
 
@@ -289,97 +292,98 @@ void shell() {
 			__builtin_unreachable();
 		} else if (str_cmpb(str, "heap")) {		//	heap
 			if ((tokens.len > 1) && (str_cmpb(&str[1], "page"))) {
-				page_heap_debug();
+				table_heap_debug(&pages.heap.global);
 			} else {
-				heap_debug();
+				heap_debug(&heap.global);
 			}
-		} else if (str_cmpb(str, "devices")) {
-			if (devices.len == 0) {
-				report("no devices found\n", report_error);
+		} else if (str_cmpb(str, "pci")) {
+			if (pci.devices.len == 0) {
+				report("no PCI devices found\n", report_error);
 				continue;
 			}
 
+			if (pci.devices.len == 1) {
+				printl("found 1 device:");
+			} else {
+				print("found "); printu(pci.devices.len); printl(" devices:");
+			}
+
 			device_t* device;
-			for (size_t ii = 0; ii < devices.len; ii++) {
-				device = devices_at(ii);
+			for (size_t ii = 0; ii < pci.devices.len; ii++) {
+				device = devices_at(&pci.devices, ii);
 				output.color = col.blue;
-				printu(ii); printc('\t');
+				print("device "); printu(i+1); endl();
+				output.color = col.white;
 				switch (device->type) {
-					case device_type_undefined: {
-						printl("undefined");
-						break;
-					}
-					case device_type_unsupported: {
-						printl("unsupported");
-						break;
-					}
 					case device_type_disk: {
-						printl("disk");
-						output.color = col.white;
-						if (device->ptr == null) {
-							printl("NULL");
-							break;
-						}
-						disk_t* disk = (disk_t*)device->ptr;
-						print("type:\t");
+						tab(); print("disk:\t");
+						disk_t* disk = device->specific;
 						switch (disk->type) {
-							case disk_type_undefined: {
-								printl("undefined"); break;
+							case disk_type_nvm: {
+								printl("NVMe");
+								break;
 							}
 							case disk_type_ssd: {
-								printl("ssd"); break;
-							}
-							case disk_type_nvm: {
-								printl("NVM"); break;
+								printl("SSD");
+								break;
 							}
 							case disk_type_hdd: {
-								printl("HDD"); break;
-							}
-							case disk_type_unsupported: {
-								printl("unsupported"); break;
+								printl("HDD");
+								break;
 							}
 							default: {
-								printl("unknown"); break;
+								printl("unknwon type");
+								break;
 							}
 						}
-						print("connection:\t");
-						switch (disk->connect.type & 0xfff) {
-							case device_connect_ahci: {
-								printl("AHCI"); break;
-							}
-							case device_connect_ata_bus: {
-								printl("ATA bus"); break;
-							}
-							case device_connect_nvm: {
-								printl("Non-volatile memory controller"); break;
-							}
-							case device_connect_vendor_specific: {
-								printl("vendor specific"); break;
-							}
-							case device_connect_unknown: {
-								printl("unknown"); break;
+
+						tab(); print("connect:\t");
+						switch (disk->header.connect.type) {
+							case device_connect_pci: {
+								printl("PCI");
+								break;
 							}
 							default: {
-								printl("unknown (default case)"); break;
+								printl("unknown");
+								break;
+							}
+						}
+
+						tab(); print("discovery:\t");
+						switch (disk->header.discovery.type) {
+							case device_discovery_pci: {
+								printl("PCI");
+								break;
+							}
+							default: {
+								printl("unknown");
 							}
 						}
 						break;
 					}
-					case device_type_base_peripheral: {
-						printl("base peripheral"); break;
-					}
-					case device_type_processor: {
-						printl("processor"); break;
-					}
-					case device_type_display_controller: {
-						printl("display controller"); break;
-					}
 					default: {
-						printl("unknown device"); break;
+						printl("unknown");
+						break;
 					}
 				}
 			}
 
+		} else if (str_cmpb(str, "timezone")) {
+			if ((tokens.len >= 1) && (strcmpb(tokens.data[1].data, "set"))) {
+
+			} else {
+				print("timezone:\t");
+				if (timezone == 0) {
+					printc('0'); endl();
+				} else {
+					if (timezone < 0) {
+						printc('-'); printu((u64)(-timezone));
+					} else {
+						printc('+'); printu((u64)timezone);
+					}
+					endl();
+				}
+			}
 		} else {
 			report("unknown command \"", report_error);
 			print(str->data);

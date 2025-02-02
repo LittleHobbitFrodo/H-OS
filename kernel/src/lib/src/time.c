@@ -22,7 +22,7 @@ void time_init() {
 
 	unixtime %= SECONDS_PER_DAY;
 
-	timespec.time.hours = (unixtime / SECONDS_PER_HOUR) + 2;	//hypothetical number lol
+	timespec.time.hours = (unixtime / SECONDS_PER_HOUR);	//hypothetical number lol
 	unixtime %= SECONDS_PER_HOUR;
 
 	timespec.time.minutes = unixtime / SECONDS_PER_MINUTE;
@@ -42,6 +42,14 @@ void time_init() {
 	}
 	timespec.date.months++;
 
+
+	if (vocality >= vocality_report_everything) {
+		report("time configured for UTC:\t", report_note);
+		const char* fmt = format_time((timespec_t*)&timespec, time_format_str);
+		printl(fmt);
+		heap.global.free(&heap.global, (void*)fmt);
+	}
+
 }
 
 void time_update() {
@@ -49,7 +57,7 @@ void time_update() {
 	timespec.time.milliseconds = tick %= 1000;	//	reset tick
 	timespec.time.minutes += timespec.time.seconds / 60;
 	timespec.time.seconds %= 60;
-	timespec.time.hours += timespec.time.minutes / 60;
+	timespec.time.hours += (timespec.time.minutes / 60) + timezone;
 	timespec.date.days += timespec.time.hours / 24;
 
 	//	months and years
@@ -64,7 +72,7 @@ void time_update() {
 
 char* format_time(timespec_t* time, const char* format) {
 	string ret;
-	str(&ret);
+	str(&ret, &heap.global);
 	size_t len = strlen(format);
 	for (size_t i = 0; i < len; i++) {
 		if (format[i] == '{') {

@@ -7,20 +7,9 @@
 #include "../k_management.h"
 
 void init() {
-	//	gather information about framebuffer
-	screen_init();
-	//	flush screen
-	screen_flush();
-
-	//	initialize font (bad implementation)
-	font_init();
 
 	//	initialize output structure
 	output_init();
-
-	#ifdef KERNEL_DEBUG
-		report("starting in DEBUG mode\n", report_debug);
-	#endif
 
 	//	parse command line arguments
 	parse_cmd();
@@ -41,6 +30,9 @@ void init() {
 
 
 void panic(enum panic_codes code) {
+	if ((init_phase_status_line != null) && (vocality >= vocality_report_everything)) {
+		report_status("CRITICAL ERROR", *init_phase_status_line, col.critical);
+	}
 	output.color = col.critical;
 	print("PANIC: CRITICAL ERROR");
 	output.color = col.white;
@@ -68,7 +60,7 @@ void panic(enum panic_codes code) {
 			break;
 		}
 		case panic_code_base_addresses_not_available: {
-			printl("base addressed (physical and virtual) are not available");
+			printl("controller addressed (physical and virtual) are not available");
 			break;
 		}
 		case panic_code_cannot_locate_kernel_stack: {
@@ -99,6 +91,14 @@ void panic(enum panic_codes code) {
 			printl("ACPI data structure validation failed");
 			break;
 		}
+		case panic_code_unsupported_firmware: {
+			printl("unsupported firmware platform");
+			break;
+		}
+		case panic_code_efi_systable_not_found: {
+			printl("EFI system table cannot be found");
+			break;
+		}
 		default: {
 			printl("unknown critical error");
 			break;
@@ -120,7 +120,10 @@ void panic(enum panic_codes code) {
 			printl("FAILED TO INITIALIZE HARDWARE");
 			break;
 		}
-		default: break;
+		default: {
+			printl("CRITICAL FAILURE DURING RUNTIME");
+			break;
+		}
 	}
 
 	output.color = col.white;
@@ -130,7 +133,8 @@ void panic(enum panic_codes code) {
 	__builtin_unreachable();
 }
 
-void report(const char *msg, enum report_seriousness seriousness) {
+size_t report(const char *msg, enum report_seriousness seriousness) {
+	size_t ret = output.line;
 	switch (seriousness) {
 		case report_note: {
 			output.color = col.blue;
@@ -166,6 +170,22 @@ void report(const char *msg, enum report_seriousness seriousness) {
 	output.color = col.white;
 	print(":\t");
 	print(msg);
+	return ret;
+}
+
+void report_status(const char* msg, size_t line, u32 color) {
+	const size_t ln = output.line, clm = output.column, cl = output.color;
+	output.line = line;
+
+	size_t slen = strlen(msg);
+	output.column = (screen.w / font.size) - slen;
+	output.color = color;
+
+	printn(msg, slen);
+
+	output.color = cl;
+	output.line = ln;
+	output.column = clm;
 }
 
 void shutdown() {
@@ -187,7 +207,7 @@ void shutdown() {
 
 void __parse_cmd_out_of_bounds(const string *token) {
 	report("command line argument error: expected anything for \'", report_problem);
-	prints(token);
+	printn(token->data, token->size);
 	printl("\', got nothing");
 }
 
@@ -234,7 +254,6 @@ void parse_cmd() {
 	char token[CMD_MAX_TOKEN_LEN];
 
 	if ((req_kernel_file.response == null) || (req_kernel_file.response->kernel_file == null)) {
-		report("unable to find kernel command line arguments -> using default values\n", report_warning);
 		return;
 	}
 	const char* cmd = req_kernel_file.response->kernel_file->cmdline;
@@ -265,16 +284,11 @@ void parse_cmd() {
 				__parse_cmd_report("unknown word \"", report_problem);
 				print(token); printl("\" for switch \"-vocality\"");
 			}
-		} else if (strcmpb(token, "kaslr")) {
+
+		}/* else if (strcmpb(token, "kaslr")) {
 
 			i += __parse_cmd_next_token(cmd, len, token, i);
-
-			if (strcmpb(token, "enable")) {
-				kaslr = true;
-				if (vocality >= vocality_report_everything) {
-					report("enabling kernel address space randomization\n", report_note);
-				}
-			} else if (strcmpb(token, "disable")) {
+			if (strcmpb(token, "disable")) {
 				if (vocality >= vocality_report_everything) {
 					report("disabling kernel address space randomization\n", report_note);
 				}
@@ -283,80 +297,6 @@ void parse_cmd() {
 				print(token); printl("\" for switch \"-kaslr\"");
 			}
 
-		}
-
+		}*/
 	}
-
-
-	return;
-
-	struct limine_file *file = req_kernel_file.response->kernel_file;
-	if (file == null) {
-		report("kernel file (provided by bootloader) is NULL => no parameters taken\n", report_problem);
-		return;
-	}
-	const char *cmd_ = file->cmdline;
-	if (file->cmdline == null) {
-		report("no command line arguments given\n", report_note);
-		return;
-	}
-
-	//	tokenize cmd
-	strvec_t tokens_;	//	strings
-	strvec_construct(&tokens_, 0);
-	str_tokenize(cmd_, &tokens_);
-
-	string *s = tokens_.data;
-
-	for (size_t i = 0; i < tokens_.len; i++) {
-		if (str_cmpb(&s[i], "-vocality")) {
-			if (++i < tokens_.len) {
-				if (unlikely(str_cmpb(&s[0], "stfu"))) {
-					vocality = vocality_stfu;
-				} else if (unlikely(str_cmpb(&s[i], "quiet-please"))) {
-					vocality = vocality_quiet_please;
-				} else if (unlikely(str_cmpb(&s[i], "normal"))) {
-					vocality = vocality_normal;
-				} else if (unlikely(str_cmpb(&s[i], "vocal"))) {
-					vocality = vocal;
-				} else if (unlikely(str_cmpb(&s[i], "report-everything"))) {
-					vocality = vocality_report_everything;
-					report("setting kernel vocality to \'report-everything\'\n", report_note);
-				} else {
-					__parse_cmd_report("unknown word \'", report_problem);
-					prints(&s[i]);
-					printl("\' for \'-vocality\' switch, setting default vocality to \'normal\'");
-				}
-			} else {
-				__parse_cmd_out_of_bounds(&s[i - 1]);
-			}
-		} else if (str_cmpb(&s[i], "-kaslr")) {
-			if (++i < tokens_.len) {
-				if (likely(str_cmpb(&s[i], "enable"))) {
-					if (vocality >= vocality_vocal) {
-						report("enabling KASLR\n", report_note);
-					}
-					kaslr = true;
-				} else if (unlikely(str_cmpb(&s[i], "disable"))) {
-					if (vocality >= vocality_vocal) {
-						report("disabling KASLR\n", report_note);
-					}
-					kaslr = false;
-				} else {
-					__parse_cmd_report("expected \'enable\' or \'disable\' for \'", report_problem);
-					prints(&s[i]);
-					printl("\', skipping");
-				}
-			} else {
-				__parse_cmd_out_of_bounds(&s[i - 1]);
-			}
-		} else {
-			__parse_cmd_report("unknown word \'", report_problem);
-			prints(&s[i]);
-			printl("\', skipping");
-		}
-	}
-
-	//	free vector memory
-	strvec_destruct(&tokens_);
 }

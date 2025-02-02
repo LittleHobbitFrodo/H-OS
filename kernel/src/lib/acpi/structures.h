@@ -155,7 +155,7 @@ enum acpi_tables {
 static enum acpi_tables acpi_resolve_table(const char* signature);
 
 typedef struct acpi_table_t {
-	acpi_sdt_header* ptr;
+	acpi_sdt_header* specific;
 	enum acpi_tables type;
 } acpi_table_t;
 

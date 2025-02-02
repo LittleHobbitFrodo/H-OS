@@ -38,7 +38,7 @@ typedef struct sata_register_host_to_device_frame {
 	u8 feature_h;
 
 	u16 count;
-	u8 icc;		//	Isonchronous command completion
+	u8 icc;		//	Isonchronous command completion_ptr
 	u8 control;
 
 	u32 reserved2;
